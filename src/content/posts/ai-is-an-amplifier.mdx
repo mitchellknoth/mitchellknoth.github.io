@@ -1,0 +1,66 @@
+---
+title: "AI is an amplifier: same model, same task, two different outcomes"
+summary: "AI does not fix a broken delivery system. It runs the one you already have at higher volume, and the harness around the model decides which direction that goes."
+date: 2026-08-07
+draft: false
+readingTime: "8 min"
+tags: ["ai", "sdlc", "agents", "platform"]
+---
+
+I ran the same change through two different engineering teams before I believed what I was seeing. Same task. Same agent. Same model. The only thing I changed was which delivery system the change had to move through, and the two paths didn't just diverge, they landed in different universes.
+
+## The same task, the same model, run through two delivery systems
+
+Team A ships on a scheduled release train, batches changes until the window opens, and finds out something broke when a customer says so. Team B ships small, reviewable changes continuously, gets a verdict from CI in minutes, and can watch a rollout in production well enough to roll it back before anyone outside the team notices.
+
+Neither is a bad team, a good team, an immature team, or a high-performing team. These are engineering-system conditions, most of them inherited over years, long before an agent ever touched either codebase. I want to be careful about that distinction, because it's the whole point: the agent didn't create the gap between these two teams. It just made the gap load-bearing.
+
+## AI does not fix a broken delivery system. It runs it at higher volume
+
+Four things decide which end of this spectrum a team sits at: what "correct" means, what pattern gets copied, who has the authority to say no, and how a team finds out it shipped something wrong. Read each one across its own weak-to-strong range and a pattern shows up immediately.
+
+Where "correct" lives only in someone's head, every gap becomes an invented answer, invisible in the diff. Where "correct" is an executable acceptance test, the agent can check itself before asking a human to. Where the nearest example in the codebase is a deprecated pattern, the agent copies the deprecated pattern, and now it spreads at the speed of generation instead of the speed of a human typing it by hand. Where guidance is current and scoped next to the work, the good pattern spreads at that same speed instead.
+
+Here's the part that took me longer to see: both ends are the same machine, running at the same volume. Only the input differed. AI is an **amplifier**, not a fix and not a judgment. It takes whatever condition your delivery system was already in and makes more of it, faster, before anyone has time to notice which direction it's amplifying.
+
+## The bottleneck didn't disappear. It moved to review
+
+On the strong end of that spectrum, something specific happens to where the effort goes. It used to be writing the code. Now it's product decisions, verification, and accountable review. The typing got cheap. The judgment about what's worth typing, and whether what got typed is actually correct, did not get cheap at all, and pretending otherwise is how a team ends up amplifying its own blind spots at scale.
+
+## An agent is a model plus a harness. I only get to build one of those
+
+I've started separating the two things people conflate when they talk about "the AI." There's the model, which generates, and which none of us are building. And there's the harness around it, which is everything that decides whether what the model generated is any good: guides that steer before it acts, sensors that judge after it acts, and hooks that enforce regardless of what it decides. Hooks always execute. Instructions are interpreted. That distinction has done more work for me than any prompt-engineering trick I've picked up.
+
+Zooming further into just the harness half of that split, here's roughly how I've come to think about its depth, from the ground up:
+
+<div class="skills-grid">
+  <div><span class="skills-cat">Operation</span><span class="skills-list">A harness that watches itself run in production, catches its own drift, and only wakes a human up when something genuinely can't resolve on its own.</span></div>
+  <div><span class="skills-cat">Scale</span><span class="skills-list">Multiple agents coordinating on the same work, instead of one agent doing everything in sequence.</span></div>
+  <div><span class="skills-cat">Assurance</span><span class="skills-list">The layer that scores whether the output is good, not just whether it ran.</span></div>
+  <div><span class="skills-cat">Specialization</span><span class="skills-list">Purpose-built guardrails for a specific kind of work, instead of one generic setup asked to do everything.</span></div>
+  <div><span class="skills-cat">Federated knowledge</span><span class="skills-list">The load-bearing layer. What a team believes about how it works, and why the codebase behaves the way it does. Everything above inherits whatever is wrong down here.</span></div>
+  <div><span class="skills-cat">Baseline control</span><span class="skills-list">The guides and conventions that steer behavior before anything runs.</span></div>
+  <div><span class="skills-cat">Runtime</span><span class="skills-list">Which model, on which provider. The one layer none of us are actually building.</span></div>
+</div>
+
+Six of these seven layers are things a team builds and owns. The bottom one is the only layer nobody at the harness level controls, and it's also the layer everyone talks about first.
+
+To make the federated-knowledge layer concrete: imagine the same request, "add pagination to an API, roll it out behind a flag," submitted twice. This is a composite example, not a specific incident, but it's built from real gaps I keep seeing. Against thin context, a vague ticket, stale docs, unclear ownership, no executable acceptance test, an agent doesn't fail loudly. It guesses, confidently, and the guess looks reviewable enough that a human has to reconstruct the missing assumptions by hand, which might be the single most expensive kind of work we could have asked for. Against trusted context, intent and ownership resolve in one lookup, the architecture decision records say what was chosen and what was rejected, and "correct" is something the agent can execute instead of something it has to narrate. Same request. Same model. The only variable was whether the evidence existed anywhere the agent could reach it.
+
+## We are not the QA department for our agents
+
+Thin context has one predictable end state: a human reads every diff, because nothing else can be trusted to catch what's wrong with it. That isn't review. It's manual QA with extra steps, and it scales exactly as badly as it sounds. A trustworthy harness changes what a human's attention is for. Style, lint, routine correctness, tests: that's the harness's job, and a human re-checking it by eye adds latency and nothing else. Legal risk, trust boundaries, security-sensitive code, product sense, design taste: that's still ours, and it always will be. This isn't removing people from review. It's routing our attention to the parts only we can actually do, and that routing is only possible once the harness is trustworthy enough to hold the rest.
+
+## An outside company found the same thing, independently
+
+I don't love citing someone else's result to back up my own thesis, so I want to be precise about what this does and doesn't prove. In April 2026, Ramp's CEO and its internal AI lead each [posted](https://x.com/eglyman/status/2043362828178841860) about the company's internal AI rollout. The claim was that 99% of the company used AI daily, and that most people were still stuck, not because the models weren't good enough, but because setup was too painful: terminal configs, credentials, everyone figuring it out alone. The [follow-up post](https://x.com/sebgoddijn/status/2042285915435937816) carried it as a subtitle outright: "the models are good enough, the harness isn't." Their fix was a workspace configured on day one through single sign-on, plus an internal marketplace of more than 350 shared skills so one person's solved problem becomes everyone's default.
+
+The transferable claim here is narrow and I want to keep it narrow: it's about setup and discoverability being the actual bottleneck, not the model. It is not an independently audited productivity claim, both sources are the company's own account of itself, posted to social media rather than published anywhere with editorial review, and Ramp is a fintech company, not whatever your company makes. What I take from it isn't proof. It's that a team with zero contact with mine ran into the same wall and wrote down the same diagnosis, publicly, with their names on it. That's corroboration, not confirmation, and the actual test is still whether any of this holds up against my own team's data, which I don't have yet.
+
+## Building the foundations most teams already know they're missing
+
+None of this requires a program, a budget, or permission to start. Documentation current enough that a new hire could infer the answer without asking. A codebase where the pattern nearest to any given change is the pattern you'd actually want copied. Local checks fast enough that opening a PR feels safe instead of speculative. A pipeline trusted enough to let dependency updates through automatically. A release process where rollback is rehearsed instead of theoretical. Observability that tells you a feature is bad before a customer has to.
+
+Every one of those existed before agents did. Agents didn't create the need for them. They made the absence of them expensive, faster than it used to be.
+
+AI was never going to tell me whether my delivery system was good. It was only ever going to tell me how good it already was, louder and faster than I was ready for. I still don't know exactly where my own team sits on that spectrum, layer by layer. I know it's not uniformly the strong end, and I'd rather say that plainly than let a framework this tidy imply otherwise.
