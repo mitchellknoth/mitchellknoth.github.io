@@ -1,0 +1,84 @@
+---
+title: "The Harness Has Seven Layers. Most Teams Stop Building at the Second."
+summary: "A depth model for agent harnesses, and why the layers a team builds first are rarely the ones holding everything else up."
+date: 2026-08-07
+draft: true
+eyebrow: "Essay · Agentic engineering"
+tags: ["ai", "agents", "engineering", "sdlc"]
+---
+
+import ArticleToc from '../../components/writing/ArticleToc.astro';
+import DepthStack from '../../components/writing/DepthStack.astro';
+import PracticeCard from '../../components/writing/PracticeCard.astro';
+import RelatedWork from '../../components/writing/RelatedWork.astro';
+
+Ask a team whether they have a harness around their coding agents and most will say yes. Ask what that means and the answer is usually a README the agent reads and a linter that runs in CI. That is a harness. It is also roughly two layers deep out of a stack that goes down seven.
+
+<ArticleToc
+  items={[
+    { href: '#the-stack', label: 'The stack' },
+    { href: '#depth-has-an-order', label: 'Depth has an order' },
+    { href: '#where-the-other-two-pieces-sit', label: 'Where the other two pieces sit' },
+    { href: '#an-honest-accounting', label: 'An honest accounting' },
+  ]}
+/>
+
+<h2 id="the-stack">The stack</h2>
+
+Neither guides nor controls nor sensors tell you how much of the surrounding system actually exists. A team can have excellent guides and still be running a two-layer harness. Depth is a different question from quality, and it is the one most conversations about agent tooling skip.
+
+<DepthStack
+  layers={[
+    { number: '07', label: 'Operation', description: "A harness that watches itself run in production, catches its own drift, and only wakes a human up when something genuinely can't resolve on its own." },
+    { number: '06', label: 'Scale', description: 'Multiple agents coordinating on the same work, instead of one agent doing everything in sequence.' },
+    { number: '05', label: 'Assurance', description: 'The layer that scores whether the output is good, not just whether it ran.' },
+    { number: '04', label: 'Specialization', description: 'Purpose-built guardrails for a specific kind of work, instead of one generic setup asked to do everything.' },
+    { number: '03', label: 'Federated knowledge', description: 'What a team believes about how it works, and why the codebase behaves the way it does. Everything above this line inherits whatever is wrong down here.', bedrock: true },
+    { number: '02', label: 'Baseline control', description: 'The guides and conventions that steer behavior before anything runs.' },
+    { number: '01', label: 'Runtime', description: 'Which model, on which provider. The one layer none of us are actually building.' },
+  ]}
+/>
+
+Six of these seven are things a team builds and owns. The bottom one is the only layer nobody at the harness level controls, and it is also the layer every conversation about "which model is best" spends the most time on.
+
+<h2 id="depth-has-an-order">Depth has an order</h2>
+
+The stack is not a menu. It is a dependency graph, and the dependency runs downward. Federated knowledge sits under specialization, assurance, scale, and operation, which means every layer above it is only as trustworthy as what is buried at layer three. A team can build an impressive multi-agent orchestration setup, layer six, on top of documentation that is two architectures out of date, layer three, and the demo will work. It will keep working right up until the day the coordination between agents starts amplifying the same stale assumption in parallel instead of one agent guessing wrong in isolation.
+
+That is the failure mode worth naming: depth built out of order does not fail loudly at the top. It fails quietly at the bottom, and the layers stacked above it just get better at being confidently wrong.
+
+Most teams build top-down anyway, and it is not hard to see why. Scale and specialization are visible. They demo well. Federated knowledge is a wiki nobody wants to own, an architecture decision record nobody wants to write, a "why does this code behave this way" answer that lives in one person's head. Nothing about layer three is exciting. Everything above it depends on it regardless.
+
+<h2 id="where-the-other-two-pieces-sit">Where the other two pieces sit</h2>
+
+This site has two other pieces about agent harnesses, and it is worth being precise about how this one relates to them instead of quietly restating either.
+
+<RelatedWork
+  href="/writing/the-model-is-table-stakes/"
+  title="The Model Is Table Stakes. The Harness Is the Engineering."
+  description="A taxonomy of what a harness is made of: guides, controls, sensors, and the loop that turns a failure into infrastructure. That essay is about the quality of a single decision cycle."
+/>
+
+<RelatedWork
+  href="/writing/done-is-a-claim-not-a-state/"
+  title="Done Is a Claim, Not a State"
+  description="An evidence ladder for one specific claim: whether a given transition actually happened. That essay does not depend on which layer of the stack produced the claim."
+/>
+
+Both of those are about depth at a single point: is this decision well-formed, is this claim proven. Neither says anything about how far down the surrounding system actually goes, which is a different axis entirely. A team can run an excellent, well-evidenced decision cycle at layer two and still have no federated knowledge, no specialization, and no idea whether the harness is drifting in production. Rigor at one layer does not imply depth across the stack.
+
+<h2 id="an-honest-accounting">An honest accounting</h2>
+
+<PracticeCard
+  headingId="an-honest-accounting"
+  title="Before you claim depth"
+  steps={[
+    'Could a new engineer explain why this codebase behaves the way it does, without asking you?',
+    'Is there a scoring signal for whether output is good, separate from whether it merely ran?',
+    'If ten agents worked on this repository at once, would they collide on an assumption nobody wrote down?',
+    'Does the harness tell you it is drifting, or do you find out from a person downstream?',
+    'Which of these seven layers are real today, and which are aspirational?',
+  ]}
+/>
+
+I do not have the deepest layers of this stack built either. Guides and baseline control, yes. Federated knowledge, partial and I would not call it durable yet. Assurance, scale, and self-monitoring operation, mostly aspirational. Naming the order is the point: the honest move is building layer three before layer six, not pretending the gap between them does not exist because layer six makes the better demo.

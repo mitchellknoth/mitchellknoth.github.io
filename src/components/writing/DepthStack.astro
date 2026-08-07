@@ -1,0 +1,124 @@
+---
+interface Layer {
+  number: string;
+  label: string;
+  description: string;
+  bedrock?: boolean;
+}
+
+interface Props {
+  layers: Layer[];
+}
+
+const { layers } = Astro.props;
+---
+
+<section class="depth-stack" aria-labelledby="the-depth-stack">
+  <header>
+    <div class="mono-meta">Read top to bottom</div>
+    <h2 id="the-depth-stack">How deep the harness actually goes</h2>
+  </header>
+  <ol>
+    {
+      layers.map((layer) => (
+        <li class:list={{ bedrock: layer.bedrock }}>
+          <span class="depth-num" aria-hidden="true">
+            {layer.number}
+          </span>
+          <div>
+            <h3>
+              {layer.label}
+              {layer.bedrock && <span class="bedrock-tag">Load-bearing</span>}
+            </h3>
+            <p>{layer.description}</p>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .depth-stack {
+    border: 1px solid var(--editorial-border);
+    border-radius: 6px;
+    margin: 2.25rem 0;
+    overflow: hidden;
+  }
+
+  .depth-stack header {
+    padding: 1rem 1.25rem 0.85rem;
+  }
+
+  .depth-stack header h2 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.5rem, 6vw, 1.9rem);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin: 0.5rem 0 0;
+  }
+
+  .depth-stack ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .depth-stack li {
+    border-top: 1px solid var(--editorial-border);
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    padding: 1rem 1.25rem;
+  }
+
+  .depth-stack li.bedrock {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  .depth-num {
+    color: var(--fg-dim);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding-top: 0.15rem;
+  }
+
+  .depth-stack li.bedrock .depth-num {
+    color: var(--accent);
+  }
+
+  .depth-stack h3 {
+    align-items: baseline;
+    color: var(--fg);
+    display: flex;
+    flex-wrap: wrap;
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    font-weight: 400;
+    gap: 0.6rem;
+    margin: 0 0 0.35rem;
+  }
+
+  .bedrock-tag {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .depth-stack p {
+    color: var(--fg-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  @media (max-width: 560px) {
+    .depth-stack li {
+      grid-template-columns: 1fr;
+      gap: 0.35rem;
+    }
+  }
+</style>
