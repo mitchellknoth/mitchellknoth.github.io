@@ -1,9 +1,11 @@
 ---
 import Base from '../../layouts/Base.astro';
 import PostRow from '../../components/PostRow.astro';
-import { getPublishedPosts } from '../../lib/content';
+import FeaturedPost from '../../components/writing/FeaturedPost.astro';
+import { getPublishedPosts, splitFeaturedPost } from '../../lib/content';
 
 const posts = await getPublishedPosts();
+const { featured, archive } = splitFeaturedPost(posts);
 ---
 
 <Base title="Writing" description="Notes on AI-native development, cloud networking, and enterprise platform engineering.">
@@ -16,19 +18,33 @@ const posts = await getPublishedPosts();
 
   <div>
     {
-      posts.length === 0 ? (
+      !featured ? (
         <p class="text-[14px]" style="color: var(--fg-dim);">
           Nothing published yet.
         </p>
       ) : (
-        posts.map((post) => (
-          <PostRow
-            href={`/writing/${post.id}/`}
-            date={post.data.date}
-            title={post.data.title}
-            readingTime={post.data.readingTime}
-          />
-        ))
+        <>
+          <FeaturedPost post={featured} />
+          {archive.length > 0 && (
+            <section class="mt-12" aria-labelledby="writing-archive-title">
+              <h2
+                id="writing-archive-title"
+                class="mono-meta border-b pb-3"
+                style="border-color: var(--border);"
+              >
+                Archive
+              </h2>
+              {archive.map((post) => (
+                <PostRow
+                  href={`/writing/${post.id}/`}
+                  date={post.data.date}
+                  title={post.data.title}
+                  readingTime={post.data.readingTime}
+                />
+              ))}
+            </section>
+          )}
+        </>
       )
     }
   </div>

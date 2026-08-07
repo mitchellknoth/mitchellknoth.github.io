@@ -1,0 +1,41 @@
+---
+interface Props {
+  href: string;
+  title: string;
+  description: string;
+}
+
+const { href, title, description } = Astro.props;
+---
+
+<aside class="related-work" aria-labelledby="related-work-title">
+  <div class="mono-meta">Related work</div>
+  <h2 id="related-work-title"><a href={href}>{title}</a></h2>
+  <p>{description}</p>
+</aside>
+
+<style>
+  .related-work {
+    border-top: 1px solid var(--editorial-border);
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+  }
+
+  .related-work h2 {
+    font-family: var(--font-serif);
+    font-size: 1.55rem;
+    font-weight: 400;
+    line-height: 1.2;
+    margin: 0.4rem 0;
+  }
+
+  .related-work h2 a {
+    color: var(--accent);
+  }
+
+  .related-work p {
+    color: var(--fg-muted);
+    font-size: 0.92rem;
+    margin: 0;
+  }
+</style>

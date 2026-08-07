@@ -1,0 +1,70 @@
+---
+interface Props {
+  title: string;
+  steps: string[];
+  headingId?: string;
+}
+
+const { title, steps, headingId = 'practice-card-title' } = Astro.props;
+---
+
+<aside class="practice-card" aria-labelledby={headingId}>
+  <div class="mono-meta">Field card</div>
+  <h2 id={headingId}>{title}</h2>
+  <ol>
+    {steps.map((step) => <li>{step}</li>)}
+  </ol>
+</aside>
+
+<style>
+  .practice-card {
+    border: 1px solid var(--editorial-border);
+    border-radius: 6px;
+    break-inside: avoid;
+    margin: 2.5rem 0 1.25rem;
+    padding: 1.15rem 1.3rem 1.25rem;
+  }
+
+  .practice-card h2 {
+    font-family: var(--font-serif);
+    font-size: 1.85rem;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    margin: 0.35rem 0 0.65rem;
+  }
+
+  .practice-card ol {
+    counter-reset: audit-step;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .practice-card li {
+    counter-increment: audit-step;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    margin: 0;
+    padding: 0.55rem 0;
+  }
+
+  .practice-card li + li {
+    border-top: 1px solid var(--editorial-border);
+  }
+
+  .practice-card li::before {
+    color: var(--accent);
+    content: counter(audit-step, decimal-leading-zero);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding-top: 0.15rem;
+  }
+
+  @media print {
+    .practice-card {
+      border-color: currentColor;
+    }
+  }
+</style>

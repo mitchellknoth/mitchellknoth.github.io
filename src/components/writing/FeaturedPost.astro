@@ -1,0 +1,78 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { formatPostDate } from '../../lib/content';
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+  headingLevel?: 'h2' | 'h3';
+}
+
+const { post, headingLevel = 'h2' } = Astro.props;
+const Heading = headingLevel;
+const href = `/writing/${post.id}/`;
+const dateLabel = formatPostDate(post.data.date);
+---
+
+<article class="featured-post">
+  <div class="mono-meta">Featured essay · {dateLabel}</div>
+  <Heading class="prose-serif">
+    <a href={href}>{post.data.title}</a>
+  </Heading>
+  <p>{post.data.summary}</p>
+  <a class="featured-post__link" href={href}>
+    Read the field guide <span aria-hidden="true">→</span>
+  </a>
+</article>
+
+<style>
+  .featured-post {
+    border: 1px solid var(--editorial-border);
+    border-radius: 6px;
+    background: var(--bg-elevated);
+    padding: 1.4rem;
+  }
+
+  .featured-post h2,
+  .featured-post h3 {
+    color: var(--fg);
+    font-size: clamp(1.55rem, 5vw, 2rem);
+    line-height: 1.15;
+    margin: 0.65rem 0;
+  }
+
+  .featured-post h2 a,
+  .featured-post h3 a {
+    transition: color 150ms ease;
+  }
+
+  .featured-post h2 a:hover,
+  .featured-post h3 a:hover {
+    color: var(--accent);
+  }
+
+  .featured-post p {
+    color: var(--fg-muted);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin: 0 0 1rem;
+    max-width: 60ch;
+  }
+
+  .featured-post__link {
+    color: var(--accent);
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    min-height: 24px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  @media (pointer: coarse) {
+    .featured-post__link {
+      align-content: center;
+      min-height: 44px;
+    }
+  }
+</style>

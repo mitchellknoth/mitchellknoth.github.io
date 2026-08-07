@@ -44,6 +44,7 @@
   --fg-dim: var(--color-fg-dim);
   --accent: var(--color-accent);
   --accent-dim: var(--color-accent-dim);
+  --editorial-border: #706654;
 }
 
 :root[data-theme="light"] {
@@ -57,6 +58,7 @@
   --fg-dim: var(--color-fg-dim-light);
   --accent: #866214; /* darkened from #a07a26 to clear WCAG AA (4.5:1) for text/links on light bg */
   --accent-dim: var(--color-accent);
+  --editorial-border: #91856d;
 }
 
 html {
@@ -219,7 +221,7 @@ button:focus-visible,
   font-size: 0.88em;
   padding: 1em 1.1em;
   border-radius: 6px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: var(--bg-elevated) !important;
   overflow-x: auto;
   margin: 1.5em 0;
@@ -228,6 +230,14 @@ button:focus-visible,
   background: transparent;
   border: none;
   padding: 0;
+}
+
+:root[data-theme="dark"] .content pre.astro-code {
+  color: var(--shiki-dark);
+  background: var(--shiki-dark-bg) !important;
+}
+:root[data-theme="dark"] .content pre.astro-code span {
+  color: var(--shiki-dark) !important;
 }
 .content hr {
   border: 0;
@@ -242,6 +252,80 @@ button:focus-visible,
   text-transform: uppercase;
   color: var(--accent);
   border-bottom: none;
+}
+
+/* =============================================================
+   Long-form editorial patterns
+   ------------------------------------------------------------- */
+.content .article-header h1 {
+  font-size: clamp(2.45rem, 9vw, 3.45rem);
+  margin: 0;
+}
+
+.content .article-eyebrow {
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--fg-muted);
+  display: inline-block;
+  padding: 0.32rem 0.7rem;
+}
+
+.content :is(h2, h3)[id] {
+  scroll-margin-top: 1rem;
+}
+
+.content :is(h2, h3)[id]:target {
+  outline: 2px solid var(--accent);
+  outline-offset: 0.25rem;
+}
+
+.content .rule-callout {
+  border-left: 3px solid var(--accent);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-style: normal;
+  margin: 2rem 0;
+  padding: 0.35rem 0 0.35rem 1.25rem;
+}
+
+.content .rule-callout p {
+  margin: 0;
+}
+
+.content .sr-only {
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.content sup a {
+  border-bottom: 0;
+  padding: 0.1rem;
+}
+
+@media (max-width: 639px) {
+  .content {
+    max-width: 100%;
+  }
+
+  .content h2,
+  .content h3,
+  .content p,
+  .content li,
+  .content a {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media print {
+  .content a {
+    color: currentColor;
+  }
 }
 
 /* =============================================================

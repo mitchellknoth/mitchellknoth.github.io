@@ -1,0 +1,125 @@
+---
+title: "The Model Is Table Stakes. The Harness Is the Engineering."
+summary: "A provider-neutral field guide to what agents are told, what systems enforce, what outcomes reveal, and how failures become infrastructure."
+date: 2026-07-24
+draft: false
+eyebrow: "Essay · Agentic engineering"
+tags: ["ai", "agents", "engineering", "sdlc"]
+---
+
+import ArticleToc from '../../components/writing/ArticleToc.astro';
+import FrameworkPanel from '../../components/writing/FrameworkPanel.astro';
+import HarnessMap from '../../components/writing/HarnessMap.astro';
+import PracticeCard from '../../components/writing/PracticeCard.astro';
+import RelatedWork from '../../components/writing/RelatedWork.astro';
+
+Model capability matters. A stronger model can reason across a larger problem, recover from ambiguity, and use tools more effectively. But capability alone does not make delivery reliable. Reliability belongs to the complete system around the model: the context it can reach, the actions it may take, the checks that can stop it, and the way failures change the next run.
+
+That complete-system view is useful precisely because model progress is real. If every improvement is credited to “the AI,” the engineering decisions surrounding it become invisible—and therefore difficult to inspect, compare, or improve.
+
+<ArticleToc
+  items={[
+    { href: '#the-harness-map', label: 'The harness map' },
+    { href: '#the-interpretation-boundary', label: 'The interpretation boundary' },
+    { href: '#an-illustrative-workflow', label: 'An illustrative workflow' },
+    { href: '#audit-the-harness', label: 'The audit' },
+  ]}
+/>
+
+<FrameworkPanel />
+
+This equation is a **practice-derived operating lens**, not a scientific definition:
+
+> **Agent = Model + Harness**
+
+The model supplies learned capability. The harness makes that capability operational: instructions, retrieved context, tools, permissions, workflow state, validation, review, and feedback. Different products draw the boundary differently, but the inspection question stays useful: *what besides the model determines whether this run succeeds?*
+
+That question also keeps tool evaluations honest. [DORA’s 2025 research](https://dora.dev/research/2025/dora-report/) describes AI as an amplifier of an organization’s existing strengths and weaknesses, with outcomes shaped by the surrounding organizational system—not by tool adoption alone. [METR’s controlled study of experienced open-source developers](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/) found a slowdown in its specific early-2025 setting, then explicitly warned against generalizing that result to most software work. METR later [reported that a follow-up study could not provide a reliable current productivity estimate](https://metr.org/blog/2026-02-24-uplift-update/) because participation choices introduced selection bias. Together, those results argue for bounded evaluation of tasks, conditions, artifacts, and quality—not a universal speedup number.
+
+<HarnessMap />
+
+The sequence is deliberate:
+
+1. **Guides** shape judgment. They include repository instructions, examples, architectural context, tool descriptions, and reusable skills.
+2. **Controls** constrain action. They include permissions, protected branches, approval gates, policy checks, and lifecycle hooks.
+3. **Sensors** expose outcomes. Tests, type checks, linters, CI, security scans, traces, and human review turn output into evidence.
+4. **Compounding** changes the system. A repeated miss becomes a clearer guide, a deterministic control, a regression test, or a reusable workflow.
+
+This is not an exhaustive taxonomy. It is a way to walk a system in execution order and find where confidence is being assumed rather than produced. Anthropic’s work on [context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), [long-running harnesses](https://www.anthropic.com/engineering/harness-design-long-running-apps), and [agent evaluations](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) treats context, environment state, tools, trajectories, and outcome quality as engineering concerns around the model. OpenAI’s [harness engineering report](https://openai.com/index/harness-engineering/) likewise describes repository knowledge, mechanical enforcement, and failure feedback as parts of the system that make long-running agent work reliable.
+
+## The interpretation boundary
+
+Instructions and examples are powerful because they leave room for judgment. That is also their limit: the model interprets them.
+
+<blockquote class="rule-callout">
+  <p>If a requirement must always hold, do not leave it only to interpretation.</p>
+</blockquote>
+
+A naming convention may belong in guidance because the right choice depends on local context. A prohibition on committing credentials belongs in deterministic scanning and repository policy. A request to explain a migration belongs in instructions; a rule that the migration must pass belongs in CI. The question is not whether instructions are good or controls are good. It is whether each requirement sits on the correct side of the interpretation boundary.
+
+Controls should remain proportional to risk. Too few controls turn preferences into wishful thinking. Too many can make useful work impossible or push every decision into brittle rules. Keep judgment where judgment is valuable; enforce invariants where violation is unacceptable.
+
+## An illustrative workflow
+
+Consider an **illustrative**, provider-neutral dependency update. It is not a report of a private repository or a measured productivity result.
+
+1. **Frame the task.** The agent receives a specific package target, supported version range, acceptance criteria, and a stop condition.
+2. **Load relevant context.** Repository guidance identifies the package manager, lockfile policy, test commands, generated-file rules, and known compatibility constraints.
+3. **Bound the actions.** Tool permissions allow editing the manifest and lockfile but require approval for unrelated files, network publishing, or destructive commands.
+4. **Generate an inspectable change.** The agent updates the dependency and records the relevant release-note or compatibility evidence.
+5. **Run the sensors.** Installation, focused tests, type checks, the build, dependency policy, and human review can reject the change. Their outputs travel with the patch.
+6. **Compound the result.** If the same failure recurs—perhaps a generated file is regularly missed—the repository gains a check, a test, or a reusable update workflow instead of another reminder in chat.
+
+The model remains important throughout. A weak model may misunderstand a compatibility note or choose an irrelevant fix. But the harness determines which context it sees, how far a mistake can travel, what evidence is required, and whether the same failure becomes less likely next time.
+
+## Evaluate the complete system
+
+A useful evaluation names the unit being evaluated. “Model A versus Model B” is incomplete when the systems differ in instructions, tool access, context retrieval, permission boundaries, review effort, or stopping rules.
+
+For a bounded task set, record at least:
+
+- the task and acceptance criteria;
+- the model and harness configuration;
+- context made available and context retrieved;
+- actions attempted, blocked, and approved;
+- test, review, and artifact outcomes;
+- human time spent prompting, waiting, reviewing, and repairing; and
+- failure modes, including plausible-looking output that did not satisfy the task.
+
+That record will not make every comparison causal. It will make the comparison inspectable. It also prevents elapsed agent time, parallel work, and human review from disappearing inside a single “time saved” claim.
+
+## Turn failure into infrastructure
+
+The most valuable output of a failed run may be a better harness. A correction made only in the current conversation expires with that conversation. A correction captured as a repository rule, focused test, safer permission, clearer tool contract, or reusable skill can improve future runs.
+
+Not every failure deserves a new rule. First ask whether the miss is likely to recur, whether it is observable, and whether enforcement would create worse false positives. Compound the stable lesson, not the incident’s accidental details.
+
+<PracticeCard
+  headingId="audit-the-harness"
+  title="Audit the harness"
+  steps={[
+    'Name the task and acceptance criteria.',
+    'List available and missing context.',
+    'Separate guidance from enforced invariants.',
+    'Identify what can reject bad output.',
+    'Require inspectable artifacts.',
+    'Turn repeated failures into durable controls.',
+  ]}
+/>
+
+Use this field card in the next tool evaluation. If an answer is vague, that is a finding: a capability or dependency has not yet been made visible.
+
+## Source notes
+
+1. DORA, [*State of AI-assisted Software Development 2025*](https://dora.dev/research/2025/dora-report/). The report’s “amplifier” finding supports evaluating the surrounding delivery system; it does not validate the four-part lens above.
+2. METR, [“Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity”](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/), July 10, 2025. The randomized study covers experienced contributors working in repositories they knew well and explicitly limits broader inference.
+3. METR, [“We are Changing our Developer Productivity Experiment Design”](https://metr.org/blog/2026-02-24-uplift-update/), February 24, 2026. METR describes why its newer experiment did not yield a reliable estimate of current uplift.
+4. Anthropic, [“Effective context engineering for AI agents”](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), September 29, 2025. The article frames context as a finite resource that should be curated dynamically rather than loaded indiscriminately.
+5. Anthropic, [“Harness design for long-running application development”](https://www.anthropic.com/engineering/harness-design-long-running-apps), March 24, 2026, and [“Demystifying evals for AI agents”](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents), January 9, 2026. These reports cover planner/generator/evaluator structures and evaluation across trajectories, tools, environment state, and outcomes.
+6. OpenAI, [“Harness engineering”](https://openai.com/index/harness-engineering/), February 11, 2026. The report describes repository knowledge as a system of record, mechanical architectural enforcement, and failure feedback promoted into reusable tooling.
+
+<RelatedWork
+  href="/work/agentic-engineering/"
+  title="Agentic Engineering"
+  description="A related case study on context, controls, evidence, and reusable agent workflows."
+/>

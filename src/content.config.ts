@@ -9,6 +9,7 @@ const posts = defineCollection({
     summary: z.string(),
     date: z.coerce.date(),
     draft: z.boolean().default(false),
+    eyebrow: z.string().optional(),
     readingTime: z.string().optional(),
     tags: z.array(z.string()).default([]),
   }),

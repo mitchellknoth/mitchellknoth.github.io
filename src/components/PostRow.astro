@@ -1,4 +1,6 @@
 ---
+import { formatPostDate } from '../lib/content';
+
 interface Props {
   href: string;
   date: Date;
@@ -10,7 +12,7 @@ const { href, date, title, readingTime, draft } = Astro.props;
 
 const dateLabel = draft
   ? 'draft'
-  : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase();
+  : formatPostDate(date, { month: 'short', day: 'numeric' }).toLowerCase();
 const tail = readingTime ?? '—';
 ---
 

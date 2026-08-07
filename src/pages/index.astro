@@ -2,12 +2,12 @@
 import Base from '../layouts/Base.astro';
 import CurrentlyPill from '../components/CurrentlyPill.astro';
 import SectionLabel from '../components/SectionLabel.astro';
-import PostRow from '../components/PostRow.astro';
 import MetricCard from '../components/MetricCard.astro';
+import FeaturedPost from '../components/writing/FeaturedPost.astro';
 import { site } from '../config';
-import { getProjects, getPublishedPosts } from '../lib/content';
+import { getProjects, getPublishedPosts, splitFeaturedPost } from '../lib/content';
 
-const recent = (await getPublishedPosts()).slice(0, 3);
+const { featured } = splitFeaturedPost(await getPublishedPosts());
 
 // Home-only tightened metric-card labels: outcome-first so each card parses in
 // ~2s. Keyed by project id; falls back to the project's own metric.label.
@@ -62,10 +62,9 @@ const featuredMetrics = (await getProjects())
     }
   </div>
 
-  {/* Writing: routes in-content even at 0 published posts, with no apologetic
-      placeholder; upgrades to a real feed once a post ships. */}
+  {/* Selected Work intentionally remains above Writing. */}
   {
-    recent.length === 0 ? (
+    !featured ? (
       <>
         <SectionLabel label="Writing" />
         <p
@@ -78,16 +77,16 @@ const featuredMetrics = (await getProjects())
       </>
     ) : (
       <>
-        <SectionLabel label="Recent writing" href="/writing/" />
-        <div>
-          {recent.map((post) => (
-            <PostRow
-              href={`/writing/${post.id}/`}
-              date={post.data.date}
-              title={post.data.title}
-              readingTime={post.data.readingTime}
-            />
-          ))}
+        <SectionLabel label="Writing" />
+        <FeaturedPost post={featured} />
+        <div class="mt-4 text-right">
+          <a
+            href="/writing/"
+            class="text-[13px] underline underline-offset-4"
+            style="color: var(--accent); font-family: var(--font-mono);"
+          >
+            All writing →
+          </a>
         </div>
       </>
     )
