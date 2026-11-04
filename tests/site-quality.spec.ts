@@ -192,19 +192,6 @@ test('both themes preserve readable foreground and background tokens', async ({ 
   }
 });
 
-test('hero portrait is static, small, and honors reduced motion', async ({ page }) => {
-  await page.goto('/');
-  const portrait = page.locator('.pixel-avatar__portrait');
-  await expect(portrait).toBeVisible();
-  const asset = await page.request.get('/images/mitch-portrait.webp');
-  expect(asset.ok()).toBe(true);
-  expect(asset.headers()['content-type']).toContain('image/webp');
-  expect((await asset.body()).length).toBeLessThan(50_000);
-  expect(await portrait.evaluate((node) => node.getAnimations().length)).toBe(0);
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  expect(await portrait.evaluate((node) => node.getAnimations().length)).toBe(0);
-});
-
 for (const theme of ['dark', 'light']) {
   test(`${theme} standalone controls retain target size, state contrast, and keyboard focus`, async ({ page }) => {
     await page.addInitScript((theme) => {

@@ -1,6 +1,5 @@
 ---
 import Base from '../layouts/Base.astro';
-import PixelAvatar from '../components/PixelAvatar.astro';
 import SectionLabel from '../components/SectionLabel.astro';
 import MetricCard from '../components/MetricCard.astro';
 import { site } from '../config';
@@ -20,15 +19,14 @@ const featuredMetrics = (await getProjects())
       class="prose-serif mb-6 text-[34px] leading-[1.1] sm:text-[44px]"
       style="color: var(--fg);"
     >
-      I build developer platforms for <em style="color: var(--accent);">reliable coding-agent execution.</em>
+      Not whether agents can write code, <em style="color: var(--accent);">but whether teams can ship it.</em>
     </h1>
 
     <div class="hero-detail">
       <div class="hero-copy">
-        <div class="hero-avatar-slot"><PixelAvatar /></div>
         <p class="max-w-[60ch] text-[16.5px] leading-[1.7] text-pretty" style="color: var(--fg-muted);">
-          I’m Mitch, a Cloud Software Engineer at John Deere. My work spans production engineering-data
-          systems, cloud agent sandboxes, and the context and credential boundaries that make them usable.
+          I’m Mitch, a Cloud Software Engineer at John Deere whose sole focus is DevAI and making Frontier
+          teams move faster with integrity.
         </p>
         <p class="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-[14px]" style="color: var(--accent);">
           <a href="/work/" class="standalone-link underline underline-offset-4">Explore my work →</a>
@@ -63,15 +61,16 @@ const featuredMetrics = (await getProjects())
 
   <section class="decision-note" aria-labelledby="decision-question">
     <div>
-      <p class="decision-intro">Inspect the implementation</p>
-      <h2 id="decision-question">A patch is a proposal. Test it outside the worker.</h2>
+      <p class="decision-intro">Team Brain</p>
+      <h2 id="decision-question">An agent can only use the context it can reach.</h2>
     </div>
     <div class="decision-reasoning">
-      <p>A public Docker lab mediates a synthetic credential, runs a bounded worker,
-        and checks its patch in a separate container. Reproduce successful, incorrect,
-        out-of-scope, and timed-out runs.</p>
-      <p class="decision-evidence">Independent demonstration with synthetic data and a deterministic worker.</p>
-      <a class="standalone-link" href="/work/bounded-runner/">Run the execution lab →</a>
+      <p>Most of what a team knows lives in people’s heads, chat threads, and one engineer’s
+        prompt collection. Team Brain is a shared repository where research and decisions are
+        written down once, kept current with help from agents, and searchable by any engineer
+        or agent tool.</p>
+      <p class="decision-evidence">In use by my team. Adoption and productivity effects are still being measured.</p>
+      <a class="standalone-link" href="/work/team-brain/">Read the case study →</a>
     </div>
   </section>
 
@@ -138,24 +137,5 @@ const featuredMetrics = (await getProjects())
   @media (min-width: 900px) {
     .decision-note { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 2rem; }
   }
-  .hero-copy { display: flow-root; font-size: 16.5px; }
-  .hero-avatar-slot { float: right; margin: 0 0 0.5rem 0.75rem; --avatar-size: 88px; }
-  .hero-copy > p:last-child { clear: both; }
-  @media (min-width: 640px) {
-    .hero-copy {
-      display: grid;
-      grid-template-columns: minmax(0, 60ch) 144px;
-      column-gap: 2rem;
-      max-width: calc(60ch + 176px);
-    }
-    .hero-copy > p { grid-column: 1; }
-    .hero-avatar-slot {
-      float: none;
-      grid-column: 2;
-      grid-row: 1 / 3;
-      align-self: end;
-      margin: 0;
-      --avatar-size: 144px;
-    }
-  }
+  .hero-copy { font-size: 16.5px; }
 </style>
