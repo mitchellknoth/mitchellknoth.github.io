@@ -18,7 +18,7 @@ The implementation includes configurable policy thresholds, explicit accepted-ri
 
 I packaged the team’s review practice into a local pre-PR gauntlet, reusable branch-review skills, and feedback hooks. The objective is to make repeated misses change the next run: a clearer instruction, a regression check, or a reusable reviewer that another engineer can inherit.
 
-I also published [Evidence-Gated Delivery](https://github.com/mknoth197/evidence-gated-delivery) as an open-source workflow experiment. It is historical work, not the team’s current execution workflow. The continuing practice is described in the [Agent Harness field guide](/writing/the-model-is-table-stakes/).
+I also published [Evidence-Gated Delivery](https://github.com/mitchellknoth/evidence-gated-delivery) as an open-source workflow experiment. It is historical work, not the team’s current execution workflow. The continuing practice is described in the [Agent Harness field guide](/writing/the-model-is-table-stakes/).
 
 ## The proof ceiling
 
