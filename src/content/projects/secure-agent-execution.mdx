@@ -1,0 +1,46 @@
+---
+title: "Coding Agents – Cloud Execution and Credential Boundaries"
+summary: "Ran Codex and Claude Code in company-controlled cloud sandboxes and returned inspectable patches. Added credential proxying, then implemented a keyless Codex pilot with per-run identity federation. The execution proof, pilot, and planned agent-team controls have distinct completion boundaries."
+period: "2026 – present"
+stack: ["cloudflare-sandbox", "codex", "claude-code", "ai-gateway", "identity-federation"]
+metric:
+  value: "Coding-agent execution"
+  label: "Ran Codex and Claude Code in cloud sandboxes; mediated repository credentials."
+featured: true
+order: 0.2
+section: recent
+---
+
+import ExecutionBoundary from '../../components/work/ExecutionBoundary.astro';
+
+## Delivered result and ownership
+
+I ran Codex and Claude Code in disposable cloud sandboxes against a private repository and returned logs and inspectable patches. I implemented repository-credential proxying, evaluated the execution paths, implemented a separate keyless Codex pilot, and wrote the agent-team specification.
+
+The practical result is a way to run coding tools remotely and inspect their proposed changes while keeping the repository credential outside execution. The system can host different coding tools; its execution contract does not depend on a single model vendor.
+
+## The problem
+
+A coding tool needs repository access to do useful work. Putting the repository credential in its environment also makes that credential directly available to the execution process. Remote execution therefore needs an explicit boundary between what the worker may read and the authority used to obtain it.
+
+## The decision: authorize at the network boundary
+
+I added a GitHub credential proxy that injects repository authorization outside the sandbox. Both evaluated tools can read the repository without receiving its credential inside their execution environment.
+
+Direct credential injection would have been simpler, but would have given the execution process the credential itself. Proxying changes that exposure; it does not make every request or every returned patch trustworthy. The worker still needs scoped access and a reviewable result.
+
+<ExecutionBoundary />
+
+## What to inspect
+
+The separate [public execution lab](/work/bounded-runner/) makes the boundary concrete with synthetic data: one permitted HTTP route, a credential outside the worker, a returned patch, and acceptance checks outside the writable workspace. Its source and recorded failure cases are downloadable. It is an independent demonstration, not the internal implementation or a live GitHub integration.
+
+The [cloud-harness essay](/writing/the-harness-should-not-live-on-your-laptop/) explains the broader design: repository-owned setup, protected runtime identity, and artifacts another engineer can review.
+
+## Status and limitations
+
+**Demonstrated:** cloud execution with both coding tools, repository-credential proxying, logs, and returned patches.
+
+**Merged pilot, not live-verified:** a separate keyless Codex path exchanges the signed-in user's identity for a per-run model token and injects it outside the sandbox through an identity-aware gateway. Its design includes bounded lifetime, request restrictions, and human attribution. End-to-end live checks and containment hardening remain incomplete. The earlier Codex evaluation still uses a short-lived model credential inside the sandbox.
+
+**Specified:** a governed agent team with fail-closed authorization, independent result checking, and human review before publication. The demonstrated runs do not establish a production-ready autonomous platform.

@@ -5,26 +5,18 @@ import WorkRow from '../../components/WorkRow.astro';
 import { getProjects } from '../../lib/content';
 
 const projects = await getProjects();
-const ai = projects.filter((p) => p.data.era === 'ai');
-const foundations = projects.filter((p) => p.data.era !== 'ai');
+const recent = projects.filter((p) => p.data.section === 'recent');
+const foundations = projects.filter((p) => p.data.section === 'foundations');
 
-// Year gutter: dim a row's period when it repeats the previous row's start-year band,
-// binding the two 2023–2025 platform entries into one visual stratum.
-const band = (period: string) => period.split(/[–-]/)[0].trim();
-const foundationRows = foundations.map((p, i) => ({
-  p,
-  dim: i > 0 && band(p.data.period) === band(foundations[i - 1].data.period),
-}));
-
-const aiLede =
-  'Where my work points now: treating AI as a first-class participant in the software development lifecycle. That means the harness that decides whether agent output is safe to ship, the context layer that makes it useful, and the measurement that replaces “AI helped” with evidence.';
+const recentLede =
+  'Production software, cloud execution, and developer-platform reliability.';
 const foundationsLede =
-  'The platform years the AI thesis is built on: compliance automation across 50,000+ repositories, a network consolidation that saved seven figures, and the unglamorous plumbing that let other teams move fast.';
+  'The platform work this chapter builds on: cloud networking, secure data access, and the operational plumbing that lets other teams move fast. Earlier career work stays separate from recent delivery.';
 ---
 
 <Base
   title="Work"
-  description="Six years of platform, cloud, and developer-experience work at John Deere, and a current chapter making AI a first-class participant in the SDLC."
+  description="Recent delivery across the AI-era SDLC and developer experience, built on earlier cloud and platform engineering at John Deere."
 >
   <section class="mb-2">
     <h1 class="prose-serif mb-4 text-[36px] leading-[1.1]" style="color: var(--fg);">Work</h1>
@@ -32,19 +24,17 @@ const foundationsLede =
       class="max-w-[60ch] text-[15.5px] leading-[1.7] text-pretty"
       style="color: var(--fg-muted);"
     >
-      Six years of platform, cloud, and developer-experience work at John Deere, and a current
-      chapter spent making AI a first-class participant in how we ship software. Most of it sits
-      behind the enterprise firewall, so these case studies focus on architecture, constraints, and
-      outcomes rather than source links.
+      Engineering problems, implementation decisions, and delivered results. Recent work from
+      October 2025 through October 2026, followed by earlier cloud and platform foundations.
     </p>
   </section>
 
-  <SectionLabel label="The AI-Era SDLC" />
+  <SectionLabel label="Recent work" />
   <p class="mb-6 max-w-[60ch] text-[15px] leading-[1.65] text-pretty" style="color: var(--fg-muted);">
-    {aiLede}
+    {recentLede}
   </p>
   <div class="flex flex-col gap-2">
-    {ai.map((p, i) => <WorkRow project={p} lead={i === 0} />)}
+    {recent.map((p, i) => <WorkRow project={p} lead={i === 0} />)}
   </div>
 
   <SectionLabel label="Platform & Cloud Foundations" />
@@ -52,6 +42,6 @@ const foundationsLede =
     {foundationsLede}
   </p>
   <div class="flex flex-col gap-2">
-    {foundationRows.map(({ p, dim }) => <WorkRow project={p} dimPeriod={dim} />)}
+    {foundations.map((project) => <WorkRow project={project} />)}
   </div>
 </Base>

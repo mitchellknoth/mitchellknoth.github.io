@@ -4,27 +4,26 @@ import type { CollectionEntry } from 'astro:content';
 interface Props {
   project: CollectionEntry<'projects'>;
   lead?: boolean;
-  dimPeriod?: boolean;
 }
 
-const { project, lead = false, dimPeriod = false } = Astro.props;
+const { project, lead = false } = Astro.props;
 const p = project;
 // Accent slot for non-lead rows: prefer the metric, fall back to a role tag.
 const accent = p.data.metric?.value ?? p.data.roleTag;
 ---
 
 <article
-  class="grid grid-cols-1 gap-6 border-b py-8 sm:grid-cols-[140px_minmax(0,1fr)]"
+  class="work-row grid grid-cols-1 gap-6 border-b py-8 sm:grid-cols-[140px_minmax(0,1fr)]"
   style="border-color: var(--border);"
 >
-  <div class={`mono-meta pt-[6px]${dimPeriod ? ' opacity-40' : ''}`}>{p.data.period}</div>
+  <div class="mono-meta pt-[6px]">{p.data.period}</div>
   <div>
     <div class="mb-2 flex flex-wrap items-baseline gap-x-4">
       <h3
         class={`prose-serif leading-tight ${lead ? 'text-[28px]' : 'text-[22px]'}`}
         style="color: var(--fg);"
       >
-        <a href={`/work/${p.id}/`} class="hover:opacity-80">{p.data.title}</a>
+        <a href={`/work/${p.id}/`} class="standalone-link">{p.data.title}</a>
       </h3>
       {
         !lead && accent && (
@@ -41,7 +40,7 @@ const accent = p.data.metric?.value ?? p.data.roleTag;
         </div>
       )
     }
-    <p class="mb-3 text-[15px] leading-[1.65]" style="color: var(--fg-muted);">{p.data.summary}</p>
+    <p class="mb-3 max-w-[80ch] text-[15px] leading-[1.65]" style="color: var(--fg-muted);">{p.data.summary}</p>
     {
       p.data.stack.length > 0 && (
         <div class="flex flex-wrap gap-2">
@@ -57,7 +56,7 @@ const accent = p.data.metric?.value ?? p.data.roleTag;
       )
     }
     <p class="mt-4 text-[12px]" style="font-family: var(--font-mono);">
-      <a href={`/work/${p.id}/`} style="color: var(--accent);" aria-hidden="true" tabindex="-1">Read case study →</a>
+      <a href={`/work/${p.id}/`} style="color: var(--accent);" class="standalone-link">Read case study →</a>
     </p>
   </div>
 </article>

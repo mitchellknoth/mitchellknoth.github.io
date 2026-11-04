@@ -1,0 +1,17 @@
+{
+  "scenario": "invalid",
+  "status": "rejected_tests",
+  "experiment": "synthetic deterministic worker",
+  "events": [
+    "internal network created; no published ports",
+    "worker exited successfully",
+    "independent fixture tests: rejected_tests"
+  ],
+  "base_sha256": "f17374f16652c1edd0889c22e6d84f2294fc4aa454e480a66243937ee2ce90ef",
+  "image_id": "sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4",
+  "internal_network": true,
+  "candidate_sha256": "063ef9fbc42c2768c061a2ec6a93b8b21a982cf27449f2057ddc72cf9aaf6a1a",
+  "patch_sha256": "cdd5cad33dab1299a01397970a716d58cf2303b1957a9d854594081c24dbe9ff",
+  "cleanup": "complete",
+  "elapsed_seconds": 2.067
+}

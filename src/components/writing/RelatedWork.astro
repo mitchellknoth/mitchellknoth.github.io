@@ -8,9 +8,9 @@ interface Props {
 const { href, title, description } = Astro.props;
 ---
 
-<aside class="related-work" aria-labelledby="related-work-title">
+<aside class="editorial-reading related-work" aria-labelledby="related-work-title">
   <div class="mono-meta">Related work</div>
-  <h2 id="related-work-title"><a href={href}>{title}</a></h2>
+  <h2 id="related-work-title"><a class="standalone-link" href={href}>{title}</a></h2>
   <p>{description}</p>
 </aside>
 

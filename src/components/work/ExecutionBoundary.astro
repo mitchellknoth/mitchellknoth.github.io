@@ -1,0 +1,18 @@
+<figure class="execution-boundary" aria-labelledby="execution-boundary-title">
+  <figcaption id="execution-boundary-title">Separate access, execution, and acceptance</figcaption>
+  <div class="boundary-flow">
+    <section><h3>Mediate access</h3><p>The credential proxy supplies repository authorization outside the execution environment.</p></section>
+    <section><h3>Run the task</h3><p>A disposable sandbox hosts the coding tool and returns logs and a proposed patch.</p></section>
+    <section><h3>Inspect the result</h3><p>The returned artifact can be reviewed before publication. Execution does not authorize a merge.</p></section>
+  </div>
+  <p class="boundary-note">Demonstrated: repository-credential proxying and returned patches. Separate keyless model-access pilot: live verification incomplete.</p>
+</figure>
+<style>
+  .execution-boundary { margin: 2rem 0; padding: 1.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-elevated); }
+  figcaption { margin-bottom: 1.2rem; color: var(--fg); font-family: var(--font-serif); font-size: 1.4rem; line-height: 1.3; }
+  .boundary-flow { display: grid; gap: 1.5rem; }
+  .boundary-flow h3 { margin: 0 0 0.5rem; font-size: 1.25rem; line-height: 1.25; }
+  .boundary-flow p { margin: 0; font-size: 0.95rem; line-height: 1.6; color: var(--fg-muted); }
+  .boundary-note { margin: 1.4rem 0 0; font-size: 0.9rem; line-height: 1.6; color: var(--fg-muted); }
+  @media (min-width: 768px) { .boundary-flow { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+</style>

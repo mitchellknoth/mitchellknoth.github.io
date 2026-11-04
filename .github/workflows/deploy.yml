@@ -34,8 +34,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build site
-        run: npm run build
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate design, types, build, and visual contract
+        run: npm run quality
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

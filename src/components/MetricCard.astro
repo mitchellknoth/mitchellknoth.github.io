@@ -1,19 +1,20 @@
 ---
 interface Props {
+  href: string;
   value: string;
   label: string;
 }
-const { value, label } = Astro.props;
+const { href, value, label } = Astro.props;
 ---
 
-<div class="p-[22px]" style="background: var(--bg);">
-  <div
-    class="prose-serif mb-[10px] text-[30px] leading-none"
+<a href={href} class="block p-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px]" style="background: var(--bg);">
+  <h3
+    class="prose-serif mb-[10px] text-[25px] leading-tight"
     style="color: var(--accent);"
   >
     {value}
-  </div>
+  </h3>
   <div class="text-[13px] leading-[1.55]" style="color: var(--fg-muted);">
     {label}
   </div>
-</div>
+</a>

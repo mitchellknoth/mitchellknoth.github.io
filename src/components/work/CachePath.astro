@@ -1,0 +1,19 @@
+<figure class="cache-path" aria-labelledby="cache-path-title">
+  <figcaption id="cache-path-title">How the cache stays subordinate to the source</figcaption>
+  <div class="cache-path__flow">
+    <div><h3>Identify the query</h3><p>Query and parameters, plus source-update watermarks where supported.</p></div>
+    <div><h3>Read within policy</h3><p>A matching entry can be reused within its tier-specific lifetime.</p></div>
+    <div><h3>Return source data</h3><p>A miss or cache failure falls through to a live query. Successful results can refill the cache.</p></div>
+  </div>
+  <p class="cache-path__boundary">When a required freshness probe fails, bypass the cache. When the source fails, preserve the source error.</p>
+</figure>
+
+<style>
+  .cache-path { margin: 2rem 0; padding: 1.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-elevated); }
+  figcaption { margin-bottom: 1.2rem; color: var(--fg); font-family: var(--font-serif); font-size: 1.4rem; line-height: 1.3; }
+  .cache-path__flow { display: grid; gap: 1.5rem; }
+  .cache-path__flow h3 { margin: 0 0 0.5rem; font-size: 1.25rem; line-height: 1.25; }
+  .cache-path__flow p { margin: 0; font-size: 0.95rem; line-height: 1.6; color: var(--fg-muted); }
+  .cache-path__boundary { margin: 1.4rem 0 0; max-width: none; font-size: 0.9rem; line-height: 1.6; color: var(--fg-muted); }
+  @media (min-width: 768px) { .cache-path__flow { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+</style>

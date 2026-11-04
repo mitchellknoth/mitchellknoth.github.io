@@ -1,0 +1,4 @@
+ready
+{"event": "credential_mediated", "status": 200}
+{"event": "route_denied", "status": 403}
+{"event": "method_denied", "status": 403}

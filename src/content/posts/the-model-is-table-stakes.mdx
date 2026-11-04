@@ -13,9 +13,25 @@ import HarnessMap from '../../components/writing/HarnessMap.astro';
 import PracticeCard from '../../components/writing/PracticeCard.astro';
 import RelatedWork from '../../components/writing/RelatedWork.astro';
 
-Model capability matters. A stronger model can reason across a larger problem, recover from ambiguity, and use tools more effectively. But capability alone does not make delivery reliable. Reliability belongs to the complete system around the model: the context it can reach, the actions it may take, the checks that can stop it, and the way failures change the next run.
+I kept noticing a gap in my own agent work: the strongest sessions were difficult to transfer. The same model was available to my coworkers, but the result depended on context I had accumulated, commands I knew to run, local tools I had configured, and checks I remembered to apply.
 
-That complete-system view is useful precisely because model progress is real. If every improvement is credited to “the AI,” the engineering decisions surrounding it become invisible—and therefore difficult to inspect, compare, or improve.
+That difference was easy to misread as model capability or individual aptitude. Much of it was neither. It was an undeclared engineering environment surrounding the model.
+
+Model capability still matters. A stronger model can reason across a larger problem, recover from ambiguity, and use tools more effectively. But capability alone does not make delivery reliable. Reliability belongs to the complete system around the model: the context it can reach, the actions it may take, the checks that can stop it, and the way failures change the next run.
+
+This complete-system view is useful precisely because model progress is real. If every improvement is credited to “the AI,” the engineering decisions surrounding it become invisible—and therefore difficult to inspect, compare, or improve.
+
+<figure class="article-figure">
+  <img
+    src="/images/writing/the-model-is-table-stakes/model-and-harness.webp"
+    alt="A central model cube nested inside four mechanical harness layers with an amber feedback loop."
+    width="1672"
+    height="941"
+    loading="eager"
+    fetchpriority="high"
+    decoding="async"
+  />
+</figure>
 
 <ArticleToc
   items={[
@@ -58,6 +74,17 @@ Instructions and examples are powerful because they leave room for judgment. Tha
 A naming convention may belong in guidance because the right choice depends on local context. A prohibition on committing credentials belongs in deterministic scanning and repository policy. A request to explain a migration belongs in instructions; a rule that the migration must pass belongs in CI. The question is not whether instructions are good or controls are good. It is whether each requirement sits on the correct side of the interpretation boundary.
 
 Controls should remain proportional to risk. Too few controls turn preferences into wishful thinking. Too many can make useful work impossible or push every decision into brittle rules. Keep judgment where judgment is valuable; enforce invariants where violation is unacceptable.
+
+<figure class="article-figure">
+  <img
+    src="/images/writing/the-model-is-table-stakes/interpretation-boundary.webp"
+    alt="Flexible instruction plates approach a mechanical gate that admits one fitting component and stops the rest."
+    width="1672"
+    height="941"
+    loading="lazy"
+    decoding="async"
+  />
+</figure>
 
 ## An illustrative workflow
 

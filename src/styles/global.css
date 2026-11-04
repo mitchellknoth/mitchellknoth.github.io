@@ -35,6 +35,8 @@
    ------------------------------------------------------------- */
 :root {
   color-scheme: dark;
+  --site-gutter: clamp(1rem, 4vw, 4rem);
+  --site-max-width: 90rem;
   --bg: var(--color-bg);
   --bg-elevated: var(--color-bg-elevated);
   --border: var(--color-border);
@@ -75,6 +77,36 @@ html {
 body {
   margin: 0;
   min-height: 100dvh;
+}
+
+.site-shell {
+  max-width: var(--site-max-width);
+  padding-inline: var(--site-gutter);
+  width: 100%;
+}
+
+@media (max-width: 359px) {
+  .site-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0.55rem;
+  }
+
+  .site-header__actions {
+    display: contents;
+  }
+
+  .site-header nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .site-header #theme-toggle {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }
 
 .no-transitions * { transition: none !important; }
@@ -154,38 +186,47 @@ button:focus-visible,
   color: var(--accent);
 }
 
-/* Comfortable tap targets on touch devices (WCAG 2.5.5) */
-@media (pointer: coarse) {
-  .nav-link {
-    padding-block: 0.45rem;
-  }
-  #theme-toggle {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  footer a {
-    padding-block: 0.3rem;
-  }
+/* Standalone controls keep usable targets with every pointer type. */
+.site-brand, .nav-link, #theme-toggle, .footer-link, .standalone-link, .fact-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+}
+.site-brand { justify-content: flex-start; }
+.footer-link:hover, .standalone-link:hover, .site-brand:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* =============================================================
    MDX / prose content styling
    ------------------------------------------------------------- */
 .content {
-  max-width: 68ch;
+  font-size: 1.0625rem;
+  max-width: 72ch;
 }
 .content h1, .content h2, .content h3 {
   font-family: var(--font-serif);
   font-weight: 400;
   letter-spacing: -0.015em;
   color: var(--fg);
-  margin-top: 2.2em;
   margin-bottom: 0.6em;
   line-height: 1.2;
 }
-.content h1 { font-size: 2.25rem; }
-.content h2 { font-size: 1.65rem; }
-.content h3 { font-size: 1.3rem; }
+.content h1 {
+  font-size: 2.25rem;
+  margin-top: 2.2em;
+}
+.content h2 {
+  font-size: clamp(2.05rem, 4.8vw, 2.25rem);
+  margin-top: 3.5rem;
+}
+.content h3 {
+  font-size: clamp(1.6rem, 3.8vw, 1.75rem);
+  margin-top: 2.5rem;
+}
 .content p {
   margin: 0 0 1.2em;
   color: var(--fg);
@@ -199,8 +240,58 @@ button:focus-visible,
 .content a:hover { border-bottom-color: var(--accent); }
 .content ul, .content ol { padding-left: 1.4em; margin: 0 0 1.2em; }
 .content li { margin: 0.25em 0; }
+
+/* Direct prose lists are compact editorial groups, not browser-default
+   indentation or row-by-row spec sheets. Component-owned lists keep their
+   own local visual language. */
+.content > ul,
+.content > ol {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  list-style: none;
+  margin: 1.6rem 0 2rem;
+  padding: 0;
+}
+
+.content > ol {
+  counter-reset: prose-list;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.content > ul > li,
+.content > ol > li {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: block;
+  line-height: 1.55;
+  margin: 0;
+  padding: 0.9rem 1rem;
+}
+
+.content > ul > li::before {
+  content: none;
+}
+
+.content > ol > li {
+  counter-increment: prose-list;
+  padding-left: 3.2rem;
+  position: relative;
+}
+
+.content > ol > li::before {
+  color: var(--accent);
+  content: counter(prose-list, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  left: 1rem;
+  line-height: 1;
+  position: absolute;
+  top: 1.15rem;
+}
 .content blockquote {
-  border-left: 2px solid var(--accent);
+  border-block: 1px solid var(--editorial-border);
   padding: 0.25em 0 0.25em 1.25em;
   margin: 1.5em 0;
   color: var(--fg-muted);
@@ -254,11 +345,51 @@ button:focus-visible,
   border-bottom: none;
 }
 
+.content .article-figure {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  margin: 2.5rem 0;
+  overflow: hidden;
+}
+
+.content .article-figure img {
+  aspect-ratio: 1672 / 941;
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+/* Width is an explicit component responsibility. Reading panels stay in prose. */
+.content .editorial-reading { max-width: 100%; }
+@media (min-width: 64rem) {
+  .content.article-layout > :is(.editorial-diagram, .article-figure) {
+    margin-left: 50%;
+    margin-right: 0;
+    max-width: none;
+    transform: translateX(-50%);
+    width: min(62rem, calc(100vw - var(--site-gutter) - var(--site-gutter)));
+  }
+  .content.article-layout > .editorial-shell {
+    margin-left: 50%;
+    transform: translateX(-50%);
+    width: min(82rem, calc(100vw - var(--site-gutter) - var(--site-gutter)));
+    max-width: none;
+  }
+}
+
 /* =============================================================
    Long-form editorial patterns
    ------------------------------------------------------------- */
 .content .article-header h1 {
-  font-size: clamp(2.45rem, 9vw, 3.45rem);
+  font-size: clamp(2.75rem, 9vw, 3.45rem);
+  line-height: 1.1;
+  margin: 0;
+}
+
+.content .work-title {
+  font-size: clamp(2.75rem, 6.5vw, 3rem);
+  line-height: 1.1;
   margin: 0;
 }
 
@@ -280,13 +411,13 @@ button:focus-visible,
 }
 
 .content .rule-callout {
-  border-left: 3px solid var(--accent);
+  border: 1px solid var(--editorial-border);
   color: var(--fg);
   font-family: var(--font-sans);
   font-size: 1rem;
   font-style: normal;
   margin: 2rem 0;
-  padding: 0.35rem 0 0.35rem 1.25rem;
+  padding: 1rem 1.25rem;
 }
 
 .content .rule-callout p {
@@ -328,55 +459,29 @@ button:focus-visible,
   }
 }
 
-/* =============================================================
-   Skills grid (About)
-   ------------------------------------------------------------- */
-.skills-grid {
-  margin: 0.4em 0 1.4em;
-}
-.skills-grid > div {
+/* About facts and capabilities group by content, without ruled rows. */
+.fact-grid {
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr);
-  gap: 0.4rem 1.5rem;
-  padding: 0.8em 0;
-  border-top: 1px solid var(--border);
+  grid-template-columns: 1fr;
+  gap: 1.5rem 2rem;
+  max-width: 72rem;
+  margin: 1.6rem 0 2.5rem;
 }
-.skills-grid > div:last-child {
-  border-bottom: 1px solid var(--border);
+.skills-cat { color: var(--fg-dim); font: 0.75rem/1.5 var(--font-mono); margin-bottom: 0.4rem; }
+.skills-list { color: var(--fg-muted); font-size: 1rem; line-height: 1.65; margin: 0; }
+.capability-groups { display: grid; gap: 1.5rem; }
+.content .capability-groups h3 { margin-top: 0.5rem; font: 1.375rem/1.35 var(--font-sans); font-weight: 600; }
+.writing-index { display: grid; gap: 0 3rem; }
+@media (min-width: 768px) {
+  .fact-grid, .writing-index { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.skills-cat {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--fg-dim);
-  padding-top: 3px;
-}
-.skills-list {
-  color: var(--fg-muted);
-  font-size: 14.5px;
-  line-height: 1.6;
-}
-@media (max-width: 560px) {
-  .skills-grid > div {
-    grid-template-columns: 1fr;
-    gap: 0.2rem;
-    padding: 0.7em 0;
-  }
-}
+@media (min-width: 1200px) { .fact-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* =============================================================
    Motion — respect reduced-motion
    ------------------------------------------------------------- */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
-}
-.pulse-dot { animation: pulse-dot 2.2s ease-in-out infinite; }
-
 @media (prefers-reduced-motion: reduce) {
-  .pulse-dot { animation: none; }
-  * { scroll-behavior: auto !important; }
+  * { scroll-behavior: auto !important; transition: none !important; }
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {

@@ -5,13 +5,14 @@ import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import remarkSmartypants from 'remark-smartypants';
 
-// If you ever rename the repo or move to a project page, update these two lines.
-// For a user site (username.github.io), site = 'https://username.github.io' and base is omitted.
-const SITE = 'https://mknoth197.github.io';
+// Public origin for canonical URLs, RSS, and the sitemap.
+const SITE = 'https://mitchellknoth.com';
 
 // https://astro.build/config
 export default defineConfig({
   site: SITE,
+  // Keep the development-only overlay out of headed review and pointer tests.
+  devToolbar: { enabled: false },
   integrations: [mdx(), sitemap()],
   vite: {
     plugins: [tailwindcss()],

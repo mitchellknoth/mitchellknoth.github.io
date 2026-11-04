@@ -1,0 +1,52 @@
+---
+title: "Engineering Evidence – From Requirements to Production"
+summary: "Wrote the product requirements and delivered live-data views, a personal work timeline, and shared caching for a team-owned engineering evidence product now in production. The work connects product definition, backend performance, and the acceptance checks behind reliable delivery."
+period: "2026 – present"
+stack: ["typescript", "redis", "github-actions", "aws"]
+metric:
+  value: "Live engineering data"
+  label: "Delivered live-data views, a personal timeline, and freshness-aware Redis caching."
+featured: true
+order: 0
+section: recent
+---
+
+import CachePath from '../../components/work/CachePath.astro';
+
+## Delivered result and ownership
+
+On a three-person team, I wrote the product requirements and much of the design record, shaped a substantial share of the backlog, and delivered live-data integrations, a personal work timeline, and shared Redis caching. I also separated CI validation from deployment and contributed dedicated acceptance checks. Teammates delivered the wider product.
+
+The product is in production. Engineers can inspect live delivery data and their own work instead of relying on demonstration data. The personal work view became its most-visited page; main data endpoints became substantially faster after caching. Internal usage and performance figures are not published here.
+
+## The problem
+
+A mock-data observatory can demonstrate a screen, but it cannot answer questions about real delivery. Connecting live sources introduced a second problem: repeated queries needed to stay responsive without hiding source outages or serving stale data indefinitely.
+
+## The decision: performance without a new dependency on the cache
+
+A single cache lifetime is simple, but engineering data does not all change at the same rate. A catalog can tolerate a different lifetime from a recently updated activity view. Historical records can also be corrected after their original event date, so a date-window key alone does not detect every change.
+
+I implemented the cache in stages: shared fail-open reads, lifetimes selected by data tier, and freshness-versioned keys for supported source tables. The key combines query identity with source-update watermarks. When those watermarks advance, subsequent requests use a new key; the old entries expire through bounded lifetimes instead of requiring broad deletion.
+
+<CachePath />
+
+The source remains authoritative. A cache read or write failure does not replace the source result with an outage. If a required freshness probe fails, the request bypasses the versioned cache and queries the source. A source failure still surfaces as a source failure. Expiration remains a backstop, so the design bounds staleness rather than promising perfectly current results on every request.
+
+## Implementation and acceptance
+
+I tested the boundaries as well as the successful path: real-Redis integration checks, cache read/write failures, freshness changes, and the source-error behavior. I also worked on acceptance checks for the product’s overview and tool views and separated validation from deployment so delivery follows a successful CI gate.
+
+The cache’s job is narrowly defined: reuse query results where the freshness policy permits it. It does not become the system of record or hide the underlying source’s availability.
+
+## Status and limitations
+
+**Delivered:** live-data views, the personal timeline, and shared caching, with integration checks for freshness changes and failure paths. The cache is subordinate to the source, rather than a new system of record.
+
+**Unmeasured publicly:** the size of the performance improvement and adoption trend. Observational engineering signals do not establish that AI caused productivity gains, reduced defects, or improved delivery flow.
+
+## Beyond the product
+
+I co-facilitate a guild and office hours for around 38 practitioners and publish sourced briefs. I wrote the team’s harness thesis and seven-layer Agent Delegation Stack, giving engineers and leadership a shared vocabulary for context, controls, evaluations, and delegation. I also packaged review skills and feedback hooks for reuse in the team’s repositories.
+
+Related work: the [shared team brain](/work/team-brain/), [coding-agent execution](/work/secure-agent-execution/), and [trust tooling](/work/agent-trust/). My working model, **Agent = Model + Harness**, is developed in the [Agent Harness field guide](/writing/the-model-is-table-stakes/).

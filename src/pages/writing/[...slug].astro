@@ -18,7 +18,7 @@ const dateLabel = formatPostDate(post.data.date);
 ---
 
 <Base title={post.data.title} description={post.data.summary} ogType="article">
-  <article class="content mx-auto">
+  <article class="article-layout content mx-auto">
     <header class="article-header mb-10">
       <div class="article-eyebrow mono-meta mb-5">{post.data.eyebrow ?? 'Essay'}</div>
       <h1 class="prose-serif text-[40px] leading-[1.1]" style="color: var(--fg);">
@@ -37,7 +37,7 @@ const dateLabel = formatPostDate(post.data.date);
 
     <hr />
     <p class="text-[14px]" style="color: var(--fg-dim); font-family: var(--font-mono);">
-      <a href="/writing/" style="color: var(--accent);">← all writing</a>
+      <a class="standalone-link" href="/writing/" style="color: var(--accent);">← all writing</a>
     </p>
   </article>
 </Base>

@@ -5,38 +5,55 @@ interface Props {
   href: string;
   date: Date;
   title: string;
+  summary: string;
   readingTime?: string;
-  draft?: boolean;
 }
-const { href, date, title, readingTime, draft } = Astro.props;
-
-const dateLabel = draft
-  ? 'draft'
-  : formatPostDate(date, { month: 'short', day: 'numeric' }).toLowerCase();
-const tail = readingTime ?? '—';
+const { href, date, title, summary, readingTime } = Astro.props;
 ---
 
-<a
-  href={href}
-  class="group grid grid-cols-[64px_minmax(0,1fr)_auto] items-baseline gap-5 border-b py-[18px] transition-colors"
-  style="border-color: var(--border);"
->
-  <span
-    class="text-[11px] tabular-nums"
-    style={`font-family: var(--font-mono); color: ${draft ? 'var(--accent)' : 'var(--fg-dim)'};`}
-  >
-    {dateLabel}
-  </span>
-  <span
-    class="prose-serif text-[18px] leading-snug transition-colors group-hover:opacity-75"
-    style="color: var(--fg);"
-  >
-    {title}
-  </span>
-  <span
-    class="text-[11px]"
-    style="font-family: var(--font-mono); color: var(--fg-dim);"
-  >
-    {tail}
-  </span>
-</a>
+<article class="post-row">
+  <div class="post-row__meta">
+    <time datetime={date.toISOString()}>{formatPostDate(date)}</time>
+    {readingTime && <span> · {readingTime}</span>}
+  </div>
+  <h3><a href={href}>{title}</a></h3>
+  <p>{summary}</p>
+</article>
+
+<style>
+  .post-row {
+    padding-block: 1.5rem;
+    max-width: 60ch;
+  }
+
+  .post-row__meta {
+    color: var(--fg-dim);
+    font: 0.75rem/1.6 var(--font-mono);
+  }
+
+  .post-row h3 {
+    color: var(--fg);
+    font: 1.6rem/1.2 var(--font-serif);
+    margin: 0.65rem 0;
+    text-wrap: balance;
+  }
+
+  .post-row a {
+    display: inline-block;
+    min-height: 44px;
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 4px;
+  }
+
+  .post-row a:hover {
+    color: var(--accent);
+  }
+
+  .post-row p {
+    color: var(--fg-muted);
+    font-size: 1rem;
+    line-height: 1.7;
+    text-wrap: pretty;
+  }
+</style>

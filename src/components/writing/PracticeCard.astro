@@ -8,7 +8,7 @@ interface Props {
 const { title, steps, headingId = 'practice-card-title' } = Astro.props;
 ---
 
-<aside class="practice-card" aria-labelledby={headingId}>
+<aside class="editorial-reading practice-card" aria-labelledby={headingId}>
   <div class="mono-meta">Field card</div>
   <h2 id={headingId}>{title}</h2>
   <ol>
@@ -50,9 +50,6 @@ const { title, steps, headingId = 'practice-card-title' } = Astro.props;
     padding: 0.55rem 0;
   }
 
-  .practice-card li + li {
-    border-top: 1px solid var(--editorial-border);
-  }
 
   .practice-card li::before {
     color: var(--accent);

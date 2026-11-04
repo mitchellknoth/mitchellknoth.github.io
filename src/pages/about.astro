@@ -1,26 +1,22 @@
 ---
 import Base from '../layouts/Base.astro';
-import CurrentlyPill from '../components/CurrentlyPill.astro';
 import { site } from '../config';
 
 const certs = [
   { name: 'AWS Certified DevOps Engineer – Professional', year: 'May 2026' },
   { name: 'AWS Certified Advanced Networking – Specialty', year: 'Aug 2025' },
-  { name: 'AWS Certified SysOps Administrator – Associate', year: 'Feb 2025' },
-  { name: 'AWS Certified Solutions Architect – Associate', year: 'Mar 2024' },
-  { name: 'AWS Certified Cloud Practitioner – Foundational', year: 'Nov 2021' },
 ];
+const earlierCerts = 'Earlier certifications: SysOps Administrator – Associate (Feb 2025), Solutions Architect – Associate (Mar 2024), and Cloud Practitioner (Nov 2021).';
 
-// "At a glance" - front-loaded facts for a five-second skim. Rendered with the
-// existing .skills-grid idiom (mono label column + value column, hairline rows).
+// Front-loaded facts for a quick skim.
 const glance = [
-  { k: 'Role', v: 'Cloud Software Engineer, John Deere · 6+ yrs' },
+  { k: 'Role', v: 'Cloud Software Engineer, John Deere · since 2019' },
   { k: 'Based', v: 'Des Moines, Iowa' },
-  { k: 'Focus', v: 'Agentic AI in the SDLC: harness, context, measurement' },
-  { k: 'Currently', v: 'One of three on a tiger team defining how AI reshapes the way we ship software' },
+  { k: 'Focus', v: 'Developer platforms, coding-agent execution, and backend reliability' },
+  { k: 'Currently', v: 'Evidence product in production, shared team brain, cloud agent evaluations' },
   {
     k: 'Credentials',
-    v: '5× AWS certified, Foundational → Professional · B.S. Software Engineering, Iowa State (Cum Laude)',
+    v: 'AWS DevOps Professional & Advanced Networking Specialty · B.S. Software Engineering, Iowa State (Cum Laude)',
   },
 ];
 
@@ -32,81 +28,124 @@ const eyebrow =
 
 <Base
   title="About"
-  description="Cloud software engineer at John Deere making AI a first-class participant in the software development lifecycle, built on six years of platform and developer-experience work."
+  description="Cloud software engineer at John Deere making AI a first-class participant in the software development lifecycle, built on experience across API platforms, digital equipment licensing, cloud infrastructure, and developer experience."
 >
-  <CurrentlyPill text={site.currently} />
-
   <h1 class="prose-serif mb-6 text-[40px] leading-[1.1] sm:text-[44px]" style="color: var(--fg);">
-    I’m Mitch, making <em style="color: var(--accent);">AI</em> a first-class participant in how we
-    ship software.
+    I’m Mitch. I build the <em style="color: var(--accent);">platforms around coding agents.</em>
   </h1>
 
-  <div class="skills-grid" style="margin-top: 1.6rem;">
+  <dl class="fact-grid">
     {
       glance.map((row) => (
         <div>
-          <span class="skills-cat">{row.k}</span>
-          <span class="skills-list">{row.v}</span>
+          <dt class="skills-cat">{row.k}</dt>
+          <dd class="skills-list">{row.v}</dd>
         </div>
       ))
     }
     <div>
-      <span class="skills-cat">Links</span>
-      <span class="skills-list">
+      <dt class="skills-cat">Links</dt>
+      <dd class="fact-links skills-list">
         <a href={site.github} target="_blank" rel="noreferrer" style="color: var(--accent); text-decoration: underline; text-underline-offset: 2px;">GitHub</a>
         <span style="color: var(--fg-dim);"> · </span>
         <a href={site.linkedin} target="_blank" rel="noreferrer" style="color: var(--accent); text-decoration: underline; text-underline-offset: 2px;">LinkedIn</a>
         <span style="color: var(--fg-dim);"> · </span>
         <a href={`mailto:${site.email}`} style="color: var(--accent); text-decoration: underline; text-underline-offset: 2px;">Email</a>
-      </span>
+      </dd>
     </div>
-  </div>
+  </dl>
 
   <section class="content">
-    <p style={eyebrow}>2026 – present</p>
+    <p style={eyebrow}>Recent work · October 2025 – October 2026</p>
     <h2 style="margin-top: 0;">The AI-Era SDLC</h2>
 
     <p>
-      My current chapter is a three-person tiger team, chartered by senior leadership, with a
-      deceptively large question: how does agentic AI reshape the software development lifecycle, and
-      what do we build so the answer becomes practice instead of a slide? In practice that’s a
-      harness, a context substrate, and the workflows that connect them, now serving a cohort of
-      around 45 engineers and feeding the enterprise AI strategy.
+      I’m a Cloud Software Engineer at John Deere, working across developer platforms, cloud
+      infrastructure, and AI-assisted delivery. On a three-person team, I connect product definition,
+      backend implementation, and the controls needed to move a system into production.
+      <a href="/resume/">Read my experience or download my résumé →</a>
+    </p>
+
+    <h3>Production delivery</h3>
+    <p>
+      For a team-owned <a href="/work/agentic-engineering/">engineering evidence product</a>,
+      I wrote the requirements and much of the design record, delivered key live-data views and
+      a personal work timeline, and designed and implemented shared caching. The product is in
+      production with steady, growing use. The caching decision balances latency, data freshness,
+      and availability; the case study walks through that tradeoff and its acceptance checks.
+    </p>
+
+    <h3>Cloud execution and trust</h3>
+    <p>
+      I ran <a href="/work/secure-agent-execution/">Codex and Claude Code in cloud sandboxes</a>
+      and added repository-credential proxying so the credential stays outside the execution
+      environment. I also built a <a href="/work/agent-trust/">skill-scanning trust layer</a>
+      and packaged reusable review tools. A separate keyless Codex pilot has merged; live verification
+      and containment hardening remain in progress.
+    </p>
+
+    <h3>Operating the delivery platform</h3>
+    <p>
+      In late 2025 and early 2026, I <a href="/work/pr-to-production/">hardened the
+      separation-of-duties platform</a> with Datadog monitors, dashboards, and synthetics, added
+      automatic incidents for pipeline failures, and consolidated a legacy processor. I also worked
+      through security findings and reviewed organization-governance changes.
+    </p>
+
+    <h3>Making the work reusable</h3>
+    <p>
+      I designed the <a href="/work/team-brain/">shared team brain</a> and its retrieval,
+      graph, memory, and quality tooling. I wrote the team’s harness thesis and Agent Delegation
+      Stack, and co-facilitate a guild and office hours for around 38 practitioners. Sourced briefs,
+      repository instructions, review skills, and feedback hooks make that work available beyond
+      an individual session.
+    </p>
+    <p>
+      My working model is <strong>Agent = Model + Harness</strong>: model capability becomes
+      useful through context, controls, tests, and feedback. I explore it in the
+      <a href="/writing/the-model-is-table-stakes/">Agent Harness field guide</a>.
+      Production adoption and observational signals do not establish causal productivity gains.
+    </p>
+
+    <p style={eyebrow}>Earlier foundations · 2019 – 2025</p>
+    <h2 style="margin-top: 0;">From APIs to Enterprise Platforms</h2>
+
+    <h3>2019 – 2021 · John Deere Financial</h3>
+    <p>
+      I started at John Deere Financial during an early attempt to make APIs safely available to
+      dealer software. The ambition resembled what a product such as Azure API Management provides:
+      a common gateway for governing and exposing APIs instead of another one-off integration. I
+      helped architect the platform’s <a href="/work/global-gateway/">first external-facing API</a>
+      for dealer access to sales-lead data, with role-based authorization and audit logging designed
+      in from the beginning. That early platform later matured into a gateway used for
+      both internal and external APIs.
+    </p>
+
+    <h3>2021 – 2023 · Digital Equipment Capabilities</h3>
+    <p>
+      I then moved closer to the technology on John Deere machinery. On <a href="/work/license-management/">equipment licensing</a>,
+      I worked behind the customer experience for purchasing digital capabilities on equipment. A secure
+      data-ingestion prototype I built
+      during a hackathon showed that license data could be made useful to internal teams without
+      giving up isolation or access controls, and helped make the case for a dedicated enterprise
+      Data Engineering team.
+    </p>
+
+    <h3>2023 – 2025 · Enterprise Cloud Foundations</h3>
+    <p>
+      The next chapter moved from individual products to infrastructure used across the enterprise.
+      I worked on cloud foundations serving engineering teams across John Deere. I led network
+      consolidation, orchestrated a DNS migration, automated
+      certificate renewal, and replaced manual account and VPC deletion with an event-driven
+      workflow. The work reduced operational drag and made recurring infrastructure tasks easier
+      to perform consistently.
     </p>
 
     <p>
-      Two convictions drive most of it. The first is that an agent is a model <em>plus a harness</em>
-      (the guides, hooks, skills, tests, reviews, and judges around the model), and the harness is
-      where the real engineering lives. Hooks always execute; instructions only get interpreted, so
-      anything that has to hold gets enforced deterministically rather than left to a model’s
-      discretion. The second is that context, not the model, is the load-bearing layer of agentic
-      delivery. Karpathy’s writing on LLM wikis matched what I keep seeing in practice: AI output
-      improves dramatically the moment an agent can reach the “pet knowledge” a team usually keeps in
-      human heads.
-    </p>
-
-    <p>
-      And the throughline underneath all of it is a refusal to run on vibes. “AI made me 3x faster”
-      is an anecdote, not a measurement. The interesting work is turning that into something
-      falsifiable: replacing how it <em>felt</em> with evidence you could be proven wrong about.
-    </p>
-
-    <p style={eyebrow}>2019 – 2025</p>
-    <h2 style="margin-top: 0;">Platform &amp; Cloud Foundations</h2>
-
-    <p>
-      You don’t get to redesign the SDLC until you’ve lived in its hardest corners. Before the AI
-      work, I spent most of six years on <a href="/work/">platform and developer-experience work</a>
-      at enterprise scale: PR-to-production governance that monitored 50,000+ repositories for
-      separation-of-duties compliance and cut audit-prep time by roughly three-quarters; a network
-      consolidation across about 2,000 VPCs that took seven figures a year out of cloud spend; a DNS
-      migration that remediated 140,000+ security vulnerabilities at 100% uptime through the cutover.
-    </p>
-
-    <p>
-      Different decade of tooling, same instinct that runs through the AI work: make the hard,
-      important thing also the easy, default thing. Compliance you don’t have to remember. Renewals
-      that don’t need a human in the loop. Onboarding that goes from hours to minutes.
+      The throughline across those chapters is the same instinct that now shapes my AI work: make the
+      hard, important thing also the easy, default thing. Secure access that does not need to be
+      reinvented. Compliance that does not depend on an engineer remembering it. Renewals that do
+      not need a human in the loop. Onboarding through reproducible environments.
     </p>
 
     <blockquote>
@@ -119,21 +158,34 @@ const eyebrow =
       that the output is an agent.
     </p>
 
-    <h2>Credentials</h2>
+    <h2>Public implementation</h2>
+    <p>The <a href="/work/bounded-runner/">bounded execution lab</a> gives you a small system to run,
+      break, and inspect: a synthetic credential gateway, a deterministic worker, and a separate
+      validator. Its source, tests, patch, and recorded fixture outcomes are public. It is independent
+      work, not a reproduction of an internal system.</p>
+
+    <h2>Education &amp; selected credentials</h2>
     <ul>
       <li>B.S. Software Engineering, Iowa State University (Cum Laude, 2020). Cyber security minor.</li>
       {certs.map((c) => <li>{c.name} <span style="color: var(--fg-dim); font-family: var(--font-mono); font-size: 0.82em;"> · {c.year}</span></li>)}
     </ul>
 
-    <h2>Skills</h2>
-    <div class="skills-grid">
-      <div><span class="skills-cat">AI Engineering</span><span class="skills-list">Claude Code, Codex, Copilot, MCP, agent harness design, context engineering, subagent orchestration, knowledge curation, AI-adoption telemetry, outcome-based engineering metrics</span></div>
-      <div><span class="skills-cat">Cloud &amp; IaC</span><span class="skills-list">AWS (advanced), Terraform, CloudFormation, Step Functions, Lambda, ECS Fargate</span></div>
-      <div><span class="skills-cat">Networking</span><span class="skills-list">VPC architecture, Route 53 / DNS, Transit Gateway, NAT Gateway, load balancing, hybrid connectivity</span></div>
-      <div><span class="skills-cat">Developer Experience</span><span class="skills-list">GitHub Actions, CI/CD shared workflows, automated dependency management (Renovate), GitHub Advanced Security, policy-as-code repository governance, internal developer portals (Backstage), Dev Containers</span></div>
-      <div><span class="skills-cat">Security &amp; Compliance</span><span class="skills-list">OAuth, secrets management, certificate management, network security, compliance automation, separation of duties</span></div>
-      <div><span class="skills-cat">Observability</span><span class="skills-list">CloudWatch, Datadog, Splunk, Grafana, AWS X-Ray</span></div>
-      <div><span class="skills-cat">Languages</span><span class="skills-list">Python, Java, JavaScript, TypeScript</span></div>
+    <p style="color: var(--fg-muted); font-size: 0.9rem;">{earlierCerts}</p>
+
+    <h2>Capabilities in practice</h2>
+    <div class="capability-groups">
+      <section>
+        <h3>Agent-assisted delivery</h3>
+        <p>Harness design, context engineering, MCP, knowledge curation, and outcome-based engineering metrics. Built with Claude Code, Codex, and Copilot.</p>
+      </section>
+      <section>
+        <h3>Cloud foundations</h3>
+        <p>AWS, Terraform, CloudFormation, networking, DNS, and event-driven infrastructure. Security work spans OAuth, secrets, certificates, and compliance automation.</p>
+      </section>
+      <section>
+        <h3>Developer platforms</h3>
+        <p>GitHub Actions, shared CI/CD workflows, Renovate, repository governance, Backstage, and Dev Containers. Observability through CloudWatch, Datadog, Splunk, Grafana, and X-Ray; implementation in Python, Java, JavaScript, and TypeScript.</p>
+      </section>
     </div>
 
     <h2>Colophon</h2>

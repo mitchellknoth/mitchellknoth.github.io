@@ -7,17 +7,27 @@ const { label, href } = Astro.props;
 ---
 
 <div class="mb-6 mt-14 flex items-center gap-4">
-  <h2 class="mono-meta shrink-0" style="margin: 0; font-weight: 400;">{label}</h2>
+  <h2 class="section-label__heading prose-serif shrink-0">{label}</h2>
   <div class="h-px flex-1" style="background: var(--border);"></div>
   {
     href && (
       <a
         href={href}
-        class="mono-meta shrink-0 transition-opacity hover:opacity-70"
+        aria-label={`View all ${label.toLowerCase()}`}
+        class="standalone-link mono-meta shrink-0"
         style="color: var(--accent);"
       >
-        view all →
+        View all →
       </a>
     )
   }
 </div>
+
+<style>
+  .section-label__heading {
+    color: var(--fg);
+    font-size: clamp(1.35rem, 3vw, 1.55rem);
+    line-height: 1.1;
+    margin: 0;
+  }
+</style>

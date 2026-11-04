@@ -1,0 +1,112 @@
+---
+interface Mode {
+  title: string;
+  description: string;
+}
+
+interface Props {
+  modes: Mode[];
+}
+
+const { modes } = Astro.props;
+---
+
+<figure class="editorial-diagram delegation-spectrum" aria-label="Levels of delegation">
+  {modes.map((mode, index) => (
+    <div class="delegation-spectrum__mode">
+      <div class="delegation-spectrum__heading">
+        <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+        <h4>{mode.title}</h4>
+      </div>
+      <p>{mode.description}</p>
+    </div>
+  ))}
+</figure>
+
+<style>
+  .delegation-spectrum {
+    border-block: 1px solid var(--editorial-border);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 1.75rem 0 2.25rem;
+    padding: 1.2rem 0;
+  }
+
+  .delegation-spectrum__mode {
+    min-width: 0;
+    padding: 0 1rem;
+    position: relative;
+  }
+
+  .delegation-spectrum__mode:first-child {
+    padding-left: 0;
+  }
+
+  .delegation-spectrum__mode:last-child {
+    padding-right: 0;
+  }
+
+  .delegation-spectrum__mode:not(:last-child)::after {
+    color: var(--fg-dim);
+    content: '→';
+    position: absolute;
+    right: -0.3rem;
+    top: 0.1rem;
+  }
+
+  .delegation-spectrum__heading {
+    align-items: baseline;
+    display: flex;
+    gap: 0.45rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .delegation-spectrum__heading span {
+    color: var(--fg-dim);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+  }
+
+  .delegation-spectrum h4 {
+    color: var(--accent);
+    font-family: var(--font-sans);
+    font-size: 0.86rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .delegation-spectrum p {
+    color: var(--fg-muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  @media (max-width: 639px) {
+    .delegation-spectrum {
+      gap: 1.4rem 1.25rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .delegation-spectrum__mode,
+    .delegation-spectrum__mode:first-child,
+    .delegation-spectrum__mode:last-child {
+      padding: 0;
+    }
+
+    .delegation-spectrum__mode:not(:last-child)::after {
+      display: none;
+    }
+
+    .delegation-spectrum p {
+      font-size: 0.84rem;
+    }
+  }
+
+  @media (max-width: 359px) {
+    .delegation-spectrum {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -14,13 +14,13 @@ const dateLabel = formatPostDate(post.data.date);
 ---
 
 <article class="featured-post">
-  <div class="mono-meta">Featured essay · {dateLabel}</div>
+  <div class="mono-meta">Featured writing · {dateLabel}</div>
   <Heading class="prose-serif">
-    <a href={href}>{post.data.title}</a>
+    <a class="standalone-link" href={href}>{post.data.title}</a>
   </Heading>
   <p>{post.data.summary}</p>
   <a class="featured-post__link" href={href}>
-    Read the field guide <span aria-hidden="true">→</span>
+    Read the piece <span aria-hidden="true">→</span>
   </a>
 </article>
 
@@ -64,15 +64,48 @@ const dateLabel = formatPostDate(post.data.date);
     font-family: var(--font-mono);
     font-size: 0.75rem;
     letter-spacing: 0.04em;
-    min-height: 24px;
+    min-height: 44px;
+    min-width: 44px;
+    align-content: center;
     text-decoration: underline;
     text-underline-offset: 3px;
   }
 
-  @media (pointer: coarse) {
+  @media (min-width: 900px) {
+    .featured-post {
+      align-items: start;
+      column-gap: clamp(2rem, 5vw, 4.5rem);
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+      padding: clamp(1.6rem, 3vw, 2.5rem);
+    }
+
+    .featured-post .mono-meta,
+    .featured-post h2,
+    .featured-post h3 {
+      grid-column: 1;
+    }
+
+    .featured-post .mono-meta {
+      grid-row: 1;
+    }
+
+    .featured-post h2,
+    .featured-post h3 {
+      grid-row: 2 / span 2;
+      margin-bottom: 0;
+    }
+
+    .featured-post p {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      margin-top: 0;
+    }
+
     .featured-post__link {
-      align-content: center;
-      min-height: 44px;
+      grid-column: 2;
+      grid-row: 3;
+      margin-top: 0.35rem;
     }
   }
 </style>

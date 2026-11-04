@@ -17,11 +17,11 @@ const { Content } = await render(project);
 
 <Base title={project.data.title} description={project.data.summary} ogType="article">
   <article class="content mx-auto">
-    <a href="/work/" class="eyebrow-link">← all work</a>
+    <a href="/work/" class="standalone-link eyebrow-link">← all work</a>
 
     <header class="mb-10 mt-5">
       <div class="mono-meta mb-4">{project.data.period}</div>
-      <h1 class="prose-serif text-[40px] leading-[1.1]" style="color: var(--fg);">
+      <h1 class="work-title prose-serif" style="color: var(--fg);">
         {project.data.title}
       </h1>
       <p class="mt-4 text-[17px] leading-[1.7]" style="color: var(--fg-muted);">

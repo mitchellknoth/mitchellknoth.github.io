@@ -1,36 +1,27 @@
 ---
 title: "PR to Production – Developer Experience"
-summary: "On the developer-experience team that owns the path from pull request to production, I built the tooling, governance, and automation that let the enterprise ship fast with security and separation-of-duties built in. The work spanned an event-driven compliance platform monitoring 50,000+ repositories, enterprise incident response, and AI-assisted diagnostics that cut production investigation from hours to minutes."
-period: "2025 – 2026"
-stack: ["aws", "github-actions", "event-driven", "python", "typescript", "splunk"]
+summary: "Hardened an event-driven separation-of-duties platform with observability, automatic incident creation, and processor consolidation. Worked through security findings, maintained vulnerability-data integrations, reviewed organization governance, and introduced agent tooling into the team’s own repositories."
+period: "Late 2025 – early 2026"
+stack: ["aws", "github-actions", "event-driven", "datadog", "python", "typescript"]
 metric:
-  value: "50K+ repos"
-  label: "Monitored for SoD"
+  value: "Delivery operations"
+  label: "Added pipeline monitoring and automatic incidents; consolidated a legacy processor."
 featured: true
 order: 1
-era: ai
+section: recent
 ---
 
 ## Scope
 
-This work sits in the gap between source control and production, the part of the pipeline where teams want to move fast but the organization still needs hard guarantees around security, separation of duties, and operational visibility. The team owns the tooling, governance, and automation that make "fast" and "compliant" the same path.
+Before joining the AI-era SDLC tiger team, I worked on the Developer Experience product responsible for the enterprise path from pull request to production. The work connected delivery tooling, separation of duties, operational visibility, and repository governance.
 
-## What I built
+## My responsibility
 
-- An enterprise **event-driven monitoring platform** that ingests GitHub workflow events into AWS-based compliance systems, detecting separation-of-duties violations across **50,000+ repositories** and cutting audit-prep time by **75%**.
-- An **intelligent diagnostic agent** that correlates distributed logs and telemetry across core services, reducing production investigation time from hours to minutes on that same 50,000-repo platform.
-- Canonical separation-of-duties documentation (reverse-engineered from an internal compliance service's implicit scoring logic) that eliminated long-standing ambiguity for **100+ engineering teams**.
+- **Platform hardening:** moved the event-driven separation-of-duties platform from AWS X-Ray to Datadog, adding monitors, dashboards, and synthetics; added automatic incident creation for pipeline failures; and consolidated a legacy processor onto the platform.
+- **Security maintenance:** worked through CVE and Security Hub findings across the team’s services and migrated status badges to a new vulnerability-data API.
+- **Governance review:** served as a gatekeeper on organization-governance changes, keeping policy decisions reviewable before they reached engineering teams.
+- **Agent tooling:** introduced reusable agent skills, a migration agent, and Copilot coding-agent workflows into the team’s repositories before the tiger team existed.
 
-## Incident response
+## Operational result
 
-- Led **blast-radius analysis** for a secrets-exposure incident: scoped the impact to **a few hundred repositories and tens of thousands of workflow executions**, then shipped a dynamic burndown dashboard tracking remediation enterprise-wide.
-- Led **P1 incident response** for a repository-settings policy rollout that overreached several hundred repositories beyond its intended scope: coordinating remediation, driving the postmortem, and reorganizing the team's operating model to prevent recurrence.
-
-## Beyond the platform
-
-- Acted as enterprise **GitHub Actions SME** for a Jenkins-to-GitHub-Actions migration, securing director-level buy-in and onboarding pilot teams onto shared workflows and GitHub Advanced Security.
-- Closed platform blind spots with an automation that surfaces 100% of upstream breaking changes to stakeholders in real time.
-
-## Outcome
-
-A tighter, safer PR-to-production loop across a very large repository footprint: compliance checks that scale to the enterprise, incident response measured in targeted minutes instead of guesswork, and governance that teams can actually understand.
+Pipeline failures now create incidents automatically, the separation-of-duties platform has monitors, dashboards, and synthetic checks, and a legacy processor has been consolidated onto that platform. Those changes make failures visible and give operators a common path for investigating them. It also set up the question I now work on: how do we give coding agents the same clear context, bounded permissions, and feedback that reliable engineering already depends on?

@@ -78,21 +78,21 @@ const socialImageUrl = new URL('/social-card.png', Astro.site).toString();
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to content</a>
-    <div class="mx-auto flex min-h-dvh max-w-[720px] flex-col px-6 sm:px-8">
+    <div class="site-shell mx-auto flex min-h-dvh flex-col">
       <header
-        class="flex items-center justify-between border-b py-5"
+        class="site-header flex items-center justify-between border-b py-4 sm:py-5"
         style="border-color: var(--border);"
       >
         <a
           href="/"
-          class="prose-serif text-[17px] tracking-tight transition-opacity hover:opacity-80"
+          class="site-brand prose-serif shrink-0 text-[17px] tracking-tight"
           style="color: var(--fg);"
           aria-label="Home"
         >
           {site.name}
         </a>
-        <div class="flex items-center gap-4">
-          <nav aria-label="Primary" class="flex items-center gap-6 text-[13.5px]">
+        <div class="site-header__actions flex items-center gap-3 sm:gap-4">
+          <nav aria-label="Primary" class="flex items-center gap-3 text-[13.5px] sm:gap-6">
             {
               nav.map((item) => {
                 const active = currentPath === item.href || currentPath.startsWith(item.href);
@@ -121,11 +121,11 @@ const socialImageUrl = new URL('/social-card.png', Astro.site).toString();
         style="border-color: var(--border); color: var(--fg-dim); font-family: var(--font-mono);"
       >
         <span>{site.location}</span>
-        <span class="flex gap-4">
-          <a href={site.github} target="_blank" rel="noreferrer" class="hover:opacity-80">github</a>
-          <a href={site.linkedin} target="_blank" rel="noreferrer" class="hover:opacity-80">linkedin</a>
-          <a href={`mailto:${site.email}`} class="hover:opacity-80">email</a>
-          <a href="/rss.xml" class="hover:opacity-80">rss</a>
+        <span class="footer-links flex flex-wrap gap-x-3">
+          <a href={site.github} target="_blank" rel="noreferrer" class="footer-link">github</a>
+          <a href={site.linkedin} target="_blank" rel="noreferrer" class="footer-link">linkedin</a>
+          <a href={`mailto:${site.email}`} class="footer-link">email</a>
+          <a href="/rss.xml" class="footer-link">rss</a>
         </span>
       </footer>
     </div>

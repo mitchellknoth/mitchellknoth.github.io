@@ -52,6 +52,7 @@
 
     const syncIcons = () => {
       const t = document.documentElement.getAttribute('data-theme');
+      btn.setAttribute('aria-label', t === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
       if (t === 'light') {
         sun?.classList.remove('hidden');
         moon?.classList.add('hidden');
@@ -74,6 +75,14 @@
       syncIcons();
     });
   }
+
+  document.addEventListener('astro:before-swap', (event) => {
+    const theme = document.documentElement.dataset.theme ?? 'dark';
+    event.newDocument.documentElement.dataset.theme = theme;
+    event.newDocument.querySelector('meta[name="theme-color"]')?.setAttribute(
+      'content', theme === 'light' ? '#fbf8f1' : '#0c0a08',
+    );
+  });
 
   // Run on initial load and after every Astro view-transition navigation
   setupThemeToggle();

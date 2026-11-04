@@ -1,0 +1,16 @@
+---
+interface Props { name: 'credential-boundary' | 'independent-validation'; alt: string; eager?: boolean; }
+const { name, alt, eager = false } = Astro.props;
+const base = `/images/writing/patch-outside-worker/${name}`;
+---
+<figure class="article-figure lab-diagram">
+  <picture>
+    <source media="(max-width: 767px)" srcset={`${base}-phone.svg`} width="640" height="900" />
+    <img src={`${base}.svg`} alt={alt} width="1200" height="640" loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : 'auto'} decoding="async" />
+  </picture>
+  <figcaption>{alt}</figcaption>
+</figure>
+<style>
+  .lab-diagram picture img { aspect-ratio: auto; }
+  figcaption { padding: 1rem 1.25rem; color: var(--fg-muted); font-size: 0.9rem; line-height: 1.6; }
+</style>

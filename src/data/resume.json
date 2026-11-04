@@ -1,0 +1,74 @@
+{
+  "name": "Mitchell Knoth",
+  "title": "Cloud Software Engineer",
+  "summary": "Developer-platform engineer building reliable coding-agent execution, shared context, and production engineering-data systems. Cloud Software Engineer at John Deere since 2019, with experience in backend reliability, cloud networking, and secure delivery.",
+  "focus": "Developer platforms and coding-agent infrastructure",
+  "location": "Des Moines, Iowa",
+  "email": "mknoth197@gmail.com",
+  "website": "https://mitchellknoth.com",
+  "github": "https://github.com/mknoth197",
+  "linkedin": "https://www.linkedin.com/in/mitchellknoth/",
+  "updated": "October 2026",
+  "employer": "John Deere",
+  "experience": [
+    {
+      "title": "AI-assisted delivery and developer platforms",
+      "period": "2026 - present",
+      "href": "/work/agentic-engineering/",
+      "points": [
+        "Wrote product requirements and much of the design record; delivered live-data views and a personal work timeline for a team-owned engineering evidence product now in production.",
+        "Implemented Redis caching with tier-specific lifetimes and source-update watermarks; cache failures bypass to the source, and source errors remain visible.",
+        "Separated CI validation from deployment and contributed dedicated acceptance checks for engineering views.",
+        "Designed a shared knowledge repository with hybrid retrieval, a structural graph, a memory lifecycle, and CI lint checks; co-facilitate a guild and office hours for around 38 practitioners.",
+        "Ran Codex and Claude Code in disposable cloud sandboxes and implemented repository-credential proxying; returned logs and inspectable patches. Separate keyless pilot is merged, with live verification incomplete.",
+        "Built a versioned skill-scanning trust layer with separate policy decisions and SARIF output; packaged reusable pre-PR reviews and feedback hooks."
+      ]
+    },
+    {
+      "title": "Developer Experience",
+      "period": "Late 2025 - early 2026",
+      "href": "/work/pr-to-production/",
+      "points": [
+        "Hardened the separation-of-duties platform with Datadog monitors, dashboards, and synthetics; added automatic incidents for pipeline failures and consolidated a legacy processor.",
+        "Worked through CVE and Security Hub findings, migrated vulnerability-data integrations, reviewed organization governance, and introduced agent tooling into team repositories."
+      ]
+    },
+    {
+      "title": "Enterprise cloud foundations",
+      "period": "2023 - 2025",
+      "href": "/work/onecloud-network/",
+      "points": [
+        "Led NAT Gateway consolidation, orchestrated a DNS migration, and automated certificate validation and renewal paths.",
+        "Replaced manual account and VPC deletion with Step Functions and Lambda workflows; built DNS verification and cleanup and introduced reproducible Dev Container environments."
+      ]
+    },
+    {
+      "title": "Digital equipment licensing",
+      "period": "2021 - 2023",
+      "href": "/work/license-management/",
+      "points": [
+        "Built a secure license-data ingestion prototype during a hackathon, preserving isolation and access controls; the prototype helped make the case for an enterprise data-engineering investment."
+      ]
+    },
+    {
+      "title": "External API platform",
+      "period": "2019 - 2021",
+      "href": "/work/global-gateway/",
+      "points": [
+        "Helped architect the platform’s first external-facing dealer API with role-based authorization and audit logging, establishing a reusable external-access pattern."
+      ]
+    }
+  ],
+  "skills": "TypeScript, Python, Java; AWS, Terraform, Step Functions, Lambda; Redis; GitHub Actions; Datadog; identity and credential boundaries; agent harness and context engineering.",
+  "education": "B.S. Software Engineering, Iowa State University, 2020. Cum Laude; cyber security minor.",
+  "credentials": [
+    "AWS Certified DevOps Engineer - Professional (May 2026)",
+    "AWS Certified Advanced Networking - Specialty (August 2025)"
+  ],
+  "employmentPeriod": "2019 - present",
+  "publicWork": {
+    "title": "Bounded execution lab",
+    "href": "/work/bounded-runner/",
+    "summary": "Independent Docker experiment with synthetic credential mediation, returned patches, and separate validation; includes recorded accepted, rejected, and timed-out fixture runs."
+  }
+}

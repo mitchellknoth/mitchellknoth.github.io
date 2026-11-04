@@ -1,0 +1,98 @@
+---
+interface Group {
+  label: string;
+  items: string[];
+}
+
+interface Props {
+  title: string;
+  groups: Group[];
+  headingId?: string;
+}
+
+const { title, groups, headingId = 'harness-readiness-title' } = Astro.props;
+---
+
+<aside class="editorial-diagram harness-readiness" aria-labelledby={headingId}>
+  <h2 id={headingId}>{title}</h2>
+  <div class="harness-readiness__matrix">
+    {groups.map((group) => (
+      <section>
+        <h3>{group.label}</h3>
+        {group.items.map((item) => <p>{item}</p>)}
+      </section>
+    ))}
+  </div>
+</aside>
+
+<style>
+  .harness-readiness {
+    margin: 2.75rem 0 1.5rem;
+  }
+
+  .harness-readiness > h2 {
+    font-family: var(--font-serif);
+    font-size: clamp(1.9rem, 7vw, 2.45rem);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin: 0 0 1.25rem;
+  }
+
+  .harness-readiness__matrix {
+    border-block: 1px solid var(--editorial-border);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .harness-readiness__matrix section {
+    min-width: 0;
+    padding: 1.15rem 1.25rem 1.25rem 0;
+  }
+
+  .harness-readiness__matrix section:nth-child(even) {
+    border-left: 1px solid var(--border);
+    padding-left: 1.25rem;
+    padding-right: 0;
+  }
+
+  .harness-readiness__matrix section:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+
+  .harness-readiness__matrix h3 {
+    color: var(--accent);
+    font-family: var(--font-sans);
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    margin: 0 0 0.8rem;
+  }
+
+  .harness-readiness__matrix p {
+    color: var(--fg);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .harness-readiness__matrix p + p {
+    margin-top: 0.7rem;
+  }
+
+  @media (max-width: 539px) {
+    .harness-readiness__matrix {
+      grid-template-columns: 1fr;
+    }
+
+    .harness-readiness__matrix section,
+    .harness-readiness__matrix section:nth-child(even) {
+      border-left: 0;
+      padding: 1.1rem 0;
+    }
+
+    .harness-readiness__matrix section + section {
+      border-top: 1px solid var(--border);
+    }
+  }
+</style>

@@ -1,26 +1,23 @@
 ---
 title: "Account & VPC Deletion Automation"
-summary: "I owned AWS account automation and the operational plumbing thousands of engineers depended on daily. Replaced a manual, hour-long account and VPC deletion process with an event-driven Step Functions and Lambda system (hours to seconds), designed out DNS subdomain-hijacking risk across ~900 hosted zones, and cut developer onboarding from hours to minutes with Dev Containers."
+summary: "Owned AWS account automation and replaced manual account and VPC deletion with an event-driven Step Functions and Lambda workflow. Built DNS verification and cleanup to address subdomain-hijacking risk, and introduced Dev Containers for reproducible onboarding."
 period: "2023 – 2025"
 stack: ["step-functions", "lambda", "event-driven", "python", "route53", "dev-containers"]
-metric:
-  value: "hrs → s"
-  label: "Execution time"
-featured: true
+featured: false
 order: 3
-era: platform
+section: foundations
 ---
 
 ## Scope
 
-I owned AWS account automation and the operational plumbing that thousands of engineers depended on daily. Deleting accounts and VPCs sounds mundane until it becomes a repeated task with real blast radius. The original process was slow, manual, and easy to get wrong under pressure.
+I owned AWS account automation and recurring infrastructure operations. Account and VPC deletion were manual tasks with consequential blast radius; the goal was a consistent process with fewer opportunities for error.
 
 ## What I built
 
-- An **event-driven workflow** on AWS Step Functions and Lambda that coordinates account and VPC deletion safely and consistently, dropping execution time from **about an hour to seconds** and removing human error from the path.
-- A **DNS subdomain-hijacking defense**: audited **thousands of DNS forwarders across ~900 hosted zones** and built automated verification and cleanup with the on-prem DNS and security teams, eliminating takeover risk.
-- **Dev Containers** for the engineering org, cutting developer onboarding from hours to minutes with consistent, reproducible environments.
+- An event-driven workflow on AWS Step Functions and Lambda to coordinate account and VPC deletion.
+- Automated DNS verification and cleanup, developed with networking and security partners, to address subdomain-hijacking risk.
+- Dev Containers that gave engineers a consistent, reproducible starting environment.
 
 ## Outcome
 
-Long-lived, high-blast-radius infrastructure tasks became fast and safe by default, a whole class of DNS takeover risk was designed out, and new engineers got productive in minutes instead of hours.
+Repeated infrastructure tasks became automated workflows, and onboarding depended less on individual setup. These contributions belong to the earlier cloud-foundations chapter.

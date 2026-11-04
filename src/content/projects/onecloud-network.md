@@ -1,26 +1,23 @@
 ---
-title: "OneCloud – Enterprise Network Architecture"
-summary: "Led an enterprise-wide network consolidation across ~2,000 VPCs, optimizing NAT Gateway usage to cut annual cloud spend by $1M. Orchestrated a DNS migration that remediated 140,000+ security vulnerabilities with 100% uptime during cutover, and migrated 10,000+ AWS ACM certificates from email to automated DNS validation, making renewals fully automated enterprise-wide."
+title: "Enterprise Cloud – Network Architecture"
+summary: "Led enterprise network consolidation to simplify NAT Gateway usage, orchestrated a DNS migration, and moved AWS ACM certificates from email to automated DNS validation. The work reduced cloud costs and the operational burden of fragmented network patterns."
 period: "2023 – 2025"
 stack: ["aws", "vpc", "transit-gateway", "route53", "terraform", "acm"]
-metric:
-  value: "$1M saved"
-  label: "Annual cloud spend"
-featured: true
+featured: false
 order: 2
-era: platform
+section: foundations
 ---
 
 ## Scope
 
-OneCloud was a large-scale network simplification across roughly 2,000 VPCs. The problem wasn’t only cost: it was the operational drag and security exposure that come from fragmented network patterns repeated across the enterprise.
+Enterprise network simplification addressed both cloud cost and the operational drag of fragmented patterns repeated across many VPCs.
 
 ## What changed
 
-- Led the consolidation of NAT Gateway usage across **~2,000 VPCs**, cutting annual cloud spend by **$1M**.
-- Orchestrated an enterprise **DNS migration** that remediated **140,000+ DNS-related security vulnerabilities** while holding **100% uptime** during cutover across global networks.
-- Migrated **10,000+ AWS ACM certificates** from email validation to automated DNS validation, removing human approval bottlenecks and making renewals fully automated enterprise-wide.
+- Led consolidation of NAT Gateway usage to reduce recurring cloud spend.
+- Orchestrated an enterprise DNS migration to address security findings across global networks.
+- Migrated AWS ACM certificates from email validation to automated DNS validation, removing manual approval from supported renewal paths.
 
 ## Outcome
 
-The work cut annual cloud spend by seven figures, materially reduced security risk, and left the network far easier to operate and reason about at enterprise scale.
+The work simplified recurring network operations and reduced cost and security exposure. It is earlier platform work, separate from the current AI-era SDLC chapter.

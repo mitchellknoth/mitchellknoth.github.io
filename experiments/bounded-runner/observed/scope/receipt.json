@@ -1,0 +1,15 @@
+{
+  "scenario": "scope",
+  "status": "rejected_scope",
+  "experiment": "synthetic deterministic worker",
+  "events": [
+    "internal network created; no published ports",
+    "worker exited successfully",
+    "host rejected unexpected path or symbolic link"
+  ],
+  "base_sha256": "f17374f16652c1edd0889c22e6d84f2294fc4aa454e480a66243937ee2ce90ef",
+  "image_id": "sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4",
+  "internal_network": true,
+  "cleanup": "complete",
+  "elapsed_seconds": 1.67
+}

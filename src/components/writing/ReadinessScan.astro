@@ -1,0 +1,65 @@
+---
+interface Props {
+  questions: string[];
+}
+
+const { questions } = Astro.props;
+---
+
+<aside class="editorial-reading readiness-scan" aria-label="Repository readiness questions">
+  {questions.map((question, index) => (
+    <div class="readiness-scan__question">
+      <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+      <p>{question}</p>
+    </div>
+  ))}
+</aside>
+
+<style>
+  .readiness-scan {
+    border-block: 1px solid var(--editorial-border);
+    display: grid;
+    gap: 1.4rem 2rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 1.75rem 0 2.25rem;
+    padding: 1.4rem 0;
+  }
+
+  .readiness-scan__question {
+    display: grid;
+    gap: 0.7rem;
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+  }
+
+  .readiness-scan__question:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    max-width: calc(50% - 1rem);
+  }
+
+  .readiness-scan__question span {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    padding-top: 0.22rem;
+  }
+
+  .readiness-scan__question p {
+    color: var(--fg);
+    font-family: var(--font-serif);
+    font-size: 1.06rem;
+    line-height: 1.35;
+    margin: 0;
+  }
+
+  @media (max-width: 639px) {
+    .readiness-scan {
+      gap: 1.15rem;
+      grid-template-columns: 1fr;
+    }
+
+    .readiness-scan__question:last-child:nth-child(odd) {
+      grid-column: auto;
+      max-width: none;
+    }
+  }
+</style>

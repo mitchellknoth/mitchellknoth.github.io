@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+import resume from '../data/resume.json';
+---
+<Base title="Experience & résumé" description={resume.summary}>
+  <article class="content mx-auto">
+    <h1 class="prose-serif text-[40px] leading-tight" style="color: var(--fg);">Experience &amp; résumé</h1>
+    <p>{resume.summary}</p>
+    <p><strong>Focus:</strong> {resume.focus}.<br />{resume.title}, {resume.employer} · {resume.employmentPeriod} · {resume.location}</p>
+    <p><a href="/mitchell-knoth-resume.pdf" download>Download résumé (PDF)</a> · <a href={`mailto:${resume.email}`}>Email</a> · <a href={resume.linkedin}>LinkedIn</a></p>
+    <p class="mono-meta">Updated {resume.updated}</p>
+    {resume.experience.map((entry) => (
+      <section class="resume-entry">
+        <h2>{entry.title}</h2>
+        <p>{resume.title} · {resume.employer}</p>
+        <p class="mono-meta">{entry.period}</p>
+        <ul class="resume-points">{entry.points.map((point) => <li>{point}</li>)}</ul>
+        <p><a href={entry.href}>Read case study →</a></p>
+      </section>
+    ))}
+    <h2>Independent public work</h2>
+    <p><a href={resume.publicWork.href}>{resume.publicWork.title}</a>: {resume.publicWork.summary}</p>
+    <h2>Technical focus</h2>
+    <p>{resume.skills}</p>
+    <h2>Education &amp; selected credentials</h2>
+    <p>{resume.education}</p>
+    <ul>{resume.credentials.map((credential) => <li>{credential}</li>)}</ul>
+  </article>
+</Base>
+<style>
+  .resume-entry { margin: 2.5rem 0; }
+  .resume-points { display: grid; gap: 0.8rem; margin: 1rem 0 1.3rem; padding: 0; list-style: none; }
+  .resume-points li { position: relative; padding-left: 1.2rem; margin: 0; }
+  .resume-points li::before { content: '•'; position: absolute; left: 0; color: var(--accent); }
+</style>

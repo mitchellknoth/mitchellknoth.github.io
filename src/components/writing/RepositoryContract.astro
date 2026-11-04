@@ -1,0 +1,96 @@
+---
+interface Group {
+  label: string;
+  items: string[];
+}
+
+interface Props {
+  groups: Group[];
+}
+
+const { groups } = Astro.props;
+---
+
+<figure class="editorial-diagram repository-contract" aria-label="Repository-owned harness contract">
+  {groups.map((group) => (
+    <section class="repository-contract__group">
+      <h3>{group.label}</h3>
+      <div class="repository-contract__items">
+        {group.items.map((item) => <p>{item}</p>)}
+      </div>
+    </section>
+  ))}
+</figure>
+
+<style>
+  .repository-contract {
+    border-block: 1px solid var(--editorial-border);
+    display: grid;
+    grid-template-columns: 1fr 1.12fr 1.45fr;
+    margin: 1.75rem 0 2.25rem;
+  }
+
+  .repository-contract__group {
+    min-width: 0;
+    padding: 1.15rem 1rem 1.25rem;
+  }
+
+  .repository-contract__group:first-child {
+    padding-left: 0;
+  }
+
+  .repository-contract__group:last-child {
+    padding-right: 0;
+  }
+
+  .repository-contract__group + .repository-contract__group {
+    border-left: 1px solid var(--border);
+  }
+
+  .repository-contract h3 {
+    color: var(--accent);
+    font-family: var(--font-sans);
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.35;
+    margin: 0 0 1rem;
+  }
+
+  .repository-contract__items {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .repository-contract__items p {
+    color: var(--fg);
+    font-size: 0.86rem;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  @media (max-width: 639px) {
+    .repository-contract {
+      display: block;
+    }
+
+    .repository-contract__group,
+    .repository-contract__group:first-child,
+    .repository-contract__group:last-child {
+      padding: 1.1rem 0;
+    }
+
+    .repository-contract__group + .repository-contract__group {
+      border-left: 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .repository-contract__items {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .repository-contract__items p:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

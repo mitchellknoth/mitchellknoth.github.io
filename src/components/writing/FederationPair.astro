@@ -1,0 +1,68 @@
+---
+interface Capability {
+  title: string;
+  description: string;
+}
+
+interface Props {
+  capabilities: [Capability, Capability];
+}
+
+const { capabilities } = Astro.props;
+---
+
+<figure class="editorial-diagram federation-pair" aria-label="Enterprise access requires reachability and authentication">
+  <div class="federation-pair__capability">
+    <h3>{capabilities[0].title}</h3>
+    <p>{capabilities[0].description}</p>
+  </div>
+  <span class="federation-pair__operator" aria-hidden="true">+</span>
+  <div class="federation-pair__capability">
+    <h3>{capabilities[1].title}</h3>
+    <p>{capabilities[1].description}</p>
+  </div>
+</figure>
+
+<style>
+  .federation-pair {
+    align-items: stretch;
+    border-block: 1px solid var(--editorial-border);
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    margin: 1.75rem 0 2.25rem;
+    padding: 1.35rem 0;
+  }
+
+  .federation-pair__capability h3 {
+    color: var(--accent);
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .federation-pair__capability p {
+    color: var(--fg-muted);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .federation-pair__operator {
+    align-self: center;
+    color: var(--fg-dim);
+    font-family: var(--font-serif);
+    font-size: 2rem;
+  }
+
+  @media (max-width: 539px) {
+    .federation-pair {
+      grid-template-columns: 1fr;
+    }
+
+    .federation-pair__operator {
+      justify-self: center;
+      line-height: 1;
+    }
+  }
+</style>

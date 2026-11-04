@@ -1,0 +1,65 @@
+---
+title: "Bounded Execution Lab"
+summary: "A runnable Docker lab for synthetic credential mediation and independent patch validation, with source, tests, and five recorded success and failure scenarios."
+period: "October 2026"
+stack: ["python", "docker", "credential-mediation", "acceptance-tests"]
+featured: false
+order: 0.25
+section: recent
+roleTag: "Public implementation"
+---
+
+import LabFigure from '../../components/work/LabFigure.astro';
+import ComparisonTable from '../../components/writing/ComparisonTable.astro';
+
+## What you can run
+
+This independent lab turns an execution boundary into a small system you can inspect. A deterministic worker fixes an empty-cart bug inside a temporary Docker workspace. A gateway supplies a synthetic upstream credential outside the worker. The host derives the patch and checks it with original tests in a separate, read-only, network-disabled container.
+
+It uses no employer data, real credentials, or model API. It demonstrates an execution contract, not agent intelligence or production-grade containment.
+
+**[Download source, tests, and recorded evidence](/downloads/bounded-runner.zip)** · [Read the implementation note](/writing/patch-outside-worker/)
+
+## Reproduce
+
+Unzip the archive, open its `bounded-runner` directory, and use Python 3.10+ with a running Docker engine:
+
+```sh
+docker pull python:3.12-alpine
+python3 run.py --scenario valid --output /tmp/bounded-valid
+python3 test_lab.py
+```
+
+The output directory must be new. `receipt.json` records the outcome, image identity, hashes, and cleanup status. `patch.diff`, `worker.log`, `gateway.log`, and `validator.log` make the candidate and checks inspectable where those stages ran. No change is applied to your repositories.
+
+## The engineering decisions
+
+The gateway allows one GET route and uses a fixed loopback upstream. It does not forward client-supplied URLs or authorization headers. The upstream token lives in the gateway environment; the worker receives only the fixture task. Unknown routes and POST requests are denied.
+
+The worker can write the temporary fixture, but cannot edit the original acceptance checks. Before validation, the host requires exactly the approved regular file and rejects symlinks. It computes a diff from original bytes rather than trusting a patch supplied by the worker. The worker has exited before the validator starts.
+
+<LabFigure name="independent-validation" alt="The worker exits before host scope checking and separate read-only validation; original tests stay outside the writable worker mount." />
+
+## Recorded fixture outcomes
+
+<ComparisonTable
+  caption="Five local fixture runs"
+  headings={['Input behavior', 'Observed outcome', 'What rejected it']}
+  rows={[
+    ['Fix only the empty-cart bug', 'Accepted', 'Three cart behaviors passed'],
+    ['Return zero for every cart', 'Rejected', 'Nonempty-cart assertion'],
+    ['Add an unapproved file', 'Rejected', 'Host path check'],
+    ['Replace the approved file with a symlink', 'Rejected', 'Host file-type check'],
+    ['Keep the worker running past its deadline', 'Timed out', 'Worker killed before validation'],
+  ]}
+/>
+
+The archive's `observed/` directory contains the receipts and logs for these local fixture runs. Each receipt identifies the actual image and source bytes. The acceptance matrix checks outcomes, patch hashes, gateway denials, token absence in the worker environment, and resource cleanup.
+
+## Status and limitations
+
+**Implemented and locally exercised:** the five scenarios above, container limits, synthetic credential mediation, scope checks, returned patches, independent fixture validation, and cleanup.
+
+Docker shares a kernel; these settings do not prove resistance to hostile code or escape. The gateway is a fixture, not Git smart HTTP or OIDC. There is no tenant authentication, retry/resume, model execution, or throughput claim. Original tests cover three cart behaviors, not universal correctness. Run only the supplied trusted fixture. The README documents the trusted host/image and cleanup limitations.
+
+Related employer experience: [cloud coding-agent execution](/work/secure-agent-execution/). The lab makes a similar boundary inspectable without claiming to reproduce the internal system.

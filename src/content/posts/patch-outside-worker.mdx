@@ -1,0 +1,78 @@
+---
+title: "Test the Patch Outside the Worker"
+summary: "A runnable Docker lab showing why a correct empty-cart fix, an incorrect implementation, and a plausible-looking patch need different acceptance outcomes."
+date: 2026-10-07
+draft: false
+eyebrow: "Implementation note · Agent execution"
+readingTime: "5 min"
+tags: ["agents", "docker", "testing", "security"]
+---
+
+import LabFigure from '../../components/work/LabFigure.astro';
+
+An empty cart should total zero. In the public execution lab, the starting implementation returns `None`. One worker fixes the bug. Another returns zero for every cart. Both can claim that the empty-cart case works.
+
+Only one preserves the behavior of a cart with items.
+
+That is the failure this experiment makes inspectable. The worker's narration and its chosen example are insufficient acceptance evidence. The harness needs original checks that the worker cannot quietly replace, and a candidate bound to the bytes those checks actually examined.
+
+The [bounded execution lab](/work/bounded-runner/) is an independent demonstration with synthetic data and a deterministic worker. It does not call a model or reproduce an employer system. [Download its source and recorded runs](/downloads/bounded-runner.zip) to inspect the boundary yourself.
+
+## Separate access from the worker
+
+The worker first reads its task from a synthetic upstream. The upstream requires a token. Placing that token in the worker would make access simple, but would also expose it to the process doing the task.
+
+Instead, the token lives in a gateway container. The gateway accepts one GET route and supplies authorization to a fixed upstream bound to its own loopback interface. Client URLs and authorization headers are not forwarded. The worker checks that its environment has no token, and that an unknown route and a POST request are denied.
+
+<LabFigure name="credential-boundary" eager alt="A token enters only the gateway environment. The worker accesses one permitted route; the protected fixture upstream is bound to gateway loopback." />
+
+The gateway demonstrates a credential boundary. It does not authenticate tenants or provide Git access. Any worker attached to this run's internal network can call the one permitted route. That limit matters when interpreting the successful fetch.
+
+## Freeze the candidate before checking it
+
+The worker can edit only a temporary fixture workspace. The host keeps the original source and validator outside that writable mount.
+
+After the worker exits, the host requires exactly `pricing.py` as a regular file. An extra path or a symlink is rejected before the candidate is executed. The host derives the diff from original bytes, records hashes, and mounts the candidate read-only into a separate validator container with no network.
+
+The validator uses the original checks:
+
+```python
+assert total([]) == 0
+assert total([3, 7]) == 10
+assert total([0]) == 0
+```
+
+The valid worker simplifies the implementation to `return sum(prices)`. The invalid worker uses `return 0`. The second change passes the empty and zero-price examples but fails the nonempty-cart assertion. The recorded run reports `rejected_tests` and retains its patch and failure log.
+
+<LabFigure name="independent-validation" alt="Worker output passes through host scope checking into a separate validator; original tests stay outside the worker mount and the receipt binds the returned patch." />
+
+This separation is the useful property. A worker may propose a change; it does not choose the original acceptance criteria, supply the trusted diff, or authorize publication.
+
+## Make rejection an observable result
+
+The lab also exercises an extra file, a symlink, and a worker that exceeds its deadline. Scope failures stop before validation. The expired run is killed and recorded as `timed_out`; it is not retried or presented as a completed task.
+
+```sh
+docker pull python:3.12-alpine
+python3 run.py --scenario valid --output /tmp/bounded-valid
+python3 run.py --scenario invalid --output /tmp/bounded-invalid
+python3 test_lab.py
+```
+
+Run these commands from the unzipped lab directory with Python 3.10+ and a running Docker engine. Use a new output directory. Rejected scenarios intentionally exit with status 1; the receipt distinguishes rejection, timeout, and infrastructure error.
+
+The archived `observed/` runs retain the actual container image ID, original and candidate hashes where applicable, patch hash, logs, elapsed time, and cleanup outcome. Elapsed time describes those fixture executions; it is not a productivity estimate or comparative benchmark.
+
+## The boundary of the experiment
+
+The worker is deterministic so the five failure modes are repeatable. This isolates the execution contract from model variability. A later agent evaluation would need a task set, fixed acceptance oracle, recorded model and harness configuration, and repeated trials.
+
+The containers run without root, a Docker socket, or a writable root filesystem. They have resource limits; the validator has no network. Docker still shares a kernel, and three assertions do not certify arbitrary code. Run the supplied trusted fixture rather than hostile repositories. The README names the remaining authentication, isolation, and cleanup limits.
+
+For the next delegated task, keep the original acceptance checks outside the worker's writable environment. Derive the proposed change from trusted starting bytes. Stop the writer before validation, and retain the failing artifact when a check rejects it. A rejected proposal is useful engineering evidence when another person can see why it failed.
+
+## Source and evidence
+
+This note describes the accompanying public experiment: `run.py`, `gateway.py`, `worker.py`, `validate.py`, `test_lab.py`, and the recorded fixture outputs in the downloadable archive. It makes no claim about a model's task success, employer outcomes, or production isolation.
+
+[Docker's security documentation](https://docs.docker.com/engine/security/) explains the namespace, resource, daemon, and kernel-configuration boundaries behind container isolation. It supports treating container settings as part of the trust boundary; it does not certify this lab's containment.

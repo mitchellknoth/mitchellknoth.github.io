@@ -17,9 +17,21 @@ It would have been easy to compress that situation into “the essay is done.”
 
 That gap is the subject of this field note. “Done” is useful in conversation, but dangerous as workflow state unless the system can answer a more exact question: **which transition is being requested, for which target and revision, on the strength of what evidence, under whose authority?**
 
+<figure class="article-figure">
+  <img
+    src="/images/writing/done-is-a-claim-not-a-state/evidence-chain.webp"
+    alt="Five distinct evidence stations retain separate artifacts along one connected delivery signal."
+    width="1672"
+    height="941"
+    loading="eager"
+    fetchpriority="high"
+    decoding="async"
+  />
+</figure>
+
 <ArticleToc
   items={[
-    { href: '#a-five-stage-evidence-ladder', label: 'The evidence ladder' },
+    { href: '#a-five-part-transition-record', label: 'The transition record' },
     { href: '#an-artifact-autopsy', label: 'An artifact autopsy' },
     { href: '#the-transition-rule', label: 'The transition rule' },
     { href: '#every-signal-has-a-proof-ceiling', label: 'Proof ceilings' },
@@ -28,39 +40,39 @@ That gap is the subject of this field note. “Done” is useful in conversation
   ]}
 />
 
-<h2 id="a-five-stage-evidence-ladder">A five-stage evidence ladder</h2>
+<h2 id="a-five-part-transition-record">A five-part transition record</h2>
 
-The following ladder is a **practice-derived operating model**, not a universal taxonomy or an externally validated standard. Its purpose is to stop narration from advancing system state.
+The following record is a **practice-derived operating model**, not a universal taxonomy or an externally validated standard. Its purpose is to stop narration from advancing system state. The five parts are related, but they are not a sequence of increasingly strong evidence. Authorization is a policy decision applied to the available evidence, while a durable artifact can preserve any of the other parts.
 
-### 1. Claim
+### Claim
 
 A claim names the bounded result someone believes is true: “the change is on the review branch,” “the checks passed for revision `abc`,” or “the site deployment completed.” A useful claim includes its subject. “It worked” does not.
 
 A claim is necessary because evidence without a claim has no question to answer. It is not evidence merely because it is confidently stated, repeated by an agent, or formatted as a status report.
 
-### 2. Attempt
+### Attempt
 
 An attempt is the action submitted to a target system: a file edit, a test command, a push, a review request, or a deployment trigger. Tool output that says an operation started can establish that an attempt occurred.
 
 An attempt cannot establish the resulting state. A command can exit before a server records the change; a request can be accepted and later fail; an agent can call the correct tool with the wrong target.
 
-### 3. Readback
+### Readback
 
 A readback asks the target system what it now knows. Examples include reopening a GitHub issue, reading the remote branch SHA, querying a workflow run, or fetching the deployed route. This is stronger than trusting the action’s narration because it observes state after the attempt.
 
 A readback still has boundaries. It can be stale, scoped to the wrong repository, or detached from the revision under discussion. The system identity, target identity, revision, and observation time belong with the result.
 
-### 4. Durable artifact
+### Durable artifact
 
 A durable artifact makes the evidence inspectable beyond the current conversation: an issue, commit, pull request, check run, review record, validator receipt, or deployment record. Durability supports later review and comparison.
 
 Durable does not mean true, complete, public, or permanent. Access-controlled evidence can be entirely appropriate. The requirement is that the authorized reviewer can inspect the artifact and bind it to the claim—not that sensitive traces should be published.
 
-### 5. Authorization
+### Authorization
 
 Authorization answers whether the available evidence permits the requested transition. A passing build may authorize “ready for review” under one policy. It does not automatically authorize merge, production deployment, or a claim that users received the change.
 
-This final stage is why the ladder is not a synonym for “collect more logs.” Evidence describes bounded observations. Authority applies a policy to those observations. Neither can substitute for the other.
+This distinction is why the record is not a synonym for “collect more logs.” Evidence describes bounded observations. Authority applies a policy to those observations. Neither can substitute for the other.
 
 <h2 id="an-artifact-autopsy">An artifact autopsy</h2>
 
@@ -106,9 +118,9 @@ The first essay’s public delivery chain offers a neutral specimen. It is usefu
 
 **It cannot prove alone:** that every route communicates the intended meaning, that every client can reach it, or that the site will remain available indefinitely.
 
-The chain matters more than any link. Research explains why. The plan bounds what. The pull request exposes the change. Review adds an independent assessment. The deployment record reports a later target-system event. Keeping the links separate prevents one green artifact from silently inheriting claims it never tested.
+The chain matters more than any link. Research explains why. The plan bounds what. The pull request exposes the change. Review adds a recorded assessment. The deployment record reports a later target-system event. Keeping the links separate prevents one green artifact from silently inheriting claims it never tested.
 
-The workflow vocabulary used here is also visible in the public [`evidence-gated-delivery` repository at main commit `2d1eb675cf21aec1b14eea8155a8d19079769441`](https://github.com/mknoth197/evidence-gated-delivery/commit/2d1eb675cf21aec1b14eea8155a8d19079769441). That commit is the revision boundary for statements about stable behavior in this essay. The repository’s [open pull request #3](https://github.com/mknoth197/evidence-gated-delivery/pull/3) is unsettled work, not part of the stable behavior described here.
+The workflow vocabulary used here is also visible in the public [`evidence-gated-delivery` repository at commit `2d1eb675cf21aec1b14eea8155a8d19079769441`](https://github.com/mknoth197/evidence-gated-delivery/commit/2d1eb675cf21aec1b14eea8155a8d19079769441). That historical commit is the revision boundary for statements about behavior in this essay. [Pull request #3](https://github.com/mknoth197/evidence-gated-delivery/pull/3) merged later and is not part of that snapshot.
 
 <h2 id="the-transition-rule">The transition rule</h2>
 
@@ -144,7 +156,7 @@ A proof ceiling is the strongest claim a signal can support without importing ad
 
 **A deterministic validator** proves that encoded predicates passed for the supplied inputs. It cannot prove that omitted requirements were satisfied or that the predicates capture the intended meaning.
 
-**A hash** proves byte identity relative to the stated algorithm and input. It cannot prove that the bytes are correct, safe, current, or attached to the intended subject.
+**A cryptographic hash match** provides strong evidence that two byte sequences are identical, assuming the algorithm and compared inputs are correctly specified. It cannot establish that the bytes are correct, safe, current, or attached to the intended subject.
 
 **Continuous integration** proves that configured jobs reported their recorded results for a revision. It cannot prove unconfigured behavior, exhaustive coverage, or the absence of environment-specific failure.
 
@@ -158,24 +170,35 @@ A proof ceiling is the strongest claim a signal can support without importing ad
 
 This bounded view is consistent with external guidance without claiming that the guidance validates this ladder. Anthropic’s [discussion of agent evaluations](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) separates evaluation design, environment state, trajectories, and outcomes. OpenAI’s [coding-evaluation audit](https://openai.com/index/separating-signal-from-noise-coding-evaluations/) shows why the integrity of the evaluation environment matters to the result, while its [harness engineering report](https://openai.com/index/harness-engineering/) describes repository knowledge, mechanical enforcement, and feedback as parts of the surrounding system. These sources support bounded inspection of the harness; they do not establish personal outcomes or make any single evaluation conclusive.
 
+<figure class="article-figure">
+  <img
+    src="/images/writing/done-is-a-claim-not-a-state/proof-ceiling.webp"
+    alt="Inspection beams illuminate bounded portions of a larger artifact while an authorization key remains separate."
+    width="1672"
+    height="941"
+    loading="lazy"
+    decoding="async"
+  />
+</figure>
+
 <h2 id="honest-non-success-states">Honest non-success states</h2>
 
 Evidence gates are most useful when they improve the vocabulary between “working” and “done.”
 
-- **Missing:** required evidence was not produced.
-- **Ambiguous:** an artifact exists, but its subject or meaning cannot be resolved.
+- **Missing:** required evidence was not produced or cannot be resolved.
 - **Partial:** some required predicates passed and others remain unverified.
-- **Stale:** the evidence predates a relevant change or exceeds its allowed observation window.
+- **Stale:** the evidence predates a relevant change, exceeds its observation window, or has been superseded.
 - **Mismatched:** the artifact belongs to the wrong target, revision, identity, or claim.
-- **Superseded:** newer evidence or a newer revision replaces the artifact’s decision value.
 - **Unauthorized:** the evidence may be valid, but no permitted authority approved the transition.
-- **Later invalidated:** subsequent readback contradicts the earlier state; report the current contradiction rather than preserve the old success claim.
+- **Invalidated:** later readback contradicts the earlier state or the authority was revoked.
 
-Other operational states remain useful: **started** for an accepted attempt, **failed** for an observed unsuccessful result, **unknown** when readback is unavailable, **observed** for a bounded target-system fact, **blocked** when a required gate cannot be satisfied, **revoked** when authority is withdrawn, and **rolled back** when a prior transition is deliberately reversed.
+These labels are not exhaustive. States such as **started**, **failed**, **unknown**, **blocked**, and **rolled back** remain useful when they describe an observable condition rather than substitute for one.
 
 Consider three **illustrative examples**, not reports about the public delivery chain. First, a validator receipt is structurally valid but names another repository: right receipt, wrong subject. Second, a hash matches a generated archive while the policy requires the source commit: right hash, wrong artifact. Third, a schema accepts every required field while the prose reverses the intended policy: schema-valid, meaning-wrong. Each example contains real evidence. None supports the requested claim.
 
-The honest response is not to discard the evidence. It is to lower the state to the strongest defensible description—mismatched, partial, ambiguous, or blocked—and name the next observation needed.
+The honest response is not to discard the evidence. It is to lower the state to the strongest defensible description—missing, mismatched, partial, stale, unauthorized, invalidated, or blocked—and name the next observation needed.
+
+The goal is not to maximize gates. It is to make greater autonomy reviewable. When [an agent can continue in a cloud sandbox after the initiating device disconnects](/writing/the-harness-should-not-live-on-your-laptop/), target and revision bindings let another person inspect what happened without depending on the initiating engineer’s laptop, memory, or narration. Evidence becomes part of the shared harness that allows remote and parallel work to scale without scaling ambiguity with it.
 
 <PracticeCard
   headingId="before-you-say-done"
@@ -185,24 +208,18 @@ The honest response is not to discard the evidence. It is to lower the state to 
     'Which target, identity, and revision does each artifact actually name?',
     'Did I observe target-system state after the attempt, or only the attempt output?',
     'What is the proof ceiling of each validator, check, review, readback, or approval?',
-    'Is any evidence missing, ambiguous, partial, stale, mismatched, superseded, unauthorized, or later invalidated?',
+    'Is any evidence missing, partial, stale, mismatched, unauthorized, invalidated, or blocked?',
     'Who may authorize this transition, and what explicitly remains unverified afterward?',
   ]}
 />
 
 Use the field check at handoff boundaries, not only at the end of a large project. A branch push can be verified while merge remains unauthorized. A merge can be verified while deployment remains unknown. A deployment workflow can succeed while the meaning of a route still needs direct inspection. Precise incompleteness is more useful than premature closure.
 
-<h2 id="an-evidence-triggered-publishing-cadence">An evidence-triggered publishing cadence</h2>
-
-This essay also proposes a small unit for future field notes: **one recurring failure, one bounded engineering rule, one public artifact chain or reproducible experiment, and one field check**.
-
-The unit is narrow enough to repeat without inventing a new publishing subsystem. It begins when practice produces something worth examining: a failure that recurs, a rule that survives use, an artifact chain another reader can inspect, or an experiment someone can reproduce. The cadence is therefore **evidence-triggered, not a fixed interval**. Publication follows a defensible unit of learning; the calendar does not manufacture one.
-
 <h2 id="source-notes">Source notes</h2>
 
 1. The public site chain consists of [research issue #1](https://github.com/mknoth197/mknoth197.github.io/issues/1), [plan issue #2](https://github.com/mknoth197/mknoth197.github.io/issues/2), [delivery pull request #3](https://github.com/mknoth197/mknoth197.github.io/pull/3), [review comment `5075151889`](https://github.com/mknoth197/mknoth197.github.io/pull/3#issuecomment-5075151889), and [Pages run `30300942452`](https://github.com/mknoth197/mknoth197.github.io/actions/runs/30300942452). Their individual proof limits are stated above.
-2. Stable workflow references are bound to [`evidence-gated-delivery` main commit `2d1eb675cf21aec1b14eea8155a8d19079769441`](https://github.com/mknoth197/evidence-gated-delivery/commit/2d1eb675cf21aec1b14eea8155a8d19079769441). [Pull request #3](https://github.com/mknoth197/evidence-gated-delivery/pull/3) remains open and unsettled.
-3. Anthropic, [“Demystifying evals for AI agents”](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents). The article informs the evaluation context above; it does not validate the practice-derived ladder.
+2. Workflow references are bound to the historical [`evidence-gated-delivery` commit `2d1eb675cf21aec1b14eea8155a8d19079769441`](https://github.com/mknoth197/evidence-gated-delivery/commit/2d1eb675cf21aec1b14eea8155a8d19079769441). [Pull request #3](https://github.com/mknoth197/evidence-gated-delivery/pull/3) merged later and is outside that snapshot.
+3. Anthropic, [“Demystifying evals for AI agents”](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents). The article informs the evaluation context above; it does not validate the practice-derived transition record.
 4. OpenAI, [“Separating signal from noise: An audit of SWE-bench Verified”](https://openai.com/index/separating-signal-from-noise-coding-evaluations/) and [“Harness engineering”](https://openai.com/index/harness-engineering/). These reports support attention to evaluation integrity and the surrounding engineering system; they do not prove personal delivery outcomes.
 
 <RelatedWork

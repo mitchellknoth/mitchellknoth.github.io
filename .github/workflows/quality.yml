@@ -1,0 +1,32 @@
+name: Site quality
+
+on:
+  pull_request:
+    branches: [main, 'codex/**']
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Validate design, types, build, and visual contract
+        run: npm run quality
+      - name: Validate public execution lab and download bundle
+        run: |
+          docker pull python:3.12-alpine
+          python3 experiments/bounded-runner/test_lab.py
+          python3 scripts/package-lab.py
+          git diff --exit-code -- public/downloads/bounded-runner.zip
