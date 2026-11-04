@@ -6,7 +6,7 @@ export const site = {
     'Developer-platform engineer building reliable coding-agent execution, shared context, and production engineering-data systems.',
   location: 'Des Moines, Iowa',
   email: 'mknoth197@gmail.com',
-  github: 'https://github.com/mknoth197',
+  github: 'https://github.com/mitchellknoth',
   linkedin: 'https://www.linkedin.com/in/mitchellknoth/',
 };
 

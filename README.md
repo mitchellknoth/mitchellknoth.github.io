@@ -20,7 +20,7 @@ trace in `test-results/`; CI runs the same contract before GitHub Pages can depl
 
 This is a **user site** deployed through GitHub Pages and served at `https://mitchellknoth.com`. Cloudflare manages registration and DNS.
 
-1. Make sure the repo is named exactly `mknoth197.github.io` and is **public**.
+1. The repo is `mitchellknoth/mitchellknoth.github.io` and must stay **public**.
 2. Repo → **Settings → Pages → Source → "GitHub Actions"**.
 3. Push to `main`. The workflow at `.github/workflows/deploy.yml` builds and publishes.
 
@@ -30,7 +30,7 @@ First deploy takes ~1 minute. Subsequent deploys are incremental and usually und
 
 - GitHub repository **Settings → Pages → Custom domain**: `mitchellknoth.com`. The GitHub Actions publishing source uses this setting; a `CNAME` file is not required.
 - Cloudflare DNS: four DNS-only `A` records for `@`, pointing to `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, and `185.199.111.153`.
-- Cloudflare DNS: a DNS-only `CNAME` record for `www`, pointing to `mknoth197.github.io`. GitHub redirects this alias to the apex domain.
+- Cloudflare DNS: a DNS-only `CNAME` record for `www`, pointing to `mitchellknoth.github.io`. GitHub redirects this alias to the apex domain.
 - Enable **Enforce HTTPS** in GitHub Pages once the custom-domain certificate is issued.
 - `SITE` in `astro.config.mjs` is the public origin for canonical URLs, RSS, and the sitemap. Update it if the public domain changes.
 
