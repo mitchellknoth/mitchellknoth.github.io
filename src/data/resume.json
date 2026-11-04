@@ -6,7 +6,7 @@
   "location": "Des Moines, Iowa",
   "email": "mknoth197@gmail.com",
   "website": "https://mitchellknoth.com",
-  "github": "https://github.com/mknoth197",
+  "github": "https://github.com/mitchellknoth",
   "linkedin": "https://www.linkedin.com/in/mitchellknoth/",
   "updated": "October 2026",
   "employer": "John Deere",
@@ -63,7 +63,10 @@
   "education": "B.S. Software Engineering, Iowa State University, 2020. Cum Laude; cyber security minor.",
   "credentials": [
     "AWS Certified DevOps Engineer - Professional (May 2026)",
-    "AWS Certified Advanced Networking - Specialty (August 2025)"
+    "AWS Certified Advanced Networking - Specialty (August 2025)",
+    "AWS Certified SysOps Administrator - Associate (February 2025)",
+    "AWS Certified Solutions Architect - Associate (March 2024)",
+    "AWS Certified Cloud Practitioner (November 2021)"
   ],
   "employmentPeriod": "2019 - present",
   "publicWork": {

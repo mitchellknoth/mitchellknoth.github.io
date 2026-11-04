@@ -33,8 +33,9 @@ for entry in data['experience']:
     story.append(KeepTogether([p(title,'entry'),first]))
     story.extend(p('- '+escape(point), 'bullet') for point in entry['points'][1:])
 story.extend([p('PUBLIC IMPLEMENTATION', 'section'),p(link(data['website']+data['publicWork']['href'], data['publicWork']['title'])+' - '+escape(data['publicWork']['summary']))])
-story.extend([p('TECHNICAL FOCUS','section'),p(escape(data['skills'])),p('EDUCATION & SELECTED CREDENTIALS','section'),p(escape(data['education']))])
-story.extend(p(escape(c),'body') for c in data['credentials'])
+story.extend([p('TECHNICAL FOCUS','section'),p(escape(data['skills'])),p('EDUCATION & CERTIFICATIONS','section'),p(escape(data['education']))])
+# One paragraph keeps the full certification list on a single page.
+story.append(p(' · '.join(escape(c) for c in data['credentials'])))
 def footer(canvas, doc):
     canvas.saveState();canvas.setFont('Helvetica',7);canvas.setFillColor(colors.HexColor('#777777'));canvas.drawString(40,24,'Updated '+data['updated']);canvas.drawRightString(572,24,str(doc.page));canvas.restoreState()
 SimpleDocTemplate(str(output),pagesize=letter,rightMargin=40,leftMargin=40,topMargin=35,bottomMargin=35,title=data['name']+' - Resume',author=data['name']).build(story,onFirstPage=footer,onLaterPages=footer)

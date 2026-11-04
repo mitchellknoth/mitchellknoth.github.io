@@ -5,18 +5,23 @@ import { site } from '../config';
 const certs = [
   { name: 'AWS Certified DevOps Engineer – Professional', year: 'May 2026' },
   { name: 'AWS Certified Advanced Networking – Specialty', year: 'Aug 2025' },
+  { name: 'AWS Certified SysOps Administrator – Associate', year: 'Feb 2025' },
+  { name: 'AWS Certified Solutions Architect – Associate', year: 'Mar 2024' },
+  { name: 'AWS Certified Cloud Practitioner', year: 'Nov 2021' },
 ];
-const earlierCerts = 'Earlier certifications: SysOps Administrator – Associate (Feb 2025), Solutions Architect – Associate (Mar 2024), and Cloud Practitioner (Nov 2021).';
 
 // Front-loaded facts for a quick skim.
 const glance = [
   { k: 'Role', v: 'Cloud Software Engineer, John Deere · since 2019' },
   { k: 'Based', v: 'Des Moines, Iowa' },
-  { k: 'Focus', v: 'Developer platforms, coding-agent execution, and backend reliability' },
-  { k: 'Currently', v: 'Evidence product in production, shared team brain, cloud agent evaluations' },
+  { k: 'Focus', v: 'Helping Frontier Teams move faster and more reliably' },
+  {
+    k: 'Currently',
+    v: 'Running coding agents in the cloud, building a shared knowledge base for humans and agents, and surfacing AI insights so teams are value-maxing, not token-maxing',
+  },
   {
     k: 'Credentials',
-    v: 'AWS DevOps Professional & Advanced Networking Specialty · B.S. Software Engineering, Iowa State (Cum Laude)',
+    v: 'Five AWS certifications, including DevOps Professional & Advanced Networking Specialty · B.S. Software Engineering, Iowa State (Cum Laude)',
   },
 ];
 
@@ -60,9 +65,16 @@ const eyebrow =
     <h2 style="margin-top: 0;">The AI-Era SDLC</h2>
 
     <p>
-      I’m a Cloud Software Engineer at John Deere, working across developer platforms, cloud
-      infrastructure, and AI-assisted delivery. On a three-person team, I connect product definition,
-      backend implementation, and the controls needed to move a system into production.
+      I’m a Cloud Software Engineer at John Deere, focused entirely on advancing the company’s DevAI
+      and Agentic Development Lifecycle (ADLC) capabilities, with one goal: helping Frontier teams move faster. We dogfood every idea
+      on our own product first, and that habit is how AI Insights was born.
+    </p>
+
+    <p>
+      AI Insights is our proving ground, and it delivers real value on its own. It brings AI usage
+      across the company into view, from the organization down to the individual engineer. By pairing
+      SDLC metrics with AI usage, it gives each engineer a tailored report so they can reflect on how
+      they work with AI and make informed decisions.
       <a href="/resume/">Read my experience or download my résumé →</a>
     </p>
 
@@ -164,13 +176,11 @@ const eyebrow =
       validator. Its source, tests, patch, and recorded fixture outcomes are public. It is independent
       work, not a reproduction of an internal system.</p>
 
-    <h2>Education &amp; selected credentials</h2>
+    <h2>Education &amp; certifications</h2>
     <ul>
       <li>B.S. Software Engineering, Iowa State University (Cum Laude, 2020). Cyber security minor.</li>
       {certs.map((c) => <li>{c.name} <span style="color: var(--fg-dim); font-family: var(--font-mono); font-size: 0.82em;"> · {c.year}</span></li>)}
     </ul>
-
-    <p style="color: var(--fg-muted); font-size: 0.9rem;">{earlierCerts}</p>
 
     <h2>Capabilities in practice</h2>
     <div class="capability-groups">

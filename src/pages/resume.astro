@@ -22,7 +22,7 @@ import resume from '../data/resume.json';
     <p><a href={resume.publicWork.href}>{resume.publicWork.title}</a>: {resume.publicWork.summary}</p>
     <h2>Technical focus</h2>
     <p>{resume.skills}</p>
-    <h2>Education &amp; selected credentials</h2>
+    <h2>Education &amp; certifications</h2>
     <p>{resume.education}</p>
     <ul>{resume.credentials.map((credential) => <li>{credential}</li>)}</ul>
   </article>
