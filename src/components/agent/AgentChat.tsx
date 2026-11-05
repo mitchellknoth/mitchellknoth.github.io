@@ -32,6 +32,8 @@ type View =
   /** The last question got no answer (502 or a malformed reply); the visitor may send it again. */
   | { kind: 'error' }
   | { kind: 'too-long'; maxChars?: number }
+  /** This host has no agent (a static host, or a response outside the contract): render nothing. */
+  | { kind: 'absent' }
   | StoppedState;
 
 const SUGGESTIONS = [
@@ -44,7 +46,15 @@ const isStopped = (view: View): view is StoppedState =>
   view.kind === 'offline' || view.kind === 'paused' || view.kind === 'blocked' || view.kind === 'limit' || view.kind === 'unverified';
 
 function formatUntil(until: string) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(until));
+  return new Intl.DateTimeFormat(undefined, {
+    // dateStyle/timeStyle can't be combined with timeZoneName, so spell the fields out.
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(new Date(until));
 }
 
 function Until({ until }: { until?: string }) {
@@ -116,7 +126,10 @@ function Reply({ message }: { message: AgentUIMessage }) {
     <Message className="text-[17px]">
       <MessageContent className="agent-reply gap-3">
         {message.metadata?.status === 'unanswered' ? (
-          <p>The agent couldn’t answer that one. Try asking another way, or browse the work directly.</p>
+          <>
+            <p>The agent couldn’t answer that one. Try asking another way, or go straight to the pages.</p>
+            <WorkRoutes />
+          </>
         ) : (
           paragraphs.map((paragraph, index) => (
             <p key={index} className="whitespace-pre-line">
@@ -130,6 +143,18 @@ function Reply({ message }: { message: AgentUIMessage }) {
   );
 }
 
+function usePrefersReducedMotion() {
+  const [reduce, setReduce] = React.useState(false);
+  React.useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReduce(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return reduce;
+}
+
 export default function AgentChat() {
   const [view, setView] = React.useState<View>({ kind: 'loading' });
   const [messages, setMessages] = React.useState<AgentUIMessage[]>([]);
@@ -139,6 +164,7 @@ export default function AgentChat() {
   const fieldRef = React.useRef<HTMLTextAreaElement>(null);
   const noticeRef = React.useRef<HTMLDivElement>(null);
   const focusAfterUpdate = React.useRef<'field' | 'notice' | null>(null);
+  const reduceMotion = usePrefersReducedMotion();
 
   React.useEffect(() => {
     let cancelled = false;
@@ -167,7 +193,6 @@ export default function AgentChat() {
     const question = text.trim();
     if (!question || busy || stopped || view.kind === 'loading') return;
     const asked = userMessage(id('q'), question);
-    const hadFocus = document.activeElement === fieldRef.current || formRef.current?.contains(document.activeElement);
     setMessages((current) => [...current, asked]);
     setDraft('');
     setView({ kind: 'answering' });
@@ -176,29 +201,34 @@ export default function AgentChat() {
     await ensureHumanClearance();
     const outcome = await askQuestion(question);
 
+    // Move focus only if the visitor left it in the form (or the disabled send button dropped it to
+    // the body). An answer can take a while; if they have moved on, leave their focus alone.
+    const active = document.activeElement;
+    const focusIsOurs = !active || active === document.body || Boolean(formRef.current?.contains(active));
     const withdraw = () => {
-      // The question was not answered: take it out of the log and put it back in the field.
+      // The question was not answered: take it out of the log and put it back in the field, unless the
+      // visitor has started typing something else meanwhile.
       setMessages((current) => current.filter((message) => message.id !== asked.id));
-      setDraft(text);
+      setDraft((current) => (current.trim() === '' ? text : current));
     };
     switch (outcome.type) {
       case 'reply':
         setMessages((current) => [...current, replyToMessage(id('a'), outcome.body)]);
-        if (hadFocus) focusAfterUpdate.current = 'field';
+        if (focusIsOurs) focusAfterUpdate.current = 'field';
         setView({ kind: 'online' });
         break;
       case 'state':
-        focusAfterUpdate.current = 'notice';
+        if (focusIsOurs) focusAfterUpdate.current = 'notice';
         setView(outcome.state);
         break;
       case 'too-long':
         withdraw();
-        focusAfterUpdate.current = 'field';
+        if (focusIsOurs) focusAfterUpdate.current = 'field';
         setView({ kind: 'too-long', maxChars: outcome.maxChars });
         break;
       default:
         withdraw();
-        focusAfterUpdate.current = 'field';
+        if (focusIsOurs) focusAfterUpdate.current = 'field';
         setView({ kind: 'error' });
     }
   }
@@ -207,6 +237,8 @@ export default function AgentChat() {
     event.preventDefault();
     void send(draft);
   }
+
+  if (view.kind === 'absent') return null;
 
   const alertId = 'agent-alert';
   const alert =
@@ -227,20 +259,21 @@ export default function AgentChat() {
   return (
     <section className="agent-ui agent-island" data-agent-island data-state={view.kind} aria-labelledby="agent-title">
       <header className="agent-header">
-        <h2 id="agent-title">Ask about my work</h2>
-        <p className="agent-lede">
-          An agent that answers only from what’s published on this site, and cites the pages it used.{' '}
-          <a href="/how-this-works/" className="agent-inline-link">
-            How it works
+        <div className="agent-header-row">
+          <h2 id="agent-title">Ask about my work</h2>
+          <a href="/how-this-works/" className="standalone-link agent-how">
+            How it works →
           </a>
-        </p>
+        </div>
+        <p className="agent-lede">An agent that answers only from what’s published on this site, and cites the pages it used.</p>
       </header>
 
       {messages.length > 0 && (
         <MessageScrollerProvider autoScroll>
           <div className="agent-thread">
-            <MessageScroller>
-              <MessageScrollerViewport>
+            {/* Grows with the conversation up to a cap, then scrolls; no empty box under a short answer. */}
+            <MessageScroller className="h-auto w-full">
+              <MessageScrollerViewport className="h-auto max-h-[min(30rem,62vh)] w-full">
                 <MessageScrollerContent role="log" aria-label="Conversation" aria-busy={busy} className="gap-6 py-2">
                   {messages.map((message) =>
                     message.role === 'user' ? (
@@ -273,7 +306,7 @@ export default function AgentChat() {
                   )}
                 </MessageScrollerContent>
               </MessageScrollerViewport>
-              <MessageScrollerButton className="size-11" />
+              <MessageScrollerButton className="size-11" behavior={reduceMotion ? 'auto' : 'smooth'} />
             </MessageScroller>
           </div>
         </MessageScrollerProvider>
@@ -288,11 +321,12 @@ export default function AgentChat() {
               Checking whether the agent is available…
             </p>
           )}
-          {messages.length === 0 && view.kind !== 'loading' && (
+          {/* Rendered (disabled) while loading too, so the server-rendered shell reserves their space. */}
+          {messages.length === 0 && (
             <ul className="agent-suggestions" aria-label="Suggested questions">
               {SUGGESTIONS.map((suggestion) => (
                 <li key={suggestion}>
-                  <button type="button" className="agent-suggestion" disabled={busy} onClick={() => void send(suggestion)}>
+                  <button type="button" className="agent-suggestion" disabled={busy || view.kind === 'loading'} onClick={() => void send(suggestion)}>
                     {suggestion}
                   </button>
                 </li>
@@ -323,7 +357,7 @@ export default function AgentChat() {
                 aria-describedby={alert ? alertId : undefined}
                 disabled={view.kind === 'loading'}
                 rows={2}
-                className="min-h-14 px-3 text-base md:text-base"
+                className="max-h-48 min-h-14 overflow-y-auto px-3 text-base md:text-base"
               />
               <InputGroupAddon align="block-end">
                 <span className="agent-hint">Enter to send · Shift+Enter for a new line</span>

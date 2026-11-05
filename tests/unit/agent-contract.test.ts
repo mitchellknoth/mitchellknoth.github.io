@@ -10,12 +10,16 @@ describe('interpretHealth', () => {
     expect(interpretHealth(json(200, { state: 'paused' }))).toEqual({ kind: 'paused' });
   });
 
-  it('treats the kill switch, a missing route and garbage as offline', () => {
+  it('reads the kill switch as offline', () => {
     expect(interpretHealth(json(503, { state: 'offline' }))).toEqual({ kind: 'offline' });
-    // Static hosting without the Worker answers /agent/health with the 404 page.
-    expect(interpretHealth(json(404, '<!doctype html>'))).toEqual({ kind: 'offline' });
-    expect(interpretHealth(json(200, { state: 'nonsense' }))).toEqual({ kind: 'offline' });
-    expect(interpretHealth(null)).toEqual({ kind: 'offline' });
+  });
+
+  it('treats a host with no agent, and anything outside the contract, as absent', () => {
+    // Static hosting without the Worker (GitHub Pages today) answers /agent/health with the 404 page.
+    expect(interpretHealth(json(404, '<!doctype html>'))).toEqual({ kind: 'absent' });
+    expect(interpretHealth(json(200, { state: 'nonsense' }))).toEqual({ kind: 'absent' });
+    expect(interpretHealth(json(503, 'Service Unavailable'))).toEqual({ kind: 'absent' });
+    expect(interpretHealth(null)).toEqual({ kind: 'absent' });
   });
 
   it('reports an edge challenge as unverified', () => {
@@ -43,6 +47,11 @@ describe('interpretAsk', () => {
         { id: 'c', title: 'protocol-relative', url: '//example.com/' },
         { id: 'd', title: 'script', url: 'javascript:alert(1)' },
         { id: 'e', title: 'not a string', url: 7 },
+        // Browsers strip tabs and newlines from URLs, so these would resolve to https://evil.example/.
+        { id: 'f', title: 'tab', url: '/\t/evil.example' },
+        { id: 'g', title: 'newline', url: '/\n/evil.example' },
+        { id: 'h', title: 'backslash', url: '/\\evil.example' },
+        { id: 'i', title: 'space', url: '/ /evil.example' },
       ],
     }));
     expect(outcome.type === 'reply' && outcome.body.status === 'answered' && outcome.body.sources.map((s) => s.id)).toEqual(['a']);

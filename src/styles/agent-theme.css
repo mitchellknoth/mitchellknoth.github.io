@@ -60,24 +60,32 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  /* Only the steps the installed components use. The site's own `rounded-md` (the theme toggle)
+     keeps Tailwind's default, so this layer changes nothing outside the island. Add a step here when
+     a newly added component needs it, after checking the site doesn't already use that utility. */
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 /* DESIGN.md › Navigation and interaction: a 2px accent focus outline, offset 3px, on every
    focusable control. shadcn's 30% ring alone falls short of 3:1, so the outline is added here. */
-.agent-ui :is(button, a, textarea):focus-visible {
+/* shadcn's Button uses `transition-all`, which would animate the outline in from nothing. Focus must
+   appear at once, so transitions here cover everything except the outline. */
+.agent-ui :is(button, a, textarea) {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
+    transform, translate, scale;
+}
+.agent-ui :is(button, a, textarea, [tabindex="-1"]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 .agent-ui [data-slot="input-group"]:has(textarea:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+  /* The outline replaces shadcn's translucent halo rather than stacking on it. */
+  box-shadow: none;
 }
 .agent-ui [data-slot="input-group"] textarea:focus-visible {
   outline: none;

@@ -48,7 +48,26 @@ async function mockAgent(page: Page, mock: Mock): Promise<string[]> {
   return calls;
 }
 
+/**
+ * Page errors and console errors, so a hydration mismatch or React warning fails the test. The browser
+ * logs every non-2xx response as "Failed to load resource"; those are the mocked refusals themselves.
+ */
+const pageErrors = new WeakMap<Page, string[]>();
+function watchErrors(page: Page) {
+  const errors: string[] = [];
+  pageErrors.set(page, errors);
+  page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error' && !message.text().startsWith('Failed to load resource')) errors.push(`console: ${message.text()}`);
+  });
+  return errors;
+}
+test.afterEach(async ({ page }) => {
+  expect(pageErrors.get(page) ?? [], 'the island must not log errors').toEqual([]);
+});
+
 async function open(page: Page, theme: string, mock: Mock) {
+  watchErrors(page);
   await page.addInitScript((theme) => localStorage.setItem('theme', theme), theme);
   const calls = await mockAgent(page, mock);
   await page.goto('/');
@@ -158,7 +177,6 @@ for (const theme of ['dark', 'light']) {
 
     const stopped: Array<{ name: string; mock: Mock; state: string; text: RegExp }> = [
       { name: 'offline from the health check', mock: { health: { status: 503, body: { state: 'offline' } } }, state: 'offline', text: /switched off/ },
-      { name: 'offline on a static host with no agent route', mock: { health: { status: 404, body: '<!doctype html><title>404</title>' } }, state: 'offline', text: /switched off/ },
       { name: 'paused from the health check', mock: { health: { status: 200, body: { state: 'paused' } } }, state: 'paused', text: /budget/ },
       { name: 'paused with a resume time', mock: { ask: { status: 503, body: { state: 'paused', until: UNTIL } } }, state: 'paused', text: /budget[\s\S]*until/ },
       { name: 'offline after asking', mock: { ask: { status: 503, body: { state: 'offline' } } }, state: 'offline', text: /switched off/ },
@@ -184,6 +202,20 @@ for (const theme of ['dark', 'light']) {
         await expect(island(page).getByRole('textbox')).toHaveCount(0);
         await expectRoutesToWork(page);
         await expectSoundLayout(page);
+      });
+    }
+
+    for (const [name, reply] of [
+      ['answers /agent/health with its 404 page', { status: 404, body: '<!doctype html><title>404</title>' }],
+      ['answers outside the contract', { status: 200, body: { state: 'something-new' } }],
+    ] as const) {
+      test(`removes itself when the host ${name}`, async ({ page }) => {
+        // GitHub Pages, which hosts the site until the Workers cutover, has no /agent/ routes at all.
+        await open(page, theme, { health: reply });
+        await expect(island(page)).toHaveCount(0);
+        await expect(page.getByRole('link', { name: 'Explore my work' })).toBeVisible();
+        const columns = await page.locator('.home-hero').evaluate((hero) => getComputedStyle(hero).gridTemplateColumns.split(' ').length);
+        expect(columns, 'with no island the hero is one column, not an empty second one').toBe(1);
       });
     }
 
@@ -221,33 +253,78 @@ for (const theme of ['dark', 'light']) {
   });
 }
 
-test('keyboard: suggestions, the field and send are reachable with visible focus', async ({ page }) => {
+/** The site focus treatment (DESIGN.md): a solid 2px outline in the accent colour, offset 3px. */
+async function expectSiteFocus(locator: ReturnType<Page['locator']>) {
+  const style = await locator.evaluate((element) => {
+    const css = getComputedStyle(element);
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--accent)';
+    element.closest('[data-agent-island]')!.append(probe);
+    const accent = getComputedStyle(probe).color;
+    probe.remove();
+    return { style: css.outlineStyle, width: css.outlineWidth, offset: css.outlineOffset, color: css.outlineColor, accent };
+  });
+  expect(style.style).toBe('solid');
+  expect(style.width).toBe('2px');
+  expect(style.offset).toBe('3px');
+  expect(style.color).toBe(style.accent);
+}
+
+for (const theme of ['dark', 'light']) {
+  test(`${theme} keyboard: suggestions, the field and send are reachable with visible focus`, async ({ page }) => {
+    await open(page, theme, {});
+    await expect(island(page)).toHaveAttribute('data-state', 'online');
+    // From the island's "How it works" link, Tab reaches each suggestion, then the field.
+    await island(page).getByRole('link', { name: 'How it works' }).focus();
+    const suggestions = island(page).getByRole('list', { name: 'Suggested questions' }).getByRole('button');
+    for (let index = 0; index < (await suggestions.count()); index += 1) {
+      await page.keyboard.press('Tab');
+      await expect(suggestions.nth(index)).toBeFocused();
+      await expectSiteFocus(suggestions.nth(index));
+    }
+    await page.keyboard.press('Tab');
+    const field = island(page).getByRole('textbox', { name: 'Ask about my work' });
+    await expect(field).toBeFocused();
+    await expectSiteFocus(island(page).locator('[data-slot="input-group"]'));
+    await page.keyboard.type('What did Mitch build?');
+    // Shift+Enter is a new line, not a send.
+    await page.keyboard.press('Shift+Enter');
+    await expect(field).toHaveValue('What did Mitch build?\n');
+    await page.keyboard.press('Tab');
+    const send = island(page).getByRole('button', { name: 'Send' });
+    await expect(send).toBeFocused();
+    await expectSiteFocus(send);
+    await page.keyboard.press('Enter');
+    await expect(island(page).getByRole('log', { name: 'Conversation' }).getByText('Any engineer or agent tool can search it.')).toBeVisible();
+    // Focus returns to the field for the next question.
+    await expect(field).toBeFocused();
+  });
+}
+
+test('focus stays where the visitor put it while an answer is pending', async ({ page }) => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
   await open(page, 'dark', {});
-  await expect(island(page)).toHaveAttribute('data-state', 'online');
-  const field = island(page).getByRole('textbox', { name: 'Ask about my work' });
-  await field.focus();
-  await page.keyboard.type('What did Mitch build?');
-  // Shift+Enter is a new line, not a send.
-  await page.keyboard.press('Shift+Enter');
-  await expect(field).toHaveValue('What did Mitch build?\n');
-  const focusRing = await island(page).locator('[data-slot="input-group"]').evaluate((group) => getComputedStyle(group).outlineStyle);
-  expect(focusRing, 'the focused field shows the site focus outline').toBe('solid');
-  await page.keyboard.press('Tab');
-  const send = island(page).getByRole('button', { name: 'Send' });
-  await expect(send).toBeFocused();
-  expect(await send.evaluate((button) => getComputedStyle(button).outlineStyle)).toBe('solid');
-  await page.keyboard.press('Enter');
-  await expect(island(page).getByRole('log', { name: 'Conversation' }).getByText('Any engineer or agent tool can search it.')).toBeVisible();
-  // Focus returns to the field for the next question.
-  await expect(field).toBeFocused();
+  await page.route(ASK_API, async (route) => {
+    await held;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ANSWER.body) });
+  });
+  await ask(page);
+  await expect(island(page)).toHaveAttribute('data-state', 'answering');
+  const elsewhere = page.getByRole('link', { name: 'Explore my work' });
+  await elsewhere.focus();
+  release();
+  await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
+  await expect(elsewhere).toBeFocused();
 });
 
-test('reduced motion: the answering indicator does not animate', async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:4321', reducedMotion: 'reduce' });
+test('reduced motion: the answering indicator does not animate', async ({ browser, page: projectPage }) => {
+  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:4321', viewport: projectPage.viewportSize(), reducedMotion: 'reduce' });
   const page = await context.newPage();
   try {
     let release!: () => void;
     const held = new Promise<void>((resolve) => (release = resolve));
+    const errors = watchErrors(page);
     await open(page, 'dark', {});
     await page.route(ASK_API, async (route) => {
       await held;
@@ -257,8 +334,13 @@ test('reduced motion: the answering indicator does not animate', async ({ browse
     await ask(page);
     const indicator = island(page).getByText('Searching the site');
     await expect(indicator).toBeVisible();
-    expect(await indicator.evaluate((node) => getComputedStyle(node).animationName)).toBe('none');
+    expect(await indicator.evaluate((node) => getComputedStyle(node).animationName), 'shimmer').toBe('none');
+    const spinner = island(page).locator('.animate-spin');
+    await expect(spinner).toHaveCount(1);
+    expect(await spinner.evaluate((node) => getComputedStyle(node).animationName), 'spinner').toBe('none');
     release();
+    await expect(island(page)).toHaveAttribute('data-state', 'online');
+    expect(errors).toEqual([]);
   } finally {
     await context.close();
   }
@@ -272,14 +354,16 @@ test('suggested questions send on activation', async ({ page }) => {
   await expect(island(page).getByRole('log', { name: 'Conversation' }).getByText('Any engineer or agent tool can search it.')).toBeVisible();
 });
 
-test('without JavaScript the homepage is the static intro alone', async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:4321', javaScriptEnabled: false });
+test('without JavaScript the homepage is the static intro alone', async ({ browser, page: projectPage }) => {
+  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:4321', viewport: projectPage.viewportSize(), javaScriptEnabled: false });
   const page = await context.newPage();
   try {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Explore my work' })).toBeVisible();
     await expect(page.locator('[data-agent-island]')).toBeHidden();
+    const columns = await page.locator('.home-hero').evaluate((hero) => getComputedStyle(hero).gridTemplateColumns.split(' ').length);
+    expect(columns, 'the hidden island leaves no empty column').toBe(1);
   } finally {
     await context.close();
   }
@@ -293,4 +377,17 @@ test('the island is the only homepage script that talks to the agent, and only o
   await page.goto('/');
   await expect(island(page)).toHaveAttribute('data-state', 'online');
   expect(calls).toEqual(['GET /agent/health']);
+});
+
+test('the production bundle hydrates and answers', async ({ page }) => {
+  // The other island tests run against the dev server; this one runs the built site (astro preview),
+  // so the minified bundle and client:idle hydration are exercised too.
+  test.skip(test.info().project.name !== 'desktop', 'One viewport is enough to prove the production bundle.');
+  const errors = watchErrors(page);
+  await mockAgent(page, {});
+  await page.goto('http://127.0.0.1:4322/');
+  await expect(island(page)).toHaveAttribute('data-state', 'online');
+  await ask(page);
+  await expect(island(page).getByRole('log', { name: 'Conversation' }).getByText('Any engineer or agent tool can search it.')).toBeVisible();
+  expect(errors).toEqual([]);
 });

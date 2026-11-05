@@ -98,10 +98,15 @@ export default defineConfig({
   integrations: [mdx(), sitemap(), agentCorpus(), react({ include: ['**/components/agent/**', '**/components/ui/**'] })],
   vite: {
     plugins: [tailwindcss()],
-    // Pre-bundle the agent island's dependencies at dev-server start. Discovered late, they make Vite
-    // reload the page mid-load, which breaks the first Playwright run against a cold server.
+    // Pre-bundle at dev-server start what Vite would otherwise discover mid-load (the agent island's
+    // dependencies and Astro's view-transition modules). Discovered late, they make Vite reload the
+    // page while the island's module is loading, which fails Playwright runs against a cold server.
     optimizeDeps: {
       include: [
+        'astro/virtual-modules/transitions-router.js',
+        'astro/virtual-modules/transitions-types.js',
+        'astro/virtual-modules/transitions-events.js',
+        'astro/virtual-modules/transitions-swap-functions.js',
         '@base-ui/react/button',
         '@base-ui/react/collapsible',
         '@base-ui/react/merge-props',

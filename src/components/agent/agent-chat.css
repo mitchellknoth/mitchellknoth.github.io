@@ -33,21 +33,21 @@
   line-height: 1.6;
   text-wrap: pretty;
 }
-.agent-inline-link,
+.agent-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 1rem;
+}
+.agent-header-row h2 { margin-bottom: 0.25rem; }
+.agent-how,
 .agent-notice a,
 .agent-reply a:not(.agent-source) {
   color: var(--accent);
+  font-size: 14px;
   text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.agent-inline-link:hover { text-decoration-thickness: 2px; }
-/* The inline "How it works" link sits in a sentence, so it is exempt from the 44px rule; give it a
-   comfortable hit area anyway without changing the line. */
-.agent-inline-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  min-width: 44px;
+  text-underline-offset: 4px;
 }
 
 .agent-status,
@@ -84,10 +84,12 @@
 .agent-suggestion {
   display: flex;
   align-items: center;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   min-height: 44px;
   padding: 0.55rem 0.85rem;
-  border: 1px solid var(--border-strong);
+  /* The border is what marks a suggestion as a control, so it meets 3:1. */
+  border: 1px solid var(--editorial-border);
   border-radius: 8px;
   background: transparent;
   color: var(--fg);
@@ -98,12 +100,9 @@
   cursor: pointer;
   transition: border-color 150ms ease, background-color 150ms ease;
 }
-.agent-suggestion:hover { border-color: var(--editorial-border); background: var(--muted); }
+.agent-suggestion:hover:not(:disabled) { border-color: var(--accent); background: var(--muted); }
+.agent-suggestion:disabled { cursor: default; color: var(--fg-muted); }
 
-.agent-thread {
-  height: min(30rem, 62vh);
-  min-height: 16rem;
-}
 
 .agent-reply p { margin: 0; text-wrap: pretty; max-width: 68ch; }
 .agent-source { display: flex; text-decoration: none; }

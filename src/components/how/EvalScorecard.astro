@@ -1,0 +1,34 @@
+---
+// INTEGRATION POINT — eval scorecard history (#17 evals, #18).
+//
+// The eval harness (stream B of #13) commits each scored run under `evals/results/` and is still
+// defining that format. Until it lands, this component renders an honest empty state and nothing
+// else: no example rows, no placeholder numbers.
+//
+// To wire it once the format exists:
+//   1. Read the runs at build time, e.g.
+//        const runs = Object.values(import.meta.glob('/evals/results/*.json', { eager: true, import: 'default' }));
+//      and validate each against the harness's schema (fail the build on a malformed run).
+//   2. Pass them in as `runs`, newest first, and render one row per run: date, model, question-set
+//      version, and each deterministic grader's result exactly as recorded, with the fluency score
+//      apart. Link each run to its committed file on GitHub so every figure is inspectable.
+//   3. Add a Playwright check that the table matches the committed files.
+interface Props {
+  /** Scored runs from evals/results/. Empty until the harness's results format lands. */
+  runs?: readonly unknown[];
+}
+
+const { runs = [] } = Astro.props;
+---
+
+<section class="eval-scorecard" aria-labelledby="scorecard-title" data-eval-scorecard data-runs={runs.length}>
+  <h2 id="scorecard-title">Scorecard</h2>
+  {
+    runs.length === 0 && (
+      <p>
+        No scored runs are published yet. Each run will appear here with its date, the model it tested and the
+        result of each grader, linked to the results file it came from.
+      </p>
+    )
+  }
+</section>

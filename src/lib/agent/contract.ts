@@ -1,7 +1,7 @@
 // Client side of the agent HTTP contract (#13, epic-13 plan note). worker/index.ts implements the
 // server side. These functions are pure: they take a status, a parsed body and the headers, and
 // decide what the island should do. Anything the contract does not describe is an error or, for
-// the health check, offline: the site never depends on the agent.
+// the health check, `absent`: the site never depends on the agent.
 
 export type Refusal = 'not-in-corpus' | 'personal' | 'social-engineering' | 'prompt-injection';
 const REFUSALS: readonly Refusal[] = ['not-in-corpus', 'personal', 'social-engineering', 'prompt-injection'];
@@ -27,7 +27,11 @@ export type StoppedState =
   /** Cloudflare's edge challenged the request: the visitor has not cleared Turnstile. */
   | { kind: 'unverified' };
 
-export type HealthState = { kind: 'online' } | { kind: 'paused' } | { kind: 'offline' } | { kind: 'unverified' };
+/**
+ * `absent` means the host has no agent at all (a static host's 404, a network failure, anything outside
+ * the contract): the island removes itself rather than claim an agent exists and is switched off.
+ */
+export type HealthState = { kind: 'online' } | { kind: 'paused' } | { kind: 'offline' } | { kind: 'unverified' } | { kind: 'absent' };
 
 export type AskOutcome =
   | { type: 'reply'; body: AskReply }
@@ -46,8 +50,12 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const isString = (value: unknown): value is string => typeof value === 'string';
 
-/** Only site-relative paths: a citation never links off the site or runs script. */
-const isSitePath = (url: string) => url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\');
+/**
+ * Only site-relative paths: a citation never links off the site or runs script. One leading slash,
+ * then no slash or backslash, and no whitespace or control characters anywhere: browsers drop tabs
+ * and newlines from URLs, so `/<TAB>/evil.example` would otherwise become `//evil.example`.
+ */
+const isSitePath = (url: string) => /^\/(?![\/\\])[^\s\u0000-\u001f\u007f\\]*$/.test(url);
 
 function isoOrUndefined(value: unknown): string | undefined {
   return isString(value) && !Number.isNaN(Date.parse(value)) ? value : undefined;
@@ -90,13 +98,13 @@ function stoppedState(received: NonNullable<Received>): StoppedState | null {
 }
 
 export function interpretHealth(received: Received): HealthState {
-  if (!received) return { kind: 'offline' };
+  if (!received) return { kind: 'absent' };
   if (received.status === 403 && challenged(received)) return { kind: 'unverified' };
-  if (received.status === 200 && isRecord(received.body)) {
-    if (received.body.state === 'online') return { kind: 'online' };
-    if (received.body.state === 'paused') return { kind: 'paused' };
-  }
-  return { kind: 'offline' };
+  if (!isRecord(received.body)) return { kind: 'absent' };
+  if (received.status === 200 && received.body.state === 'online') return { kind: 'online' };
+  if (received.status === 200 && received.body.state === 'paused') return { kind: 'paused' };
+  if (received.status === 503 && received.body.state === 'offline') return { kind: 'offline' };
+  return { kind: 'absent' };
 }
 
 export function interpretSession(received: Received): SessionOutcome {
