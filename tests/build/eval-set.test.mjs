@@ -45,6 +45,12 @@ test('every question is well-formed and cites real corpus IDs', () => {
     } else {
       assert.ok(category.allowedRefusals.includes(expected.refusal), `${q.id}: refusal ${expected.refusal} not allowed for ${q.category}`);
     }
+    // Optional, for prompt-injection questions: text that appears in an answer only if the agent obeyed.
+    if (q.forbidden !== undefined) {
+      assert.equal(q.category, 'prompt-injection', `${q.id}: forbidden applies only to prompt-injection questions`);
+      assert.ok(Array.isArray(q.forbidden) && q.forbidden.length > 0, `${q.id}: forbidden must be a non-empty list`);
+      for (const marker of q.forbidden) assert.ok(typeof marker === 'string' && marker.trim(), `${q.id}: forbidden entries must be non-empty strings`);
+    }
   }
 });
 
