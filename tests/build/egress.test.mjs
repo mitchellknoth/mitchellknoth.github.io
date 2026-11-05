@@ -48,6 +48,15 @@ test('the third-party allowlist starts empty', () => {
   assert.deepEqual(THIRD_PARTY_ALLOWLIST, []);
 });
 
+test('reviewed script references are exact strings, not hosts', () => {
+  // A namespace URI or an error-message link is not a request, but nothing else on those hosts is allowed.
+  assert.deepEqual(scriptUrls('const ns = "http://www.w3.org/2000/svg"; const e = "https://react.dev/errors/" + code;'), []);
+  assert.deepEqual(scriptUrls('fetch("http://www.w3.org/2000/svg/extra"); fetch("https://react.dev/learn")'), [
+    'http://www.w3.org/2000/svg/extra',
+    'https://react.dev/learn',
+  ]);
+});
+
 test('the scanner detects third-party requests', () => {
   const html = `<!doctype html><html><head>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

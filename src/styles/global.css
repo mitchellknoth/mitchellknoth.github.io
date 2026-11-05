@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* shadcn/ui theme layer for the homepage agent island. Must load after Tailwind. */
+@import "./agent-theme.css";
 
 /* =============================================================
    Theme tokens — exposed as Tailwind v4 @theme variables
@@ -11,21 +13,24 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
 
+  /* Raw palette. `--color-rule` and `--color-amber` keep these names clear of shadcn/ui's
+     `--color-border` and `--color-accent`, which src/styles/agent-theme.css maps onto `--border`
+     and `--accent`; sharing a name would make the two definitions reference each other. */
   /* Warm dark palette */
   --color-bg: #0c0a08;
   --color-bg-elevated: #14110d;
-  --color-border: #1c1814;
+  --color-rule: #1c1814;
   --color-border-strong: #2a2520;
   --color-fg: #f4eee1;
   --color-fg-muted: #a39785;
   --color-fg-dim: #8a7d68;
-  --color-accent: #c8973a;
-  --color-accent-dim: #a07a26;
+  --color-amber: #c8973a;
+  --color-amber-dim: #a07a26;
 
   /* Light-mode mirror */
   --color-bg-light: #fbf8f1;
   --color-bg-elevated-light: #ffffff;
-  --color-border-light: #e8e1cf;
+  --color-rule-light: #e8e1cf;
   --color-border-strong-light: #d2c8ad;
   --color-fg-light: #1a1410;
   --color-fg-muted-light: #5b5244;
@@ -41,13 +46,13 @@
   --site-max-width: 90rem;
   --bg: var(--color-bg);
   --bg-elevated: var(--color-bg-elevated);
-  --border: var(--color-border);
+  --border: var(--color-rule);
   --border-strong: var(--color-border-strong);
   --fg: var(--color-fg);
   --fg-muted: var(--color-fg-muted);
   --fg-dim: var(--color-fg-dim);
-  --accent: var(--color-accent);
-  --accent-dim: var(--color-accent-dim);
+  --accent: var(--color-amber);
+  --accent-dim: var(--color-amber-dim);
   --editorial-border: #706654;
 }
 
@@ -55,13 +60,13 @@
   color-scheme: light;
   --bg: var(--color-bg-light);
   --bg-elevated: var(--color-bg-elevated-light);
-  --border: var(--color-border-light);
+  --border: var(--color-rule-light);
   --border-strong: var(--color-border-strong-light);
   --fg: var(--color-fg-light);
   --fg-muted: var(--color-fg-muted-light);
   --fg-dim: var(--color-fg-dim-light);
   --accent: #866214; /* darkened from #a07a26 to clear WCAG AA (4.5:1) for text/links on light bg */
-  --accent-dim: var(--color-accent);
+  --accent-dim: var(--color-amber);
   --editorial-border: #91856d;
 }
 
