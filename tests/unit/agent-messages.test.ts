@@ -15,8 +15,8 @@ describe('AI SDK message adapter', () => {
       status: 'answered',
       text: 'Team Brain is a shared repository.',
       sources: [
-        { id: 'project/team-brain#the-problem', title: 'The problem', url: '/work/team-brain/#the-problem' },
-        { id: 'project/team-brain#the-problem', title: 'The problem', url: '/work/team-brain/#the-problem' },
+        { id: 'project/team-brain#the-problem', title: 'Team Brain: The problem', url: '/work/team-brain/#the-problem' },
+        { id: 'project/team-brain#the-problem', title: 'Team Brain: The problem', url: '/work/team-brain/#the-problem' },
         { id: 'resume', title: 'Résumé', url: '/resume/' },
       ],
     });
@@ -26,7 +26,7 @@ describe('AI SDK message adapter', () => {
       metadata: { status: 'answered' },
       parts: [
         { type: 'text', text: 'Team Brain is a shared repository.' },
-        { type: 'source-url', sourceId: 'project/team-brain#the-problem', url: '/work/team-brain/#the-problem', title: 'The problem' },
+        { type: 'source-url', sourceId: 'project/team-brain#the-problem', url: '/work/team-brain/#the-problem', title: 'Team Brain: The problem' },
         { type: 'source-url', sourceId: 'resume', url: '/resume/', title: 'Résumé' },
       ],
     });
@@ -35,11 +35,11 @@ describe('AI SDK message adapter', () => {
   });
 
   it('keeps the refusal kind in metadata and the text as a part', () => {
-    expect(replyToMessage('a2', { status: 'refused', refusal: 'not-in-corpus', text: 'Nothing I can cite covers that.' })).toEqual({
+    expect(replyToMessage('a2', { status: 'refused', refusal: 'not-in-corpus', text: 'That is not in the corpus of Mitch’s published projects, essays and résumé, so I won’t guess. Try asking about one of his projects or essays.' })).toEqual({
       id: 'a2',
       role: 'assistant',
       metadata: { status: 'refused', refusal: 'not-in-corpus' },
-      parts: [{ type: 'text', text: 'Nothing I can cite covers that.' }],
+      parts: [{ type: 'text', text: 'That is not in the corpus of Mitch’s published projects, essays and résumé, so I won’t guess. Try asking about one of his projects or essays.' }],
     });
   });
 

@@ -57,11 +57,30 @@ describe('interpretAsk', () => {
     expect(outcome.type === 'reply' && outcome.body.status === 'answered' && outcome.body.sources.map((s) => s.id)).toEqual(['a']);
   });
 
-  it('passes refusals and unanswered replies through', () => {
-    const refused = { status: 'refused', refusal: 'personal', text: 'I only answer from published work.' };
-    expect(interpretAsk(json(200, refused))).toEqual({ type: 'reply', body: refused });
-    const unanswered = { status: 'unanswered', reason: 'model_error' };
-    expect(interpretAsk(json(200, unanswered))).toEqual({ type: 'reply', body: unanswered });
+  // Copied from REFUSAL_TEXT in worker/reply.ts, which is what main serves. The Worker can't be imported
+  // here: its corpus module reads generated/corpus.json, which exists only after a build.
+  const WORKER_REFUSALS = {
+    'not-in-corpus':
+      'That is not in the corpus of Mitch’s published projects, essays and résumé, so I won’t guess. Try asking about one of his projects or essays.',
+    personal:
+      'I don’t answer personal questions about Mitch. I can tell you about his projects, his writing and his professional experience.',
+    'social-engineering':
+      'I can’t help with that. I only answer questions about Mitch’s published work, and I can’t act or speak for him.',
+    'prompt-injection': 'I can’t change how I work. Ask me about Mitch’s projects, essays or professional experience.',
+  };
+
+  it('passes every refusal the Worker sends through, with its fixed text', () => {
+    for (const [refusal, text] of Object.entries(WORKER_REFUSALS)) {
+      const refused = { status: 'refused', refusal, text };
+      expect(interpretAsk(json(200, refused))).toEqual({ type: 'reply', body: refused });
+    }
+  });
+
+  it('passes the unanswered reasons the Worker sends through', () => {
+    for (const reason of ['empty_answer', 'model_error', 'unknown']) {
+      const unanswered = { status: 'unanswered', reason };
+      expect(interpretAsk(json(200, unanswered))).toEqual({ type: 'reply', body: unanswered });
+    }
   });
 
   it('treats a malformed 200 as an error', () => {

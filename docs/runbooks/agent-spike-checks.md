@@ -67,7 +67,7 @@ limit or raise it to the real budget, and record the results on #16.
 
 ## Known gaps carried into M3
 
-- Session retention: Pi Durable can't delete a conversation yet. M3 decides the TTL and purges whole session
-  objects through a Lifecycle job, since the Lifecycle owns each object's alarm.
+- Session retention: Pi Durable can't delete a conversation yet. M3 purges whole session objects through a
+  Lifecycle job, 24 hours after the first question ([agent-retention.md](agent-retention.md)).
 - The guard stores raw IPs only for blocked addresses, each with an expiry. It keeps no per-IP history.
 - Responses are not streamed yet; M4 adds the watch-based stream for the chat island.

@@ -92,7 +92,10 @@ async function handleAgent(request: Request, env: Env, path: string): Promise<Re
     const session = env.VISITOR_SESSION.getByName(name);
     let result: Awaited<ReturnType<typeof session.ask>>;
     try {
-      result = await session.ask(question, intVar(env.MAX_MESSAGES_PER_SESSION, 20));
+      result = await session.ask(question, {
+        maxMessages: intVar(env.MAX_MESSAGES_PER_SESSION, 20),
+        ttlSeconds: intVar(env.SESSION_TTL_SECONDS, 86_400),
+      });
     } catch (error) {
       // Log the cause for the operator; the visitor gets a plain state, never a stack trace.
       console.error('agent session failed', error);
@@ -104,6 +107,9 @@ async function handleAgent(request: Request, env: Env, path: string): Promise<Re
       return refused('paused', 503, until);
     }
     if (result.status === 'limit') return json({ state: 'limit', reason: result.reason }, 429);
+    // An expired session's storage is deleted (worker/session.ts); its cookie has also expired, so start over.
+    if (result.status === 'expired') return json({ error: 'no_session' }, 401);
+    // `answered`, `refused` or `unanswered`, shaped and source-checked by worker/reply.ts.
     return json(result);
   }
 

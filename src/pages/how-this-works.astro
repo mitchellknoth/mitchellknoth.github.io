@@ -1,9 +1,9 @@
 ---
 // How the homepage agent works (#18): architecture, guardrails, failure states and the evaluation
 // method. Claims stay inside the agreed plan in #13 and the code on main: what exists is stated in the
-// present tense; what is still being built (tools, refusals, graders, hosting) is labelled as such.
+// present tense; what is still being built (graders, hosting) is labelled as such.
 // Numbers appear only once a committed eval run supplies them. Update the "Where it stands" aside and
-// the in-progress labels as the M3 tools, the eval harness and the Workers cutover land.
+// the in-progress labels as the eval harness and the Workers cutover land.
 import Base from '../layouts/Base.astro';
 import EvalScorecard from '../components/how/EvalScorecard.astro';
 import RequestPath from '../components/how/RequestPath.astro';
@@ -48,8 +48,8 @@ const questionKinds = [
       <p>
         <strong>Where it stands.</strong> The agent isn’t live: this site is still served by GitHub Pages, which has no
         agent, so the homepage shows only its introduction. Built and tested so far are the Worker, the guard,
-        per-visitor sessions and every homepage state, the last against simulated responses. The two corpus tools,
-        refusals and the evaluation harness are in progress. The agent stays switched off until its evaluation runs
+        per-visitor sessions, the two corpus tools, refusals and every homepage state, the last against simulated
+        responses. The evaluation harness is in progress. The agent stays switched off until its evaluation runs
         are published below and I’ve reviewed the answers. It hasn’t been load tested, so I make no claims about scale.
       </p>
     </aside>
@@ -66,25 +66,25 @@ const questionKinds = [
     <p>
       Every question passes one shared guard before it reaches a session. Each visitor gets a session of their own:
       the server picks its name and keeps it in a cookie that page scripts can’t read. The session runs the agent on
-      the Pi harness and stores its conversation itself. Every model call goes through AI Gateway, where the spend
+      the Pi harness, stores its conversation itself, and deletes it 24 hours after the first question. Every model call goes through AI Gateway, where the spend
       limit will be set; confirming it holds is one of the checks before launch.
     </p>
 
     <h2 id="what-it-can-reach">What it can reach</h2>
     <p>
-      The agent’s only source will be a corpus built from this site’s case studies, essays and résumé each time the
-      site is built. The extractor that builds it exists today. The corpus changes when the site does, through a code
+      The agent’s only source is a corpus built from this site’s case studies, essays and résumé each time the
+      site is built. The corpus changes when the site does, through a code
       change and a rebuild; nothing writes to it while the site is running.
     </p>
-    <p>The two tools that read it are being built now, to this design. Both only read:</p>
+    <p>Two tools read it, and both only read:</p>
     <ul>
       <li><code>search_corpus</code> finds passages and returns each one with the page it came from.</li>
       <li><code>read_source</code> opens one source, chosen from the IDs fixed when the site was built.</li>
     </ul>
     <p>
       Neither tool takes a URL. The Worker makes no outbound <code>fetch()</code> calls: its only connections are the
-      platform bindings for storage, the model and the site’s own files. A build test already fails if the Worker
-      gains another binding or an outbound call. A matching test for the tool list lands with the tools.
+      platform bindings for storage, the model and the site’s own files. A build test fails if the Worker gains
+      another binding, an outbound call or another tool.
     </p>
 
     <h2 id="guardrails">Guardrails</h2>

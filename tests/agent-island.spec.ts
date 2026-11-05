@@ -164,13 +164,13 @@ for (const theme of ['dark', 'light']) {
     test('shows a refusal and an unanswered reply in its own words', async ({ page }) => {
       await open(page, theme, {
         ask: [
-          { status: 200, body: { status: 'refused', refusal: 'personal', text: 'I only answer from published work, not personal details.' } },
-          { status: 200, body: { status: 'unanswered', reason: 'model_error' } },
+          { status: 200, body: { status: 'refused', refusal: 'personal', text: 'I don’t answer personal questions about Mitch. I can tell you about his projects, his writing and his professional experience.' } },
+          { status: 200, body: { status: 'unanswered', reason: 'empty_answer' } },
         ],
       });
       await ask(page, 'What is his home address?');
       const log = island(page).getByRole('log', { name: 'Conversation' });
-      await expect(log.getByText('I only answer from published work, not personal details.')).toBeVisible();
+      await expect(log.getByText('I don’t answer personal questions about Mitch. I can tell you about his projects, his writing and his professional experience.')).toBeVisible();
       await ask(page, 'And another?');
       await expect(log.getByText('The agent couldn’t answer that one.')).toBeVisible();
       await expect(island(page)).toHaveAttribute('data-state', 'online');
