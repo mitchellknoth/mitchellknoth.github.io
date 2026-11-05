@@ -65,9 +65,19 @@ npm run evals -- --base-url http://127.0.0.1:8787      # terminal 2 (needs only 
 ```
 
 `npm run evals:serve` refuses to start unless `CLOUDFLARE_API_TOKEN` and
-`CLOUDFLARE_ACCOUNT_ID` are set. It writes `generated/wrangler.evals.json`, a copy of
-`wrangler.jsonc` with the kill switch on, the model under test, the eval AI Gateway and the AI
-binding marked remote, and runs `wrangler dev` with it. `wrangler.jsonc` itself never changes.
+`CLOUDFLARE_ACCOUNT_ID` are set, and it also refuses if a global API key (`CLOUDFLARE_API_KEY`,
+`CLOUDFLARE_EMAIL`, `CF_API_KEY`, `CF_EMAIL`) is in the environment. It writes
+`generated/wrangler.evals.json`, a copy of `wrangler.jsonc` with these changes:
+- the kill switch on, the model under test and the eval AI Gateway
+- the account from `CLOUDFLARE_ACCOUNT_ID`
+- the AI binding marked remote
+
+It then runs `wrangler dev` with that config. `wrangler.jsonc` itself never changes.
+
+The eval server keeps its local state in `generated/.wrangler/state`, apart from
+`npm run preview:workers`. Its Guard counts admissions per day like the real one, so many runs
+on one day can reach `DAILY_AGENT_REQUESTS` (500). Delete `generated/.wrangler` to reset it.
+Because the config sits in `generated/`, a root `.dev.vars` or `.env` file is not read.
 `npm run evals` asks every question in the set, grades the answers and writes a dated scorecard. It uses only the public HTTP contract, the same calls the
 chat island makes. For each question it:
 
@@ -124,7 +134,7 @@ it errors.
 To set up the remote proxy session, Wrangler (`startRemoteProxySession` in the pinned source) does
 three things on the account:
 - reads the account's workers.dev subdomain. It registers a random one only if the account has
-  none; this account already has one.
+  none.
 - requests an `edge-preview` session.
 - uploads a small proxy Worker that carries the AI binding, as a preview
   (`POST /accounts/{account}/workers/scripts/mitchellknoth-com-evals/edge-preview`).
@@ -138,8 +148,9 @@ model call through the gateway named in its `AI_GATEWAY_ID` var. `wrangler.jsonc
 gateway, `mitchellknoth-com-agent`, and `npm run evals:serve` always overrides it with
 `mitchellknoth-com-evals`. Create that gateway the same way as the visitor gateway
 (`docs/runbooks/agent-spike-checks.md`, section 1): Unified Billing, a spend limit sized for a few
-full runs, and logging off. Its spend limit caps eval spending. Don't start an eval server any
-other way, for example with `npm run preview:workers`: that uses the visitor gateway.
+full runs, and logging off. Its spend limit caps eval spending. Start eval servers only with
+`npm run evals:serve`. `npm run preview:workers` runs with `--local`, so its AI binding is off and
+it can't answer.
 
 The runner can't see which gateway the server uses. The scorecard's `declaredAiGateway` is what
 `evals/config.json` says `evals:serve` used. Nobody has done a live run yet, so the first one should
@@ -150,7 +161,9 @@ confirm in the gateway's analytics that the calls land on `mitchellknoth-com-eva
 The remote proxy authenticates as whatever Wrangler finds, and a personal `wrangler login` can reach
 unrelated accounts. So `evals:serve` requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 Wrangler documents that an API token in `CLOUDFLARE_API_TOKEN` takes priority over any stored
-OAuth login, so the login is never used. Create a dedicated API token:
+OAuth login. With the token set, Wrangler 4.158 never reads or refreshes a stored login. A global API
+key would still take priority over the token, which is why `evals:serve` refuses to start when one
+is set. Create a dedicated API token:
 
 | Setting | Value |
 |---|---|
@@ -163,8 +176,11 @@ Why this is enough:
 - The subdomain read accepts "Workers Scripts Read" or "Workers Scripts Write" (Cloudflare API
   reference, *Get a Workers Subdomain*). Registering a subdomain would need Write, but this account
   already has one.
-- The `edge-preview` endpoints aren't in the API reference. They are `workers/scripts` writes, the
-  same as a preview upload.
+- The two `edge-preview` endpoints aren't in the API reference. One is under `workers/subdomain`
+  and asks for a preview session; the other uploads the proxy Worker under `workers/scripts`, which
+  is a Workers Scripts write.
+- If the account has no workers.dev subdomain yet, registering one also needs "Workers Scripts
+  Write", which Edit covers.
 - The model calls go through the proxy Worker's AI binding, not the Workers AI REST API, so the
   token shouldn't need a Workers AI permission. The REST API's "Workers AI - Read" and "Workers AI -
   Edit" apply only to direct `/ai/run` calls.

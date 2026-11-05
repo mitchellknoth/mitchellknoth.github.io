@@ -18,21 +18,28 @@ const EVAL_CONFIG = 'generated/wrangler.evals.json';
 
 /** @typedef {Record<string, any>} WranglerConfig */
 
+/** Wrangler uses a global API key (with its email) before CLOUDFLARE_API_TOKEN, so none of these may be set. */
+const GLOBAL_KEY_VARS = ['CLOUDFLARE_API_KEY', 'CLOUDFLARE_EMAIL', 'CF_API_KEY', 'CF_EMAIL'];
+
 /**
  * The remote AI binding authenticates with whatever Wrangler finds, and this machine's `wrangler login` reaches
- * unrelated accounts. An explicit token and account are required; Wrangler prefers CLOUDFLARE_API_TOKEN over
- * any stored OAuth login, so the login is never used.
+ * unrelated accounts. An explicit scoped token and account are required. With CLOUDFLARE_API_TOKEN set, Wrangler
+ * never reads or refreshes a stored OAuth login; a global API key would still win, so it is refused.
  * @param {NodeJS.ProcessEnv} env
- * @returns {{ model: string }}
+ * @returns {{ model: string, accountId: string }}
  */
 export function requireEvalEnv(env) {
   const missing = ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID'].filter((name) => !env[name]?.trim());
   if (missing.length) {
     throw new Error(`Refusing to start: set ${missing.join(' and ')} to the scoped eval token and this site's account (see evals/README.md). The local wrangler login is never used.`);
   }
+  const globalKey = GLOBAL_KEY_VARS.filter((name) => env[name] !== undefined);
+  if (globalKey.length) {
+    throw new Error(`Refusing to start: unset ${globalKey.join(', ')}. Wrangler would use a global API key instead of the scoped eval token.`);
+  }
   const model = env.EVAL_MODEL?.trim();
   if (!model) throw new Error('Set EVAL_MODEL to the model under test, e.g. EVAL_MODEL=@cf/<vendor>/<model> npm run evals:serve');
-  return { model };
+  return { model, accountId: /** @type {string} */ (env.CLOUDFLARE_ACCOUNT_ID).trim() };
 }
 
 /** @param {string} rootDir @returns {WranglerConfig} */
@@ -47,20 +54,22 @@ export function readWranglerConfig(rootDir) {
 /**
  * The eval server's Wrangler config: the production config with
  * - its own Worker name, so the remote proxy session's preview upload never uses the production script name;
+ * - the account from CLOUDFLARE_ACCOUNT_ID (a config `account_id` would otherwise take precedence);
  * - the AI binding explicitly remote (Durable Objects and assets have no remote mode, so they stay local);
  * - the kill switch on, the eval AI Gateway and the model under test.
  * Paths are rewritten relative to the generated file, because Wrangler resolves them from the config's folder.
  * @param {WranglerConfig} production
- * @param {{ model: string, configDir: string, rootDir: string, aiGateway?: string }} options
+ * @param {{ model: string, accountId: string, configDir: string, rootDir: string, aiGateway?: string }} options
  * @returns {WranglerConfig}
  */
-export function evalWranglerConfig(production, { model, configDir, rootDir, aiGateway }) {
+export function evalWranglerConfig(production, { model, accountId, configDir, rootDir, aiGateway }) {
   const gateway = aiGateway ?? JSON.parse(readFileSync(path.join(rootDir, 'evals/config.json'), 'utf8')).aiGateway;
   const relative = (/** @type {string} */ p) => path.relative(configDir, path.resolve(rootDir, p)).split(path.sep).join('/');
   const { $schema: _schema, ...rest } = production;
   return {
     ...rest,
     name: `${production.name}-evals`,
+    account_id: accountId,
     main: relative(production.main),
     assets: { ...production.assets, directory: relative(production.assets.directory) },
     ai: { ...production.ai, remote: true },
@@ -80,15 +89,19 @@ export function serveArgs({ configPath, port }) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const { model } = requireEvalEnv(process.env);
+    const { model, accountId } = requireEvalEnv(process.env);
     const configPath = path.join(ROOT_DIR, EVAL_CONFIG);
     mkdirSync(path.dirname(configPath), { recursive: true });
-    const evalConfig = evalWranglerConfig(readWranglerConfig(ROOT_DIR), { model, configDir: path.dirname(configPath), rootDir: ROOT_DIR });
+    const evalConfig = evalWranglerConfig(readWranglerConfig(ROOT_DIR), { model, accountId, configDir: path.dirname(configPath), rootDir: ROOT_DIR });
     writeFileSync(configPath, `${JSON.stringify(evalConfig, null, 2)}\n`);
     // wrangler's package exports don't include its bin, so run the pinned copy from node_modules directly.
     const wrangler = path.join(ROOT_DIR, 'node_modules/wrangler/bin/wrangler.js');
     const args = serveArgs({ configPath, port: process.env.EVAL_PORT?.trim() || '8787' });
-    const child = spawn(process.execPath, [wrangler, ...args], { cwd: ROOT_DIR, stdio: 'inherit' });
+    const child = spawn(process.execPath, [wrangler, ...args], {
+      cwd: ROOT_DIR,
+      stdio: 'inherit',
+      env: { ...process.env, WRANGLER_SEND_METRICS: 'false' },
+    });
     child.on('exit', (code) => {
       process.exitCode = code ?? 1;
     });

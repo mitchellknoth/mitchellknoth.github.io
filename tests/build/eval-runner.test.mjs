@@ -86,18 +86,29 @@ test('the eval server refuses to start without an explicit Cloudflare token and 
   assert.throws(() => requireEvalEnv({ ...ok, CLOUDFLARE_API_TOKEN: undefined }), /CLOUDFLARE_API_TOKEN/);
   assert.throws(() => requireEvalEnv({ ...ok, CLOUDFLARE_ACCOUNT_ID: ' ' }), /CLOUDFLARE_ACCOUNT_ID/);
   assert.throws(() => requireEvalEnv({}), /CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID/);
+  // Wrangler prefers a global API key over the token, so any global-key variable is refused.
+  for (const name of ['CLOUDFLARE_API_KEY', 'CLOUDFLARE_EMAIL', 'CF_API_KEY', 'CF_EMAIL']) {
+    assert.throws(() => requireEvalEnv({ ...ok, [name]: 'x' }), new RegExp(name), name);
+  }
+  assert.deepEqual(requireEvalEnv(ok), { model: '@cf/test/model', accountId: 'account' });
 });
 
 test('the eval Wrangler config keeps Durable Objects local, runs only AI remotely, and uses the eval gateway', () => {
   const production = readWranglerConfig(rootDir);
+  const before = structuredClone(production);
   const configDir = path.join(rootDir, 'generated');
-  const evalConfig = evalWranglerConfig(production, { model: '@cf/test/model', configDir, rootDir });
+  const evalConfig = evalWranglerConfig({ ...production, account_id: 'someone-else' }, { model: '@cf/test/model', accountId: 'acct', configDir, rootDir });
 
   // Its own Worker name, so the remote proxy's preview upload never uses the production script name.
   assert.equal(evalConfig.name, `${production.name}-evals`);
   assert.equal(path.resolve(configDir, evalConfig.main), path.join(rootDir, production.main));
   assert.equal(path.resolve(configDir, evalConfig.assets.directory), path.resolve(rootDir, production.assets.directory));
+  assert.deepEqual({ ...evalConfig.assets, directory: production.assets.directory }, production.assets);
   assert.deepEqual(evalConfig.ai, { binding: production.ai.binding, remote: true });
+  // AI is the only binding marked remote.
+  const remote = JSON.stringify(evalConfig).match(/"remote":true/g) ?? [];
+  assert.equal(remote.length, 1);
+  assert.equal(evalConfig.account_id, 'acct', 'the account always comes from CLOUDFLARE_ACCOUNT_ID');
   assert.deepEqual(evalConfig.durable_objects, production.durable_objects);
   assert.deepEqual(evalConfig.migrations, production.migrations);
   assert.equal(evalConfig.vars.AGENT_ENABLED, 'true');
@@ -106,8 +117,8 @@ test('the eval Wrangler config keeps Durable Objects local, runs only AI remotel
   assert.equal(evalConfig.vars.AGENT_MODEL, '@cf/test/model');
   assert.equal(evalConfig.vars.MAX_PROMPT_CHARS, production.vars.MAX_PROMPT_CHARS);
   assert.equal(evalConfig.$schema, undefined);
-  // The production config is not modified.
-  assert.equal(readWranglerConfig(rootDir).vars.AGENT_ENABLED, production.vars.AGENT_ENABLED);
+  // The production config object is not modified.
+  assert.deepEqual(production, before);
 });
 
 test('the eval server runs wrangler dev in its default mode, so the AI binding can reach Workers AI', () => {
