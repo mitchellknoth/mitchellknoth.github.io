@@ -1,27 +1,5 @@
 import { expect, test } from '@playwright/test';
-
-const routes = [
-  '/',
-  '/about/',
-  '/resume/',
-  '/work/',
-  '/writing/',
-  '/work/agentic-engineering/',
-  '/work/team-brain/',
-  '/work/secure-agent-execution/',
-  '/work/agent-trust/',
-  '/work/bounded-runner/',
-  '/work/pr-to-production/',
-  '/work/onecloud-network/',
-  '/work/vpc-deletion-automation/',
-  '/work/license-management/',
-  '/work/global-gateway/',
-  '/writing/the-harness-should-not-live-on-your-laptop/',
-  '/writing/the-model-is-table-stakes/',
-  '/writing/done-is-a-claim-not-a-state/',
-  '/writing/patch-outside-worker/',
-  '/this-route-should-not-exist/',
-];
+import { routes } from './support/routes';
 
 for (const theme of ['dark', 'light']) {
   for (const route of routes) {

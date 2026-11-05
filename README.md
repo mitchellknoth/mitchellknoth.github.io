@@ -9,8 +9,11 @@ npm install
 npm run dev        # http://localhost:4321
 npm run build      # production build → ./dist
 npm run preview    # preview the built site
-npm run quality    # type/build checks + responsive Playwright contract
+npm run quality    # design lint, type check, build, build contract, responsive Playwright contract
 ```
+
+`npm run test:build` runs the Node checks over `dist/` (egress, agent corpus, eval question set);
+run it after a build.
 
 For visual critique, run `npm run test:visual:headed`. The suite opens Chromium and exercises every
 public route at phone, tablet, desktop, and ultrawide viewports. Failed checks retain a screenshot and
@@ -92,7 +95,19 @@ The headline and lede live directly in `src/pages/index.astro`. The "Recent writ
 
 All design tokens (palette, fonts, radii) are in `src/styles/global.css` inside the `@theme` block. Change the accent color once and the whole site updates.
 
-Two weights of Instrument Serif and three weights of Inter are loaded — don't add more without a reason, it hurts LCP.
+Fonts are self-hosted through Astro's Fonts API (`fonts` in `astro.config.mjs`) from pinned
+`@fontsource` packages: Instrument Serif (regular and italic), Inter (400, 500 and 600 from one
+variable file) and JetBrains Mono (400 and 500). The browser makes no third-party requests; the egress
+checks fail the build if a page, stylesheet or script reaches another host. Don't add weights without
+a reason, it hurts LCP.
+
+## Agent corpus and evals
+
+Every `astro build` writes `generated/corpus.json` (not committed) for the planned site agent (#13).
+It is extracted from the built project pages, published essays and `/resume/`, split into one entry
+per section, and every entry carries a stable ID (`project/team-brain#the-problem`) and the
+repository file it came from. Drafts are excluded. `evals/question-set.json` is the agent's eval
+question set; see `evals/README.md`.
 
 ## Accessibility notes
 

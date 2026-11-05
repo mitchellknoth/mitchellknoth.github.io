@@ -4,10 +4,12 @@
    Theme tokens — exposed as Tailwind v4 @theme variables
    ------------------------------------------------------------- */
 @theme {
-  /* Fonts — Instrument Serif for display, Inter for body, JetBrains Mono for metadata */
-  --font-serif: "Instrument Serif", ui-serif, Charter, Georgia, "Times New Roman", serif;
-  --font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Fonts — Instrument Serif for display, Inter for body, JetBrains Mono for metadata.
+     Self-hosted through Astro's Fonts API (astro.config.mjs), which defines the family
+     variables and their fallback stacks. */
+  --font-serif: var(--font-instrument-serif);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 
   /* Warm dark palette */
   --color-bg: #0c0a08;
