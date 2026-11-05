@@ -20,4 +20,4 @@ During a hackathon, I prototyped a data-ingestion pipeline that demonstrated lic
 
 ## Outcome
 
-The prototype helped make the case for a dedicated enterprise data-engineering investment.
+The prototype helped make the case for a dedicated enterprise Data Engineering team.
