@@ -1,6 +1,6 @@
 ---
 title: "Agent Trust – Scanning, Policy, and Reusable Review"
-summary: "Built a versioned trust layer around a skill scanner, separating scan observations from policy decisions and emitting SARIF for CI. Packaged local pre-PR reviews, branch-review skills, and feedback hooks so trust practices can travel across repositories."
+summary: "Built a versioned trust layer around a skill scanner, separating scan observations from policy decisions and emitting SARIF for CI. Packaged a local pre-PR review gauntlet, branch-review skills, and feedback hooks that other repositories can reuse."
 period: "2026 – present"
 stack: ["python", "skill-scanning", "sarif", "github-actions", "review-skills"]
 featured: false
@@ -16,7 +16,7 @@ The implementation includes configurable policy thresholds, explicit accepted-ri
 
 ## My contribution to reusable review
 
-I packaged the team’s review practice into a local pre-PR gauntlet, reusable branch-review skills, and feedback hooks. The objective is to make repeated misses change the next run: a clearer instruction, a regression check, or a reusable reviewer that another engineer can inherit.
+I packaged the team’s review practice into a local pre-PR gauntlet, reusable branch-review skills, and feedback hooks. A repeated miss should change the next run: a clearer instruction, a regression check, or a reusable reviewer that another engineer can inherit.
 
 I also published [Evidence-Gated Delivery](https://github.com/mitchellknoth/evidence-gated-delivery) as an open-source workflow experiment. It is historical work, not the team’s current execution workflow. The continuing practice is described in the [Agent Harness field guide](/writing/the-model-is-table-stakes/).
 

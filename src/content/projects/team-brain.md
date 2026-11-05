@@ -24,6 +24,6 @@ I also wrote the team’s harness thesis and Agent Delegation Stack, connecting 
 
 ## Delivered capability
 
-Engineers and agents can retrieve source-backed research and decisions from a shared repository, while product-specific code and constraints remain in the product repository. A reviewed lesson can be contributed once and reached from another agent tool rather than remaining in an individual prompt collection.
+A reviewed lesson can be contributed once and reached from another agent tool rather than remaining in an individual prompt collection.
 
-My responsibility was the repository architecture and its schema, retrieval, graph, memory, and quality tooling. This establishes a maintained context capability; broader adoption and productivity effects remain questions to measure.
+My responsibility was the repository architecture and its schema, retrieval, graph, memory, and quality tooling. The repository is built and maintained; broader adoption and productivity effects have not been measured.

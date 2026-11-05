@@ -10,9 +10,7 @@ tags: ["agents", "docker", "testing", "security"]
 
 import LabFigure from '../../components/work/LabFigure.astro';
 
-An empty cart should total zero. In the public execution lab, the starting implementation returns `None`. One worker fixes the bug. Another returns zero for every cart. Both can claim that the empty-cart case works.
-
-Only one preserves the behavior of a cart with items.
+An empty cart should total zero. In the public execution lab, the starting implementation returns `None`. One worker fixes the bug. Another returns zero for every cart. Both can claim that the empty-cart case works, but only one preserves the behavior of a cart with items.
 
 That is the failure this experiment makes inspectable. The worker's narration and its chosen example are insufficient acceptance evidence. The harness needs original checks that the worker cannot quietly replace, and a candidate bound to the bytes those checks actually examined.
 
@@ -26,7 +24,7 @@ Instead, the token lives in a gateway container. The gateway accepts one GET rou
 
 <LabFigure name="credential-boundary" eager alt="A token enters only the gateway environment. The worker accesses one permitted route; the protected fixture upstream is bound to gateway loopback." />
 
-The gateway demonstrates a credential boundary. It does not authenticate tenants or provide Git access. Any worker attached to this run's internal network can call the one permitted route. That limit matters when interpreting the successful fetch.
+The gateway demonstrates a credential boundary. It does not authenticate tenants or provide Git access. Any worker attached to this run's internal network can call the one permitted route.
 
 ## Freeze the candidate before checking it
 
@@ -46,7 +44,7 @@ The valid worker simplifies the implementation to `return sum(prices)`. The inva
 
 <LabFigure name="independent-validation" alt="Worker output passes through host scope checking into a separate validator; original tests stay outside the worker mount and the receipt binds the returned patch." />
 
-This separation is the useful property. A worker may propose a change; it does not choose the original acceptance criteria, supply the trusted diff, or authorize publication.
+Under this separation, a worker may propose a change, but it does not choose the original acceptance criteria, supply the trusted diff, or authorize publication.
 
 ## Make rejection an observable result
 
@@ -65,7 +63,7 @@ The archived `observed/` runs retain the actual container image ID, original and
 
 ## The boundary of the experiment
 
-The worker is deterministic so the five failure modes are repeatable. This isolates the execution contract from model variability. A later agent evaluation would need a task set, fixed acceptance oracle, recorded model and harness configuration, and repeated trials.
+The worker is deterministic so all five scenarios are repeatable. This isolates the execution contract from model variability. A later agent evaluation would need a task set, fixed acceptance oracle, recorded model and harness configuration, and repeated trials.
 
 The containers run without root, a Docker socket, or a writable root filesystem. They have resource limits; the validator has no network. Docker still shares a kernel, and three assertions do not certify arbitrary code. Run the supplied trusted fixture rather than hostile repositories. The README names the remaining authentication, isolation, and cleanup limits.
 

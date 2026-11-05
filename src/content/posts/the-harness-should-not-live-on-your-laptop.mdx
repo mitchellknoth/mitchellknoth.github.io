@@ -1,6 +1,6 @@
 ---
 title: "The Harness Should Not Live on Your Laptop"
-summary: "A field note on how cloud-agent sandboxes can turn personal leverage into shared, persistent, and governed engineering capability."
+summary: "A field note on how cloud-agent sandboxes can turn one engineer's harness into shared, persistent, and governed engineering capability."
 date: 2026-08-14
 draft: false
 eyebrow: "Essay · Agentic engineering"
@@ -24,7 +24,7 @@ I was away from my desk when an idea came together for a product initiative with
 
 Instead, I recorded a voice note from my phone and handed it to a cloud agent. The agent continued working remotely and saved a feasibility-research artifact as a GitHub issue in the relevant private repository. I later reviewed and expanded that issue into an epic-sized specification, which moved into implementation.
 
-The voice note did not become production code by magic. It became the first durable link in an inspectable delivery chain:
+The voice note became the first durable link in an inspectable delivery chain:
 
 <ArtifactFlow
   phases={[
@@ -43,9 +43,9 @@ The voice note did not become production code by magic. It became the first dura
   ]}
 />
 
-This is a personal field note, not a controlled productivity study. The underlying issue is private, and the experience does not prove that every idea or every engineer will benefit in the same way. It does demonstrate a changed constraint: useful agentic work no longer had to wait for my workstation.
+This is a personal field note, not a controlled productivity study. The underlying issue is private, and the experience does not prove that every idea or every engineer will benefit in the same way. It does show that useful agentic work no longer had to wait for my workstation.
 
-That individual freedom matters. The larger opportunity is organizational.
+That freedom helps one engineer. The larger opportunity is organizational.
 
 <figure class="article-figure">
   <img
@@ -73,23 +73,23 @@ That individual freedom matters. The larger opportunity is organizational.
 
 The central claim of this essay is a recommendation, not a prediction:
 
-> **Cloud agent sandboxes can do for agentic engineering what containers did for application execution: make the operating environment portable, reproducible, and consistent across people and machines. That turns individual breakthroughs in agents and harnesses into shared organizational capability—raising the floor for every engineer.**
+> **Cloud agent sandboxes can do for agentic engineering what containers did for application execution: make the operating environment portable, reproducible, and consistent across people and machines. That turns individual breakthroughs in agents and harnesses into shared organizational capability and raises the floor for every engineer.**
 
-Running while a laptop is closed, accepting work from a phone, and expanding across remote compute are powerful consequences of that foundation. They are not the foundation itself.
+Running while a laptop is closed, accepting work from a phone, and expanding across remote compute are consequences of that foundation, not the foundation itself.
 
 <h2 id="the-container-parallel">The container parallel</h2>
 
-Before containerization became ordinary, an application often depended on the machine where it happened to work. The right runtime, system packages, local services, configuration, and undocumented setup steps accumulated on a developer's workstation. “It works on my machine” was not merely a joke. It named a portability failure.
+Before containerization became ordinary, an application often depended on the machine where it happened to work. The right runtime, system packages, local services, configuration, and undocumented setup steps accumulated on a developer's workstation. The joke “It works on my machine” named a real portability failure.
 
 [Docker describes containers](https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-container/) as isolated, self-contained, and portable processes. The application carries the files and dependencies it needs instead of relying on whatever happens to be installed on the host. That does not make every application correct or operable. It makes the execution environment explicit enough to reproduce.
 
 Agentic engineering has a similar machine-coupling problem.
 
-One engineer may have carefully tuned instructions, useful skills, working MCP integrations, trusted examples, local scripts, credentials, and a mental map of the repository. Another engineer on the same team may have the same model and none of that surrounding capability. The difference looks like individual aptitude when much of it is actually an undeclared environment.
+One engineer may have carefully tuned instructions, useful skills, working MCP integrations, trusted examples, local scripts, credentials, and a mental map of the repository. Another engineer on the same team may have the same model and none of that surrounding capability. The difference looks like individual aptitude when much of it is an undeclared environment.
 
 The analogy has a hard boundary. A reproducible container can start the same application from the same image. A reproducible agent sandbox cannot guarantee identical reasoning or output. Model behavior remains probabilistic, retrieved context can differ, and the state of the task can change between runs.
 
-The enterprise promise is therefore not deterministic output. It is a consistent starting point: declared tools, governed permissions, retrievable context, repeatable validation, and inspectable results.
+The enterprise promise is therefore a consistent starting point: declared tools, governed permissions, retrievable context, repeatable validation, and inspectable results.
 
 <h2 id="the-repository-is-the-unit">The repository is the unit of agentic capability</h2>
 
@@ -140,8 +140,6 @@ Team knowledge needs a separate ownership boundary. A product repository should 
 
 During ordinary product work, the agent should read the team brain without silently rewriting it. If implementation reveals a reusable lesson, the agent can prepare a separate contribution for review. The flow becomes: learn in one task, validate the pattern, promote it to shared context, and make it available to the next engineer and agent.
 
-That is how a personal unlock compounds into a team capability.
-
 <figure class="article-figure">
   <img
     src="/images/writing/the-harness-should-not-live-on-your-laptop/shared-harness.webp"
@@ -178,27 +176,27 @@ Ambiguity should default toward capture or proposal. A rough idea should not sil
 
 When the harness is repository-owned, a new engineer can inherit the project's accumulated operating knowledge without reconstructing another person's workstation. Proven setup, patterns, and checks become defaults instead of folklore.
 
-This does not flatten expertise. It removes avoidable differences caused by hidden configuration and undiscoverable context. Experienced judgment remains necessary for framing the problem, resolving ambiguity, evaluating tradeoffs, and improving the harness itself.
+A shared floor removes the avoidable differences caused by hidden configuration and undiscoverable context. It leaves expertise intact. Experienced judgment remains necessary for framing the problem, resolving ambiguity, evaluating tradeoffs, and improving the harness itself.
 
-The goal is not equal output. It is equal access to the team's established starting capability.
+The goal is equal access to the team's established starting capability, not equal output.
 
 ### Elasticity
 
 Remote compute also removes a workstation ceiling. A cloud platform can run several isolated tasks without competing for the initiating laptop's CPU, memory, battery, or attention.
 
-Agent fleets are a supporting unlock, not the thesis. Compute is only the first constraint. Useful parallelism also requires decomposable work, isolated branches or worktrees, explicit ownership, budgets, evaluation, and an integration gate.
+Agent fleets are a secondary benefit, and compute is only their first constraint. Useful parallelism also requires decomposable work, isolated branches or worktrees, explicit ownership, budgets, evaluation, and an integration gate.
 
-> A strong harness turns additional agents into parallel leverage. A weak harness turns them into parallel ambiguity.
+> A strong harness turns additional agents into parallel throughput. A weak harness turns them into parallel ambiguity.
 
 ### A path to continuous operation
 
-Highly mature teams can go further. Once context, permissions, checks, identity, and feedback loops are encoded, the same cloud foundation can support scheduled or event-triggered work. Human-initiated tasks remain the primary story here; continuous automation is the differentiating capability at the end of the maturity curve.
+Highly mature teams can go further. Once context, permissions, checks, identity, and feedback loops are encoded, the same cloud foundation can support scheduled or event-triggered work. Human-initiated tasks remain the primary story here; continuous automation sits at the end of the maturity curve.
 
 Automated work still needs an accountable owner. The execution principal may be an agent or application identity, but the delegation chain must answer who authorized the run, what it could access, and which actions it took.
 
 <h2 id="the-amplifier-still-applies">The amplifier still applies</h2>
 
-My earlier field guide framed an [agent as a model plus its harness](/writing/the-model-is-table-stakes/). Cloud execution does not supersede that model. It adds reach, persistence, and scale to it.
+My earlier field guide framed an [agent as a model plus its harness](/writing/the-model-is-table-stakes/). Cloud execution adds reach, persistence, and scale to that model.
 
 AI remains an amplifier. A cloud sandbox makes a strong harness portable, but it also reproduces weak instructions, missing tests, stale context, unsafe permissions, and unclear ownership at greater speed.
 
@@ -218,9 +216,7 @@ Before a team adds remote autonomy, its repository should be able to answer basi
   ]}
 />
 
-If a new engineer cannot reliably understand, run, change, and validate the repository, a cloud agent will not repair the missing foundation.
-
-It will reveal it faster.
+If a new engineer cannot reliably understand, run, change, and validate the repository, a cloud agent will not repair the missing foundation. It will reveal the gap faster.
 
 Cloud execution also introduces a new trust boundary. Source code runs in vendor-managed infrastructure. Sessions may retain data. Internet-enabled agents face prompt-injection and exfiltration risks. Credentials require scope and lifecycle controls. Compute needs budgets. Regulated work may impose residency and audit requirements. A vendor-specific environment format can become another form of coupling.
 
@@ -246,7 +242,7 @@ Sources: [Cursor environment and secret documentation](https://docs.cursor.com/b
 
 Cursor's guided environment setup was the strongest onboarding experience for my workflow at that review. That is a personal assessment of setup, not a measurement of model quality, task success, or security. Codex's setup-only secret boundary addresses a different concern: keeping dependency-installation credentials out of the later agent phase. Claude's scoped GitHub proxy protects repository access, while arbitrary application secrets and interactive enterprise authentication remained limitations for my use case.
 
-These differences suggest specific product work rather than a universal ranking. A repeatable comparison should start with the same repository and task, then record setup effort, accessible resources, credential exposure, returned artifacts, and repair effort. Recheck the documentation before choosing a platform: the products will change.
+These differences suggest specific product work rather than a universal ranking. A repeatable comparison should start with the same repository and task, then record setup effort, accessible resources, credential exposure, returned artifacts, and repair effort. Recheck the documentation before choosing a platform, because the products will change.
 
 <h2 id="the-next-enterprise-requirement">The next enterprise requirement is federation</h2>
 
@@ -323,14 +319,12 @@ Do not begin by moving every workflow into the cloud. Begin with one repository 
 
 First make the harness trustworthy. Then prove that it remains trustworthy when detached from its original engineer and machine.
 
-That is the larger opportunity. The engineer gains continuity and reach. The enterprise gains a way to turn one person's breakthrough into a capability the next person can inherit.
-
 ## Source notes
 
 1. Docker, [“What is a container?”](https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-container/). Docker's documentation supports the portability and self-contained-environment side of the analogy. It does not establish that model output becomes deterministic or that agent sandboxes share container security properties.
 2. The opening artifact chain is an anonymized firsthand experience involving a private repository. It supports the continuity example and the described handoff. It is not publicly inspectable and does not establish a productivity rate or general outcome.
 3. Cursor, [“Background Agents”](https://docs.cursor.com/background-agent). The page documents isolated remote machines, guided environment setup, `.cursor/environment.json`, and KMS-backed encryption at rest for supplied secrets. It also warns that background agents have internet access and automatically execute terminal commands, which creates prompt-injection and exfiltration risk.
-4. Anthropic, [“Use Claude Code on the web”](https://code.claude.com/docs/en/claude-code-on-the-web). This is the public documentation source for the product referred to in the essay as Claude Code Remote. It documents persistent remote sessions, repository-owned configuration, network controls, scoped GitHub authentication, the current lack of a dedicated secrets store, and the absence of interactive AWS SSO in hosted sessions.
+4. Anthropic, [“Use Claude Code on the web”](https://code.claude.com/docs/en/claude-code-on-the-web). The page documents persistent remote sessions, repository-owned configuration, network controls, scoped GitHub authentication, the current lack of a dedicated secrets store, and the absence of interactive AWS SSO in hosted sessions.
 5. OpenAI, [“Cloud environments”](https://learn.chatgpt.com/docs/environments/cloud-environment). The page documents Codex's setup and agent phases, environment variables, encrypted setup-only secrets, caching, and the outbound network proxy.
 6. The proposed workload-identity design and the product-readiness model are practice-derived recommendations. The documentation search establishes what the cited public pages describe; it cannot prove the absence of private, undocumented, or newly released capabilities.
 

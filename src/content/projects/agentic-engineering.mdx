@@ -1,6 +1,6 @@
 ---
 title: "Engineering Evidence – From Requirements to Production"
-summary: "Wrote the product requirements and delivered live-data views, a personal work timeline, and shared caching for a team-owned engineering evidence product now in production. The work connects product definition, backend performance, and the acceptance checks behind reliable delivery."
+summary: "Wrote the product requirements and delivered live-data views, a personal work timeline, and shared caching for a team-owned engineering evidence product now in production. Cache keys follow source-update watermarks, and cache failures fall back to the source."
 period: "2026 – present"
 stack: ["typescript", "redis", "github-actions", "aws"]
 metric:
@@ -35,13 +35,13 @@ The source remains authoritative. A cache read or write failure does not replace
 
 ## Implementation and acceptance
 
-I tested the boundaries as well as the successful path: real-Redis integration checks, cache read/write failures, freshness changes, and the source-error behavior. I also worked on acceptance checks for the product’s overview and tool views and separated validation from deployment so delivery follows a successful CI gate.
+I tested the boundaries as well as the successful path: real-Redis integration checks, cache read/write failures, freshness changes, and the source-error behavior. I also worked on acceptance checks for the product’s overview and tool views and separated validation from deployment so deployment runs only after CI passes.
 
-The cache’s job is narrowly defined: reuse query results where the freshness policy permits it. It does not become the system of record or hide the underlying source’s availability.
+The cache reuses query results only where the freshness policy permits. It does not become the system of record or hide the underlying source’s availability.
 
 ## Status and limitations
 
-**Delivered:** live-data views, the personal timeline, and shared caching, with integration checks for freshness changes and failure paths. The cache is subordinate to the source, rather than a new system of record.
+**Delivered:** live-data views, the personal timeline, and shared caching, with integration checks for freshness changes and failure paths.
 
 **Unmeasured publicly:** the size of the performance improvement and adoption trend. Observational engineering signals do not establish that AI caused productivity gains, reduced defects, or improved delivery flow.
 

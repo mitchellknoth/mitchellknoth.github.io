@@ -15,11 +15,11 @@ import RelatedWork from '../../components/writing/RelatedWork.astro';
 
 I kept noticing a gap in my own agent work: the strongest sessions were difficult to transfer. The same model was available to my coworkers, but the result depended on context I had accumulated, commands I knew to run, local tools I had configured, and checks I remembered to apply.
 
-That difference was easy to misread as model capability or individual aptitude. Much of it was neither. It was an undeclared engineering environment surrounding the model.
+That difference was easy to misread as model capability or individual aptitude, when much of it was an undeclared engineering environment surrounding the model.
 
 Model capability still matters. A stronger model can reason across a larger problem, recover from ambiguity, and use tools more effectively. But capability alone does not make delivery reliable. Reliability belongs to the complete system around the model: the context it can reach, the actions it may take, the checks that can stop it, and the way failures change the next run.
 
-This complete-system view is useful precisely because model progress is real. If every improvement is credited to “the AI,” the engineering decisions surrounding it become invisible—and therefore difficult to inspect, compare, or improve.
+This complete-system view is useful precisely because model progress is real. If every improvement is credited to “the AI,” the engineering decisions surrounding it become invisible, and therefore difficult to inspect, compare, or improve.
 
 <figure class="article-figure">
   <img
@@ -50,28 +50,28 @@ This equation is a **practice-derived operating lens**, not a scientific definit
 
 The model supplies learned capability. The harness makes that capability operational: instructions, retrieved context, tools, permissions, workflow state, validation, review, and feedback. Different products draw the boundary differently, but the inspection question stays useful: *what besides the model determines whether this run succeeds?*
 
-That question also keeps tool evaluations honest. [DORA’s 2025 research](https://dora.dev/research/2025/dora-report/) describes AI as an amplifier of an organization’s existing strengths and weaknesses, with outcomes shaped by the surrounding organizational system—not by tool adoption alone. [METR’s controlled study of experienced open-source developers](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/) found a slowdown in its specific early-2025 setting, then explicitly warned against generalizing that result to most software work. METR later [reported that a follow-up study could not provide a reliable current productivity estimate](https://metr.org/blog/2026-02-24-uplift-update/) because participation choices introduced selection bias. Together, those results argue for bounded evaluation of tasks, conditions, artifacts, and quality—not a universal speedup number.
+That question also keeps tool evaluations honest. [DORA’s 2025 research](https://dora.dev/research/2025/dora-report/) describes AI as an amplifier of an organization’s existing strengths and weaknesses, with outcomes shaped by the surrounding organizational system rather than by tool adoption alone. [METR’s controlled study of experienced open-source developers](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/) found a slowdown in its specific early-2025 setting, then explicitly warned against generalizing that result to most software work. METR later [reported that a follow-up study could not provide a reliable current productivity estimate](https://metr.org/blog/2026-02-24-uplift-update/) because participation choices introduced selection bias. Together, those results argue for bounded evaluation of tasks, conditions, artifacts, and quality rather than a universal speedup number.
 
 <HarnessMap />
 
-The sequence is deliberate:
+The map follows execution order:
 
 1. **Guides** shape judgment. They include repository instructions, examples, architectural context, tool descriptions, and reusable skills.
 2. **Controls** constrain action. They include permissions, protected branches, approval gates, policy checks, and lifecycle hooks.
 3. **Sensors** expose outcomes. Tests, type checks, linters, CI, security scans, traces, and human review turn output into evidence.
 4. **Compounding** changes the system. A repeated miss becomes a clearer guide, a deterministic control, a regression test, or a reusable workflow.
 
-This is not an exhaustive taxonomy. It is a way to walk a system in execution order and find where confidence is being assumed rather than produced. Anthropic’s work on [context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), [long-running harnesses](https://www.anthropic.com/engineering/harness-design-long-running-apps), and [agent evaluations](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) treats context, environment state, tools, trajectories, and outcome quality as engineering concerns around the model. OpenAI’s [harness engineering report](https://openai.com/index/harness-engineering/) likewise describes repository knowledge, mechanical enforcement, and failure feedback as parts of the system that make long-running agent work reliable.
+The list is not exhaustive. Walking it in order shows where confidence is being assumed rather than produced. Anthropic’s work on [context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), [long-running harnesses](https://www.anthropic.com/engineering/harness-design-long-running-apps), and [agent evaluations](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) treats context, environment state, tools, trajectories, and outcome quality as engineering concerns around the model. OpenAI’s [harness engineering report](https://openai.com/index/harness-engineering/) likewise describes repository knowledge, mechanical enforcement, and failure feedback as parts of the system that make long-running agent work reliable.
 
 ## The interpretation boundary
 
-Instructions and examples are powerful because they leave room for judgment. That is also their limit: the model interprets them.
+Instructions and examples are powerful because they leave room for judgment. That room is also their limit, because the model interprets them.
 
 <blockquote class="rule-callout">
   <p>If a requirement must always hold, do not leave it only to interpretation.</p>
 </blockquote>
 
-A naming convention may belong in guidance because the right choice depends on local context. A prohibition on committing credentials belongs in deterministic scanning and repository policy. A request to explain a migration belongs in instructions; a rule that the migration must pass belongs in CI. The question is not whether instructions are good or controls are good. It is whether each requirement sits on the correct side of the interpretation boundary.
+A naming convention may belong in guidance because the right choice depends on local context. A prohibition on committing credentials belongs in deterministic scanning and repository policy. A request to explain a migration belongs in instructions; a rule that the migration must pass belongs in CI. Instructions and controls both have a place; the question is whether each requirement sits on the correct side of the interpretation boundary.
 
 Controls should remain proportional to risk. Too few controls turn preferences into wishful thinking. Too many can make useful work impossible or push every decision into brittle rules. Keep judgment where judgment is valuable; enforce invariants where violation is unacceptable.
 
@@ -134,7 +134,7 @@ Not every failure deserves a new rule. First ask whether the miss is likely to r
   ]}
 />
 
-Use this field card in the next tool evaluation. If an answer is vague, that is a finding: a capability or dependency has not yet been made visible.
+Use this field card in the next tool evaluation. Treat a vague answer as a finding, because it means a capability or dependency has not yet been made visible.
 
 ## Source notes
 

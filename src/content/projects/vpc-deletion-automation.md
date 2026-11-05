@@ -10,7 +10,7 @@ section: foundations
 
 ## Scope
 
-I owned AWS account automation and recurring infrastructure operations. Account and VPC deletion were manual tasks with consequential blast radius; the goal was a consistent process with fewer opportunities for error.
+I owned AWS account automation and recurring infrastructure operations. Account and VPC deletion were manual tasks with a wide blast radius; the goal was to run the same steps every time and leave fewer chances for error.
 
 ## What I built
 

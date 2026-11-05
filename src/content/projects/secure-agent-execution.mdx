@@ -1,6 +1,6 @@
 ---
 title: "Coding Agents – Cloud Execution and Credential Boundaries"
-summary: "Ran Codex and Claude Code in company-controlled cloud sandboxes and returned inspectable patches. Added credential proxying, then implemented a keyless Codex pilot with per-run identity federation. The execution proof, pilot, and planned agent-team controls have distinct completion boundaries."
+summary: "Ran Codex and Claude Code in company-controlled cloud sandboxes and returned inspectable patches. Added credential proxying, then implemented a keyless Codex pilot with per-run identity federation. Cloud execution is demonstrated, the keyless pilot is merged but not live-verified, and the agent-team controls are specified only."
 period: "2026 – present"
 stack: ["cloudflare-sandbox", "codex", "claude-code", "ai-gateway", "identity-federation"]
 metric:
@@ -17,7 +17,7 @@ import ExecutionBoundary from '../../components/work/ExecutionBoundary.astro';
 
 I ran Codex and Claude Code in disposable cloud sandboxes against a private repository and returned logs and inspectable patches. I implemented repository-credential proxying, evaluated the execution paths, implemented a separate keyless Codex pilot, and wrote the agent-team specification.
 
-The practical result is a way to run coding tools remotely and inspect their proposed changes while keeping the repository credential outside execution. The system can host different coding tools; its execution contract does not depend on a single model vendor.
+Coding tools can run remotely and return proposed changes for inspection while the repository credential stays outside execution. The system can host different coding tools; its execution contract does not depend on a single model vendor.
 
 ## The problem
 

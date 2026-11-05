@@ -66,7 +66,7 @@ A readback still has boundaries. It can be stale, scoped to the wrong repository
 
 A durable artifact makes the evidence inspectable beyond the current conversation: an issue, commit, pull request, check run, review record, validator receipt, or deployment record. Durability supports later review and comparison.
 
-Durable does not mean true, complete, public, or permanent. Access-controlled evidence can be entirely appropriate. The requirement is that the authorized reviewer can inspect the artifact and bind it to the claim—not that sensitive traces should be published.
+Durable does not mean true, complete, public, or permanent. Access-controlled evidence can be entirely appropriate. The requirement is that the authorized reviewer can inspect the artifact and bind it to the claim. Sensitive traces do not need to be published.
 
 ### Authorization
 
@@ -133,7 +133,7 @@ bound to that target and revision,
 and accepted by the named authority.
 ```
 
-The identity binding is not clerical detail. “The checks passed” is weaker than “these configured checks passed for commit `abc` in repository `owner/name` at time `t`.” A valid receipt for the wrong subject is not supporting evidence. A correct hash for the wrong artifact is not supporting evidence. A review of revision `abc` cannot silently authorize revision `def`.
+Identity binding decides whether evidence applies. “The checks passed” is weaker than “these configured checks passed for commit `abc` in repository `owner/name` at time `t`.” A valid receipt for the wrong subject and a correct hash for the wrong artifact are not supporting evidence. A review of revision `abc` cannot silently authorize revision `def`.
 
 A compact semantic proof ledger can travel with a handoff:
 
@@ -196,9 +196,9 @@ These labels are not exhaustive. States such as **started**, **failed**, **unkno
 
 Consider three **illustrative examples**, not reports about the public delivery chain. First, a validator receipt is structurally valid but names another repository: right receipt, wrong subject. Second, a hash matches a generated archive while the policy requires the source commit: right hash, wrong artifact. Third, a schema accepts every required field while the prose reverses the intended policy: schema-valid, meaning-wrong. Each example contains real evidence. None supports the requested claim.
 
-The honest response is not to discard the evidence. It is to lower the state to the strongest defensible description—missing, mismatched, partial, stale, unauthorized, invalidated, or blocked—and name the next observation needed.
+The honest response keeps the evidence, lowers the state to the strongest defensible description (missing, mismatched, partial, stale, unauthorized, invalidated, or blocked), and names the next observation needed.
 
-The goal is not to maximize gates. It is to make greater autonomy reviewable. When [an agent can continue in a cloud sandbox after the initiating device disconnects](/writing/the-harness-should-not-live-on-your-laptop/), target and revision bindings let another person inspect what happened without depending on the initiating engineer’s laptop, memory, or narration. Evidence becomes part of the shared harness that allows remote and parallel work to scale without scaling ambiguity with it.
+The goal is to make greater autonomy reviewable, not to maximize gates. When [an agent can continue in a cloud sandbox after the initiating device disconnects](/writing/the-harness-should-not-live-on-your-laptop/), target and revision bindings let another person inspect what happened without depending on the initiating engineer’s laptop, memory, or narration. Evidence becomes part of the shared harness that allows remote and parallel work to scale without scaling ambiguity with it.
 
 <PracticeCard
   headingId="before-you-say-done"
@@ -213,7 +213,7 @@ The goal is not to maximize gates. It is to make greater autonomy reviewable. Wh
   ]}
 />
 
-Use the field check at handoff boundaries, not only at the end of a large project. A branch push can be verified while merge remains unauthorized. A merge can be verified while deployment remains unknown. A deployment workflow can succeed while the meaning of a route still needs direct inspection. Precise incompleteness is more useful than premature closure.
+Use the field check at handoff boundaries, not only at the end of a large project. A branch push can be verified while merge remains unauthorized. A merge can be verified while deployment remains unknown. A deployment workflow can succeed while the meaning of a route still needs direct inspection.
 
 <h2 id="source-notes">Source notes</h2>
 

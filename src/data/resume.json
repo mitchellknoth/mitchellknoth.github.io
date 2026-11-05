@@ -47,7 +47,7 @@
       "period": "2021 - 2023",
       "href": "/work/license-management/",
       "points": [
-        "Built a secure license-data ingestion prototype during a hackathon, preserving isolation and access controls; the prototype helped make the case for an enterprise data-engineering investment."
+        "During a hackathon, built a secure license-data ingestion prototype that kept isolation and access controls intact; the prototype helped make the case for an enterprise data-engineering investment."
       ]
     },
     {
@@ -55,7 +55,7 @@
       "period": "2019 - 2021",
       "href": "/work/global-gateway/",
       "points": [
-        "Helped architect the platform’s first external-facing dealer API with role-based authorization and audit logging, establishing a reusable external-access pattern."
+        "Helped architect the platform’s first external-facing dealer API with role-based authorization and audit logging; the design became a reusable pattern for external access."
       ]
     }
   ],
