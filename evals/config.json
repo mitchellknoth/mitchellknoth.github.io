@@ -1,7 +1,6 @@
 {
   "harnessVersion": "1.0.0",
   "aiGateway": "mitchellknoth-com-evals",
-  "productionHosts": ["mitchellknoth.com", "www.mitchellknoth.com"],
-  "productionHostPatterns": ["^mitchellknoth-com\\.[a-z0-9-]+\\.workers\\.dev$"],
+  "localHosts": ["localhost", "127.0.0.1", "[::1]"],
   "timeoutMs": 60000
 }

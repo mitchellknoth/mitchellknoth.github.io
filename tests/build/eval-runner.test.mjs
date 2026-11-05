@@ -8,6 +8,7 @@ import test from 'node:test';
 import { askAll, assertEvalTarget, createRun } from '../../scripts/evals/run.mjs';
 import { renderSummary, validateRun, writeRun } from '../../scripts/evals/results.mjs';
 import { main } from '../../scripts/evals/cli.mjs';
+import { serveArgs } from '../../scripts/evals/serve.mjs';
 
 const rootDir = process.cwd();
 const fixture = (/** @type {string} */ name) => JSON.parse(readFileSync(path.join(rootDir, 'evals/fixtures', name), 'utf8'));
@@ -15,6 +16,7 @@ const corpus = fixture('corpus.json');
 const questions = fixture('questions.json');
 const responses = fixture('responses.json');
 const config = JSON.parse(readFileSync(path.join(rootDir, 'evals/config.json'), 'utf8'));
+const pkg = JSON.parse(readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
 
 const BASE = 'http://127.0.0.1:8787';
 const COOKIE = '__Host-agent_session';
@@ -59,19 +61,32 @@ function fakeAgent({ override } = {}) {
   return { fetch: fakeFetch, calls };
 }
 
-test('the runner refuses production targets and accepts local and preview ones', () => {
+test('the runner only targets a local wrangler dev server', () => {
   for (const url of [
     'https://mitchellknoth.com',
     'https://www.mitchellknoth.com/',
+    'https://agent.mitchellknoth.com',
     'https://mitchellknoth-com.mitchellknoth.workers.dev',
-    'https://MITCHELLKNOTH.COM./',
+    'https://3f2a1b9c-mitchellknoth-com.mitchellknoth.workers.dev',
+    'http://127.0.0.1.nip.io:8787',
+    'http://localhost.evil.example',
     'ftp://127.0.0.1',
   ]) {
-    assert.throws(() => assertEvalTarget(url, config), /production|http/i, url);
+    assert.throws(() => assertEvalTarget(url, config), /local|http/i, url);
   }
-  assert.equal(assertEvalTarget('http://127.0.0.1:8787', config).kind, 'local');
-  assert.equal(assertEvalTarget('http://localhost:8787/', config).kind, 'local');
-  assert.equal(assertEvalTarget('https://3f2a1b9c-mitchellknoth-com.mitchellknoth.workers.dev', config).kind, 'preview');
+  assert.deepEqual(assertEvalTarget('http://127.0.0.1:8787', config), { baseUrl: 'http://127.0.0.1:8787', kind: 'local' });
+  assert.equal(assertEvalTarget('http://localhost:8787/', config).baseUrl, 'http://localhost:8787');
+  assert.equal(assertEvalTarget('http://[::1]:8787', config).kind, 'local');
+});
+
+test('the eval server always uses the eval gateway and the model under test', () => {
+  assert.throws(() => serveArgs({}), /EVAL_MODEL/);
+  const args = serveArgs({ EVAL_MODEL: '@cf/test/model' });
+  for (const pair of ['AGENT_ENABLED:true', `AI_GATEWAY_ID:${config.aiGateway}`, 'AGENT_MODEL:@cf/test/model']) {
+    assert.equal(args[args.indexOf(pair) - 1], '--var', pair);
+  }
+  assert.ok(args.includes('--local'));
+  assert.ok(!args.some((arg) => /mitchellknoth-com-agent/.test(arg)), 'never the visitor gateway');
 });
 
 test('each question gets its own session, opened with the site Origin and asked with its cookie', async () => {
@@ -110,6 +125,20 @@ test('a paused or blocked agent stops the run; the rest are marked not run', asy
   const run = createRun({ questions, corpus, records, stopped, model: '@cf/test/model', target: assertEvalTarget(BASE, config), versions: {}, startedAt: new Date(0), finishedAt: new Date(1000) });
   assert.deepEqual(run.results.map((r) => r.outcome), ['pass', 'error', 'not_run', 'not_run', 'not_run']);
   assert.equal(run.summary.notRun, 3);
+});
+
+test('a session that cannot open stops the run when the agent is off, and is an error otherwise', async () => {
+  const off = /** @type {typeof fetch} */ (async () => Response.json({ state: 'offline' }, { status: 503 }));
+  const stoppedRun = await askAll({ baseUrl: BASE, questions, fetch: off, timeoutMs: 1000 });
+  assert.equal(stoppedRun.records.length, 1);
+  assert.match(stoppedRun.stopped ?? '', /503 offline/);
+
+  const noCookie = /** @type {typeof fetch} */ (async (input) =>
+    new URL(String(input)).pathname === '/agent/session' ? Response.json({ state: 'online' }, { status: 201 }) : Response.json({}, { status: 500 }));
+  const cookieless = await askAll({ baseUrl: BASE, questions, fetch: noCookie, timeoutMs: 1000 });
+  assert.equal(cookieless.stopped, null);
+  assert.equal(cookieless.records.length, questions.length);
+  assert.match(cookieless.records[0].error ?? '', /no session cookie/);
 });
 
 test('transport failures, timeouts and non-JSON bodies are recorded as errors without stopping the run', async () => {
@@ -158,6 +187,7 @@ test('a run records the model, versions, raw responses, grades and a summary in 
   assert.equal(run.model, '@cf/test/model');
   assert.equal(run.date, '2026-11-05');
   assert.deepEqual(run.target, { baseUrl: BASE, kind: 'local' });
+  assert.equal(run.declaredAiGateway, null);
   assert.deepEqual(run.versions, { harness: '1.0.0', grader: '1.0.0', agents: '0.33.0' });
   assert.match(run.corpus.sha256, /^[0-9a-f]{64}$/);
   assert.equal(run.results.length, questions.length);
@@ -174,9 +204,26 @@ test('a run records the model, versions, raw responses, grades and a summary in 
   assert.match(md, /personal-001/);
 });
 
-test('validateRun reports a malformed scorecard', () => {
+test('validateRun reports a malformed scorecard', async () => {
   assert.notDeepEqual(validateRun({ schemaVersion: 2 }), []);
   assert.notDeepEqual(validateRun({ schemaVersion: 1, model: '', date: 'yesterday', results: [], summary: {} }), []);
+
+  const { records } = await askAll({ baseUrl: BASE, questions, fetch: fakeAgent().fetch, timeoutMs: 1000 });
+  const good = createRun({ questions, corpus, records, stopped: null, model: '@cf/test/model', target: assertEvalTarget(BASE, config), versions: {}, startedAt: new Date(0), finishedAt: new Date(1) });
+  assert.deepEqual(validateRun(good), []);
+  const clone = () => JSON.parse(JSON.stringify(good));
+
+  const miscounted = clone();
+  miscounted.summary.passed += 1;
+  assert.match(validateRun(miscounted).join('\n'), /summary/);
+
+  const badCheck = clone();
+  badCheck.results[0].checks.status = { pass: 'yes' };
+  assert.match(validateRun(badCheck).join('\n'), /checks/);
+
+  const noCorpus = clone();
+  delete noCorpus.corpus;
+  assert.match(validateRun(noCorpus).join('\n'), /corpus/);
 });
 
 test('scorecards are written per date and model and never overwrite an earlier run', async () => {
@@ -186,11 +233,12 @@ test('scorecards are written per date and model and never overwrite an earlier r
   const second = await writeRun(run, dir);
   assert.equal(path.relative(dir, first.json), path.join('2026-11-05', 'cf-meta-llama-4-scout.json'));
   assert.equal(path.relative(dir, first.summary), path.join('2026-11-05', 'cf-meta-llama-4-scout.md'));
-  assert.equal(path.relative(dir, second.json), path.join('2026-11-05', 'cf-meta-llama-4-scout-2.json'));
+  assert.equal(path.relative(dir, second.json), path.join('2026-11-05', 'cf-meta-llama-4-scout--2.json'));
+  assert.equal(path.relative(dir, second.summary), path.join('2026-11-05', 'cf-meta-llama-4-scout--2.md'));
   assert.deepEqual(JSON.parse(readFileSync(first.json, 'utf8')), run);
 });
 
-test('the CLI requires a model and a non-production target, then writes a scorecard', async () => {
+test('the CLI requires a model and a local target, then writes a scorecard', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'evals-cli-'));
   const corpusFile = path.join(rootDir, 'evals/fixtures/corpus.json');
   const setFile = path.join(dir, 'set.json');
@@ -199,7 +247,7 @@ test('the CLI requires a model and a non-production target, then writes a scorec
   const quiet = { log: () => {}, error: () => {} };
 
   await assert.rejects(main(['--base-url', BASE], { fetch: fakeAgent().fetch, console: quiet }), /--model/);
-  await assert.rejects(main(['--base-url', 'https://mitchellknoth.com', '--model', '@cf/x/y'], { fetch: fakeAgent().fetch, console: quiet }), /production/);
+  await assert.rejects(main(['--base-url', 'https://mitchellknoth.com', '--model', '@cf/x/y'], { fetch: fakeAgent().fetch, console: quiet }), /local wrangler dev/);
 
   const agent = fakeAgent();
   const out = await main(
@@ -210,9 +258,16 @@ test('the CLI requires a model and a non-production target, then writes a scorec
   const run = JSON.parse(readFileSync(out.json, 'utf8'));
   assert.deepEqual(validateRun(run), []);
   assert.equal(run.versions.harness, config.harnessVersion);
-  assert.equal(run.versions.agents, '0.33.0');
-  assert.equal(run.aiGateway, config.aiGateway);
+  assert.equal(run.versions.agents, pkg.dependencies.agents);
+  assert.equal(run.declaredAiGateway, config.aiGateway);
   assert.equal(run.summary.total, questions.length);
+
+  // The model can come from EVAL_MODEL, the same variable npm run evals:serve starts the server with.
+  const fromEnv = await main(
+    ['--base-url', BASE, '--questions', setFile, '--corpus', corpusFile, '--out', dir],
+    { fetch: fakeAgent().fetch, console: quiet, env: { EVAL_MODEL: '@cf/env/model' } },
+  );
+  assert.equal(fromEnv?.run.model, '@cf/env/model');
 });
 
 test('the CLI refuses to run an empty question set', async () => {
@@ -224,6 +279,28 @@ test('the CLI refuses to run an empty question set', async () => {
     main(['--base-url', BASE, '--model', '@cf/x/y', '--questions', setFile, '--corpus', path.join(rootDir, 'evals/fixtures/corpus.json'), '--out', dir], { fetch: fakeAgent().fetch, console: { log: () => {}, error: () => {} } }),
     /no questions/i,
   );
+});
+
+test('the CLI refuses a malformed question set before asking anything', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'evals-bad-'));
+  const { writeFileSync } = await import('node:fs');
+  const quiet = { log: () => {}, error: () => {} };
+  const cases = [
+    [[{ id: 'a-1', category: 'answerable', question: 'Q?' }], /expected/],
+    [[questions[0], { ...questions[0] }], /duplicate/],
+    [[{ ...questions[0], question: 'x'.repeat(5000) }], /too long/],
+    [[{ ...questions[0], expected: { sources: ['project/invented'] } }], /not in/],
+  ];
+  for (const [set, message] of cases) {
+    const setFile = path.join(dir, 'set.json');
+    writeFileSync(setFile, JSON.stringify({ version: 1, status: 'draft', questions: set }));
+    const agent = fakeAgent();
+    await assert.rejects(
+      main(['--base-url', BASE, '--model', '@cf/x/y', '--questions', setFile, '--corpus', path.join(rootDir, 'evals/fixtures/corpus.json'), '--out', dir], { fetch: agent.fetch, console: quiet }),
+      message,
+    );
+    assert.equal(agent.calls.length, 0, 'nothing is asked');
+  }
 });
 
 test('every committed scorecard under evals/results is valid', () => {

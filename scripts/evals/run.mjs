@@ -1,4 +1,4 @@
-// Eval runner (#17): asks every question in the set against a local or preview deployment of the agent and
+// Eval runner (#17): asks every question in the set against a local `wrangler dev` copy of the agent and
 // records the raw HTTP responses. It speaks only the public HTTP contract (POST /agent/session, then
 // POST /agent/ask), exactly as the chat island does, so it grades what a visitor would get.
 import { createHash } from 'node:crypto';
@@ -9,30 +9,27 @@ const SESSION_COOKIE = '__Host-agent_session';
 const MAX_RAW_BODY = 4000;
 
 /** @typedef {import('./grade.mjs').Question} Question */
-/** @typedef {{ baseUrl: string, kind: 'local' | 'preview' }} Target */
+/** @typedef {{ baseUrl: string, kind: 'local' }} Target */
 /**
  * @typedef {{ questionId: string, askedAt: string, latencyMs: number, httpStatus: number | null, body: any, error: string | null }} AskRecord
  */
 
-const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
-
 /**
- * Evals run against `wrangler dev` or a preview version, never the production hostnames that visitors use:
- * a production run would spend the visitor inference budget and count against the visitor request limits.
+ * Evals run only against a local `wrangler dev` server, never a deployed Worker. A deployed target, even a
+ * non-production hostname, shares the Guard and session Durable Objects with visitors, so an eval run would
+ * use up the visitor request limits, and an eval-gateway 429 would pause the agent for every visitor. (Preview
+ * version URLs are not an option either: Cloudflare doesn't generate them for Workers with Durable Objects.)
  * @param {string} baseUrl
- * @param {{ productionHosts: string[], productionHostPatterns: string[] }} config
+ * @param {{ localHosts: string[] }} config
  * @returns {Target}
  */
 export function assertEvalTarget(baseUrl, config) {
   const url = new URL(baseUrl);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error(`Eval target must be http(s): ${baseUrl}`);
-  const host = url.hostname.toLowerCase().replace(/\.$/, '');
-  const production =
-    config.productionHosts.includes(host) || config.productionHostPatterns.some((pattern) => new RegExp(pattern).test(host));
-  if (production) {
-    throw new Error(`Refusing to run evals against the production host ${host}. Use wrangler dev or a preview version URL.`);
+  if (!config.localHosts.includes(url.hostname.toLowerCase())) {
+    throw new Error(`Evals run only against a local wrangler dev server (${config.localHosts.join(', ')}), not ${url.hostname}. See evals/README.md.`);
   }
-  return { baseUrl: url.origin, kind: LOOPBACK.has(host) ? 'local' : 'preview' };
+  return { baseUrl: url.origin, kind: 'local' };
 }
 
 /** @param {unknown} error */
@@ -126,7 +123,7 @@ const sha256 = (value) => createHash('sha256').update(typeof value === 'string' 
  * @param {{
  *   questions: Question[], questionSetVersion?: number, questionSetStatus?: string, corpus: { documents: any[], entries: any[] },
  *   records: AskRecord[], stopped: string | null, model: string, target: Target, versions: Record<string, string>,
- *   aiGateway?: string | null, startedAt: Date, finishedAt: Date
+ *   declaredAiGateway?: string | null, startedAt: Date, finishedAt: Date
  * }} options
  */
 export function createRun(options) {
@@ -148,7 +145,9 @@ export function createRun(options) {
     finishedAt: finishedAt.toISOString(),
     model,
     target,
-    aiGateway: options.aiGateway ?? null,
+    // What evals/config.json says the server was started with. The runner can't observe the gateway itself;
+    // `npm run evals:serve` is what makes it true.
+    declaredAiGateway: options.declaredAiGateway ?? null,
     versions,
     questionSet: {
       version: options.questionSetVersion ?? null,

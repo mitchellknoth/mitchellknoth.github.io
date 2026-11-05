@@ -1,20 +1,22 @@
-// npm run evals -- --base-url http://127.0.0.1:8787 --model @cf/<vendor>/<model>
+// EVAL_MODEL=@cf/<vendor>/<model> npm run evals:serve        (one terminal)
+// EVAL_MODEL=@cf/<vendor>/<model> npm run evals -- --base-url http://127.0.0.1:8787
 //
-// Asks the eval question set against a local (`wrangler dev`) or preview deployment of the agent, grades
-// the answers deterministically and writes a dated scorecard under evals/results/. See evals/README.md.
+// Asks the eval question set against a local `wrangler dev` copy of the agent, grades the answers
+// deterministically and writes a dated scorecard under evals/results/. See evals/README.md.
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { GRADER_VERSION, indexCorpus } from './grade.mjs';
+import { maxPromptChars, validateQuestions } from './questions.mjs';
 import { writeRun } from './results.mjs';
 import { askAll, assertEvalTarget, createRun } from './run.mjs';
 
-const USAGE = `Usage: npm run evals -- --base-url <url> --model <@cf/model-id> [options]
+const USAGE = `Usage: npm run evals -- --base-url <url> [--model <@cf/model-id>] [options]
 
-  --base-url     Local or preview agent origin, e.g. http://127.0.0.1:8787 (never production)
-  --model        The model the target is configured with (its AGENT_MODEL); the API does not report it
+  --base-url     Local wrangler dev origin from npm run evals:serve, e.g. http://127.0.0.1:8787
+  --model        The model the server runs (its AGENT_MODEL; default $EVAL_MODEL). The API does not report it
   --questions    Question set (default evals/question-set.json)
   --corpus       Corpus the target was built with (default generated/corpus.json, from npm run build)
   --out          Results directory (default evals/results)
@@ -37,15 +39,15 @@ function gitCommit(rootDir) {
 
 /**
  * @param {string[]} argv
- * @param {{ fetch?: typeof fetch, console?: Pick<Console, 'log' | 'error'>, now?: () => Date, rootDir?: string }} [io]
+ * @param {{ fetch?: typeof fetch, console?: Pick<Console, 'log' | 'error'>, now?: () => Date, rootDir?: string, env?: NodeJS.ProcessEnv }} [io]
  */
 export async function main(argv, io = {}) {
-  const { fetch: fetchImpl = globalThis.fetch, console: out = globalThis.console, now = () => new Date(), rootDir = process.cwd() } = io;
+  const { fetch: fetchImpl = globalThis.fetch, console: out = globalThis.console, now = () => new Date(), rootDir = process.cwd(), env = {} } = io;
   const { values } = parseArgs({
     args: argv,
     options: {
       'base-url': { type: 'string' },
-      model: { type: 'string' },
+      model: { type: 'string', default: env.EVAL_MODEL },
       questions: { type: 'string', default: path.join(rootDir, 'evals/question-set.json') },
       corpus: { type: 'string', default: path.join(rootDir, 'generated/corpus.json') },
       out: { type: 'string', default: path.join(rootDir, 'evals/results') },
@@ -58,7 +60,7 @@ export async function main(argv, io = {}) {
     return null;
   }
   if (!values['base-url']) throw new Error(`--base-url is required.\n\n${USAGE}`);
-  if (!values.model?.trim()) throw new Error(`--model is required: the agent API does not report which model answered.\n\n${USAGE}`);
+  if (!values.model?.trim()) throw new Error(`--model (or EVAL_MODEL) is required: the agent API does not report which model answered.\n\n${USAGE}`);
 
   const config = await readJson(path.join(rootDir, 'evals/config.json'));
   const target = assertEvalTarget(values['base-url'], config);
@@ -67,7 +69,7 @@ export async function main(argv, io = {}) {
 
   const set = await readJson(values.questions);
   /** @type {import('./grade.mjs').Question[]} */
-  const questions = set.questions ?? [];
+  const questions = Array.isArray(set.questions) ? set.questions : [];
   if (questions.length === 0) throw new Error(`${values.questions} has no questions yet; nothing to run.`);
 
   let corpus;
@@ -76,13 +78,11 @@ export async function main(argv, io = {}) {
   } catch (error) {
     throw new Error(`Cannot read the corpus at ${values.corpus}: run npm run build first. (${/** @type {Error} */ (error).message})`);
   }
-  // Grading against a different corpus than the question set expects would silently mark answers wrong.
-  const index = indexCorpus(corpus);
-  for (const question of questions) {
-    for (const id of question.expected?.sources ?? []) {
-      if (!index.has(id)) throw new Error(`${question.id} expects ${id}, which is not in ${values.corpus}. Rebuild, or fix the question.`);
-    }
-  }
+  // Check everything before asking anything: grading against a different corpus than the set expects would
+  // silently mark answers wrong, and an over-long question would only ever come back as an HTTP 413.
+  const corpusIds = new Set(indexCorpus(corpus).keys());
+  const problems = validateQuestions(set, { corpusIds, maxChars: maxPromptChars(rootDir) });
+  if (problems.length) throw new Error(`${values.questions} is not runnable (corpus: ${values.corpus}):\n- ${problems.join('\n- ')}`);
 
   const pkg = await readJson(path.join(rootDir, 'package.json'));
   /** @type {Record<string, string>} */
@@ -105,7 +105,7 @@ export async function main(argv, io = {}) {
     model: values.model.trim(),
     target,
     versions,
-    aiGateway: config.aiGateway,
+    declaredAiGateway: config.aiGateway,
     startedAt,
     finishedAt: now(),
   });
@@ -118,7 +118,7 @@ export async function main(argv, io = {}) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main(process.argv.slice(2)).catch((error) => {
+  main(process.argv.slice(2), { env: process.env }).catch((error) => {
     console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;
   });
