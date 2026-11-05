@@ -7,6 +7,7 @@ import { isBudgetRefusal } from '../session';
 
 const ORIGIN = 'https://mitchellknoth.com';
 const SESSION = '0b6b2c1e-8f4a-4c3e-9d2a-5e7f1a2b3c4d';
+const LIMITS = { maxMessages: 20, ttlSeconds: 86_400 };
 
 function post(path: string, body?: unknown, headers: Record<string, string> = {}) {
   return exports.default.fetch(`${ORIGIN}${path}`, {
@@ -106,13 +107,16 @@ describe('session object', () => {
   // fails; what matters is that the harness opens, the failure is reported as a state, and nothing leaks.
   it('opens Pi and reports an unreachable model as unanswered instead of throwing', async () => {
     const session = env.VISITOR_SESSION.getByName(crypto.randomUUID());
-    const result = await session.ask('What has Mitch built?', 20);
+    const result = await session.ask('What has Mitch built?', LIMITS);
     expect(result).toMatchObject({ status: 'unanswered' });
   }, 30_000);
 
   it('enforces the per-session message limit', async () => {
     const session = env.VISITOR_SESSION.getByName(crypto.randomUUID());
-    expect(await session.ask('first', 0)).toEqual({ status: 'limit', reason: 'session_message_limit' });
+    expect(await session.ask('first', { ...LIMITS, maxMessages: 0 })).toEqual({
+      status: 'limit',
+      reason: 'session_message_limit',
+    });
   });
 });
 
