@@ -8,3 +8,4 @@ playwright-report/
 test-results/
 
 experiments/**/__pycache__/
+.wrangler/
