@@ -1,10 +1,11 @@
 // Agent-side contract (#13). Each check below fails the build when the Worker drifts from the agreed
-// boundary. The tool-list check is still a placeholder until M3 registers the corpus tools; it may not be
-// deleted.
+// boundary.
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
+import { build } from 'esbuild';
 import { parse as parseJsonc } from 'jsonc-parser';
 
 /** The only binding types the Worker may declare. */
@@ -110,6 +111,56 @@ test('agent code makes no public fetch() or connect() calls', () => {
   assert.deepEqual(violations, []);
 });
 
-test('the agent exposes exactly the read-only tool list', {
-  todo: 'M3: load the registered tools and assert their names equal EXPECTED_TOOLS, so adding a tool fails the build',
+/** Every property name declared anywhere in a JSON Schema. */
+function propertyNames(schema) {
+  if (!schema || typeof schema !== 'object') return [];
+  const own = schema.properties && typeof schema.properties === 'object' ? Object.keys(schema.properties) : [];
+  return [...own, ...Object.values(schema).flatMap(propertyNames)];
+}
+
+/**
+ * Bundles worker/tools.ts (with the generated corpus inlined) and imports it, so the check runs the real tool
+ * definitions rather than reading their source. Packages stay external and resolve from node_modules.
+ */
+async function loadSiteTools() {
+  const outDir = path.join(rootDir, 'node_modules', '.cache', 'agent-contract');
+  mkdirSync(outDir, { recursive: true });
+  const outfile = path.join(outDir, 'tools.mjs');
+  await build({
+    entryPoints: [path.join(workerDir, 'tools.ts')],
+    outfile,
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    packages: 'external',
+    logLevel: 'silent',
+  });
+  return (await import(pathToFileURL(outfile).href)).SITE_TOOLS;
+}
+
+test('the agent exposes exactly the read-only tool list', async () => {
+  const tools = await loadSiteTools();
+  assert.deepEqual(
+    tools.map((tool) => tool.name).sort(),
+    [...EXPECTED_TOOLS].sort(),
+    'the tool list changed: a new tool needs its own review against the read-only, no-URL boundary (#13)',
+  );
+  for (const tool of tools) {
+    assert.equal(tool.replay, 'safe', `${tool.name} must be safe to replay`);
+    for (const name of propertyNames(tool.parameters)) {
+      assert.doesNotMatch(name, /url|uri|href|link|path/i, `${tool.name} must not take a URL (${name})`);
+    }
+  }
+  const ids = JSON.parse(readFileSync(path.join(rootDir, 'generated', 'corpus.json'), 'utf8'));
+  const readSource = tools.find((tool) => tool.name === 'read_source');
+  assert.deepEqual(
+    readSource.parameters.properties.id.enum,
+    [...ids.documents.map((doc) => doc.id), ...ids.entries.map((entry) => entry.id)],
+    'read_source must accept exactly the build-time corpus IDs',
+  );
+
+  // The session object must register this list and nothing else.
+  const session = stripComments(readFileSync(path.join(workerDir, 'session.ts'), 'utf8'));
+  assert.equal(session.match(/registry\.install\(/g)?.length, 1, 'session.ts must install exactly one Pi extension');
+  assert.match(session, /tools:\s*\[\.\.\.SITE_TOOLS\]/, 'session.ts must register SITE_TOOLS as its whole tool list');
 });
