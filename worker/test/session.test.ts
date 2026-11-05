@@ -123,17 +123,14 @@ describe('session TTL', () => {
     expect((await stored(name)).alarm).not.toBeNull();
   });
 
-  it('refuses questions after expiry without counting or answering them', async () => {
+  it('refuses questions after expiry without answering them', async () => {
     const { name, stub } = session();
     await stub.ask(PERSONAL, LIMITS);
     await backdateExpiry(name);
+    // Nothing reads the object afterwards: the purge it queues runs as soon as this question returns.
     expect(await env.VISITOR_SESSION.getByName(name).ask('What has Mitch built?', LIMITS)).toEqual({
       status: 'expired',
     });
-    const messages = await runInDurableObject(env.VISITOR_SESSION.getByName(name), (_i, state) =>
-      state.storage.sql.exec<{ value: number }>("SELECT value FROM visitor_meta WHERE key = 'messages'").one().value,
-    );
-    expect(messages).toBe(1);
   });
 
   it('answers an expired session through POST /agent/ask as no_session', async () => {
@@ -194,10 +191,27 @@ describe('session TTL', () => {
   it('does not purge before expiry', async () => {
     const { name, stub } = session();
     await stub.ask(PERSONAL, LIMITS);
-    // An alarm that fires early (here, forced) finds the purge job not yet due and leaves everything in place.
+    // An early alarm is skipped by the Lifecycle's due filter; a job run early anyway reschedules to the expiry.
     await runDurableObjectAlarm(env.VISITOR_SESSION.getByName(name));
+    const outcome = await runInDurableObject(env.VISITOR_SESSION.getByName(name), async (instance, state) => {
+      const expiresAt = state.storage.sql
+        .exec<{ value: number }>("SELECT value FROM visitor_meta WHERE key = 'expires_at'")
+        .one().value;
+      return { expiresAt, result: await instance.onJob({ job: { fn: PURGE_JOB.fn }, attempt: 1 } as never) };
+    });
+    expect(outcome.result).toEqual({ rescheduleAt: outcome.expiresAt });
     const after = await stored(name);
     expect(after.tables).toContain('visitor_meta');
     expect(after.alarm).not.toBeNull();
+  });
+
+  it('answers a question that arrives during the purge as expired, without touching storage', async () => {
+    const { name, stub } = session();
+    await stub.ask(PERSONAL, LIMITS);
+    const result = await runInDurableObject(env.VISITOR_SESSION.getByName(name), async (instance) => {
+      (instance as unknown as { purging: boolean }).purging = true;
+      return instance.ask('What has Mitch built?', LIMITS);
+    });
+    expect(result).toEqual({ status: 'expired' });
   });
 });

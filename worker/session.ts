@@ -82,8 +82,12 @@ export class VisitorSession extends DurableObject<Env> {
 
   /** Questions being answered right now; the purge waits for them so it never cuts one off. */
   private inFlight = 0;
+  /** Set once the purge starts; the object is reset when it ends, so this never needs clearing. */
+  private purging = false;
 
   async ask(question: string, limits: AskLimits): Promise<AskResult> {
+    // The purge awaits non-storage work, so a question can arrive while it runs. It must not touch storage.
+    if (this.purging) return { status: 'expired' };
     this.inFlight += 1;
     try {
       return await this.answer(question, limits);
@@ -154,11 +158,13 @@ export class VisitorSession extends DurableObject<Env> {
 
   /** Deletes everything this session object stores, then resets the object so nothing stays in memory. */
   private async purge(): Promise<void> {
+    this.purging = true;
     try {
+      // Clear the alarm, including the Lifecycle's own pre-alarm, and stop anything re-arming it.
+      await this.lifecycle.disableAlarms();
       await this.lifecycle.dispose();
       await this.ctx.storage.deleteAll();
-      // Clears the alarm, including the Lifecycle's own pre-alarm, and stops anything re-arming it.
-      await this.lifecycle.disableAlarms();
+      await this.ctx.storage.deleteAlarm();
     } finally {
       // Reset even if a step failed: the harness is already closed. If storage survived, `expires_at` is still in
       // the past, so the next question re-queues the purge. The timeout lets this job return first.

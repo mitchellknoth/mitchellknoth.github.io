@@ -38,11 +38,15 @@ differs from the generated corpus IDs.
 `worker/reply.ts` holds the instructions and the parser, so the two can't drift apart.
 
 1. **Screening.** `screenQuestion()` refuses clearly personal, social-engineering and prompt-injection questions
-   before the model is called. The patterns are deliberately narrow; the instructions cover the rest.
+   before the model is called. The patterns are deliberately narrow, because the corpus itself discusses
+   credentials, secrets and tokens; the instructions cover the rest.
 2. **Citations.** The model cites with the marker the tools print, `[[project/team-brain#the-problem]]`. The Worker
-   removes the markers from the text and returns each cited ID that exists in the bundled corpus as
-   `{id, title, url}`. Any other ID is dropped, so a response never names a source that doesn't exist.
-3. **Ungrounded answers.** An answer with no valid citation is returned as `refused` / `not-in-corpus`, never shown.
+   removes the markers from the text and returns each cited ID as `{id, title, url}` from the bundled corpus.
+3. **Ungrounded answers.** These come back as `refused` / `not-in-corpus` and are never shown: an answer with no
+   citation, an answer citing any ID that isn't in the corpus (the model made a source up), and an answer
+   containing an absolute link (the corpus has none, so it didn't come from there). A markdown link to a
+   same-origin path keeps only its label. The chat UI should still render `text` as plain text, without
+   autolinking.
 4. **Refusals.** The model refuses with a line of its own, `REFUSE: <category>`. The Worker returns its own fixed
    text for that category, never the model's words, so a fact the model mentions while refusing can't leak.
    An unknown category becomes `not-in-corpus`.

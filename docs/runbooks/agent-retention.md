@@ -6,8 +6,8 @@ Part of [#17](https://github.com/mitchellknoth/mitchellknoth.github.io/issues/17
 ## The TTL
 
 **A visitor session is deleted 24 hours after its first question.** The value is `SESSION_TTL_SECONDS` in
-`wrangler.jsonc` (`86400`). The same value is the `Max-Age` of the `__Host-agent_session` cookie, so a browser stops
-sending the session name at about the time the session is deleted.
+`wrangler.jsonc` (`86400`). The same value is the `Max-Age` of the `__Host-agent_session` cookie, counted from when
+the session was created, so a browser stops sending the session name before the session is deleted.
 
 | What | Kept for |
 |---|---|
@@ -30,8 +30,10 @@ conversation by itself, so the whole object is deleted:
    hand-set alarm.
 2. When the alarm fires, Lifecycle runs the job. The job checks `expires_at` again: if it hasn't passed, the job
    reschedules itself.
-3. Once it has passed, the job disables the object's alarms, disposes the Pi harness, calls
-   `ctx.storage.deleteAll()`, and resets the object so nothing stays in memory.
+3. Once it has passed, and no question is still being answered, the job disables the object's alarms, closes the
+   Pi harness, calls `ctx.storage.deleteAll()`, deletes the alarm, and resets the object so nothing stays in memory.
+   A question that arrives while this runs is answered as expired and doesn't touch storage. If a step fails, the
+   object is still reset, and the next question finds `expires_at` in the past and queues the purge again.
 
 A question that arrives after expiry but before the purge runs is refused without reaching the model:
 `POST /agent/ask` returns `401 {"error":"no_session"}`, and the visitor starts a new session. If someone replays an
