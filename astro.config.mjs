@@ -1,19 +1,99 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig, fontProviders } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import remarkSmartypants from 'remark-smartypants';
+import agentCorpus from './scripts/corpus/integration.mjs';
 
 // Public origin for canonical URLs, RSS, and the sitemap.
 const SITE = 'https://mitchellknoth.com';
+
+// Self-hosted fonts. Files come from the pinned @fontsource packages in node_modules, so the
+// build never fetches a font and the browser only requests same-origin font files. Subsets,
+// unicode ranges and faces mirror what Google Fonts served before (latin + latin-ext).
+const LATIN =
+  'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD';
+const LATIN_EXT =
+  'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF';
+
+/**
+ * One @font-face per subset, weight and style, read from an installed @fontsource package.
+ * @param {string} pkg package name, e.g. `@fontsource/jetbrains-mono`
+ * @param {(subset: string, weight: number, style: string) => string} file file name under `files/`
+ * @param {Array<400 | 500 | 600>} weights
+ * @param {Array<'normal' | 'italic'>} styles
+ */
+function fontsource(pkg, file, weights, styles) {
+  return /** @type {const} */ ([
+    { subset: 'latin', range: LATIN },
+    { subset: 'latin-ext', range: LATIN_EXT },
+  ]).flatMap(({ subset, range }) =>
+    weights.flatMap((weight) =>
+      styles.map((style) => ({
+        src: /** @type {[string]} */ ([`${pkg}/files/${file(subset, weight, style)}`]),
+        weight,
+        style,
+        unicodeRange: /** @type {[string]} */ ([range]),
+      })),
+    ),
+  );
+}
+
+/** Static files, one per weight and style. */
+const staticFiles = (/** @type {string} */ slug) => (/** @type {string} */ subset, /** @type {number} */ weight, /** @type {string} */ style) =>
+  `${slug}-${subset}-${weight}-${style}.woff2`;
+
+/**
+ * @param {string} name
+ * @param {string} cssVariable
+ * @param {ReturnType<typeof fontsource>} variants
+ * @param {string[]} fallbacks
+ */
+function localFamily(name, cssVariable, variants, fallbacks) {
+  return {
+    provider: fontProviders.local(),
+    name,
+    cssVariable,
+    display: /** @type {const} */ ('swap'),
+    // Keep the exact fallback stacks the site used with Google Fonts.
+    fallbacks,
+    optimizedFallbacks: false,
+    options: { variants: /** @type {[typeof variants[number], ...typeof variants]} */ (variants) },
+  };
+}
 
 // https://astro.build/config
 export default defineConfig({
   site: SITE,
   // Keep the development-only overlay out of headed review and pointer tests.
   devToolbar: { enabled: false },
-  integrations: [mdx(), sitemap()],
+  fonts: [
+    localFamily('Instrument Serif', '--font-instrument-serif', fontsource('@fontsource/instrument-serif', staticFiles('instrument-serif'), [400], ['normal', 'italic']), [
+      'ui-serif',
+      'Charter',
+      'Georgia',
+      'Times New Roman',
+      'serif',
+    ]),
+    // Google served Inter as one variable file behind three faces (400, 500, 600). Keep that shape:
+    // `<strong>` (700) then renders from the variable axis exactly as before.
+    localFamily('Inter', '--font-inter', fontsource('@fontsource-variable/inter', (subset, _weight, style) => `inter-${subset}-wght-${style}.woff2`, [400, 500, 600], ['normal']), [
+      'ui-sans-serif',
+      '-apple-system',
+      'BlinkMacSystemFont',
+      'Segoe UI',
+      'sans-serif',
+    ]),
+    localFamily('JetBrains Mono', '--font-jetbrains-mono', fontsource('@fontsource/jetbrains-mono', staticFiles('jetbrains-mono'), [400, 500], ['normal']), [
+      'ui-monospace',
+      'SFMono-Regular',
+      'Menlo',
+      'Consolas',
+      'monospace',
+    ]),
+  ],
+  integrations: [mdx(), sitemap(), agentCorpus()],
   vite: {
     plugins: [tailwindcss()],
   },

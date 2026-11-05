@@ -1,0 +1,23 @@
+// Every route the visual and egress contracts exercise, including the 404 page.
+export const routes = [
+  '/',
+  '/about/',
+  '/resume/',
+  '/work/',
+  '/writing/',
+  '/work/agentic-engineering/',
+  '/work/team-brain/',
+  '/work/secure-agent-execution/',
+  '/work/agent-trust/',
+  '/work/bounded-runner/',
+  '/work/pr-to-production/',
+  '/work/onecloud-network/',
+  '/work/vpc-deletion-automation/',
+  '/work/license-management/',
+  '/work/global-gateway/',
+  '/writing/the-harness-should-not-live-on-your-laptop/',
+  '/writing/the-model-is-table-stakes/',
+  '/writing/done-is-a-claim-not-a-state/',
+  '/writing/patch-outside-worker/',
+  '/this-route-should-not-exist/',
+];

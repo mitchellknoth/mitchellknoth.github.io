@@ -1,5 +1,6 @@
 node_modules/
 dist/
+generated/
 .astro/
 .DS_Store
 npm-debug.log*

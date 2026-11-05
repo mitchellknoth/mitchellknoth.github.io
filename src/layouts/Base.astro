@@ -1,4 +1,5 @@
 ---
+import { Font } from 'astro:assets';
 import { ClientRouter } from 'astro:transitions';
 import { site, nav } from '../config';
 import ThemeToggle from '../components/ThemeToggle.astro';
@@ -45,20 +46,9 @@ const socialImageUrl = new URL('/social-card.png', Astro.site).toString();
     <meta name="twitter:description" content={pageDesc} />
     <meta name="twitter:image" content={socialImageUrl} />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-      onload="this.onload=null;this.rel='stylesheet'"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-      />
-    </noscript>
+    <Font cssVariable="--font-inter" />
+    <Font cssVariable="--font-instrument-serif" />
+    <Font cssVariable="--font-jetbrains-mono" />
 
     <script is:inline>
       (function () {
