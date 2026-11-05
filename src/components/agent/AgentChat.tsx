@@ -193,6 +193,7 @@ export default function AgentChat() {
     const question = text.trim();
     if (!question || busy || stopped || view.kind === 'loading') return;
     const asked = userMessage(id('q'), question);
+    const focusWasOurs = Boolean(formRef.current?.contains(document.activeElement));
     setMessages((current) => [...current, asked]);
     setDraft('');
     setView({ kind: 'answering' });
@@ -201,10 +202,12 @@ export default function AgentChat() {
     await ensureHumanClearance();
     const outcome = await askQuestion(question);
 
-    // Move focus only if the visitor left it in the form (or the disabled send button dropped it to
-    // the body). An answer can take a while; if they have moved on, leave their focus alone.
+    // Move focus only if the visitor left it in the form, or it was in the form when they sent and the
+    // send button, disabled while answering, dropped it to the body. An answer can take a while; if
+    // they have moved on (or clicked elsewhere on the page), leave their focus alone.
     const active = document.activeElement;
-    const focusIsOurs = !active || active === document.body || Boolean(formRef.current?.contains(active));
+    const focusIsOurs =
+      Boolean(formRef.current?.contains(active)) || (focusWasOurs && (!active || active === document.body));
     const withdraw = () => {
       // The question was not answered: take it out of the log and put it back in the field, unless the
       // visitor has started typing something else meanwhile.
@@ -316,11 +319,10 @@ export default function AgentChat() {
         <StoppedNotice view={view} noticeRef={noticeRef} />
       ) : (
         <>
-          {view.kind === 'loading' && (
-            <p className="agent-status" role="status">
-              Checking whether the agent is available…
-            </p>
-          )}
+          {/* The loading message lives in the field's placeholder, so nothing shifts when it clears. */}
+          <p className="sr-only" role="status">
+            {view.kind === 'loading' ? 'Checking whether the agent is available…' : ''}
+          </p>
           {/* Rendered (disabled) while loading too, so the server-rendered shell reserves their space. */}
           {messages.length === 0 && (
             <ul className="agent-suggestions" aria-label="Suggested questions">
@@ -351,7 +353,7 @@ export default function AgentChat() {
                     formRef.current?.requestSubmit();
                   }
                 }}
-                placeholder="Ask about a project, an essay or my experience"
+                placeholder={view.kind === 'loading' ? 'Checking whether the agent is available…' : 'Ask about a project, an essay or my experience'}
                 aria-label="Ask about my work"
                 aria-invalid={view.kind === 'too-long' || undefined}
                 aria-describedby={alert ? alertId : undefined}

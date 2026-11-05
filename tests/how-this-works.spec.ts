@@ -9,7 +9,10 @@ test('explains the agent in the sections the plan calls for', async ({ page }) =
   for (const section of ['The request path', 'What it can reach', 'Guardrails', 'How it fails', 'How I check its answers', 'Scorecard']) {
     await expect(page.getByRole('heading', { level: 2, name: section })).toBeVisible();
   }
-  await expect(page.getByRole('complementary', { name: 'Where it stands' })).toContainText('switched off');
+  const status = page.getByRole('complementary', { name: 'Where it stands' });
+  // The page must not present the agent as live, or the in-progress parts as done.
+  await expect(status).toContainText('The agent isn’t live');
+  await expect(status).toContainText('in progress');
   await expect(page.getByRole('figure', { name: /One origin, two lanes/ })).toBeVisible();
 });
 

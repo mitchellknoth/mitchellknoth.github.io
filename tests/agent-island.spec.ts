@@ -124,6 +124,8 @@ for (const theme of ['dark', 'light']) {
       await expect(island(page)).toHaveAttribute('data-state', 'online');
       await expect(island(page).getByRole('heading', { name: 'Ask about my work' })).toBeVisible();
       await expectSoundLayout(page);
+      const columns = await page.locator('.home-hero').evaluate((hero) => getComputedStyle(hero).gridTemplateColumns.split(' ').length);
+      expect(columns, 'from 1024px the intro and the island sit side by side').toBe(page.viewportSize()!.width >= 1024 ? 2 : 1);
 
       await ask(page);
       await expect(island(page)).toHaveAttribute('data-state', 'online');

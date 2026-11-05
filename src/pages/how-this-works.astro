@@ -1,7 +1,9 @@
 ---
 // How the homepage agent works (#18): architecture, guardrails, failure states and the evaluation
-// method. Claims stay inside the agreed plan in #13 and the code on main; anything not yet switched
-// on is labelled as planned. Numbers appear only once a committed eval run supplies them.
+// method. Claims stay inside the agreed plan in #13 and the code on main: what exists is stated in the
+// present tense; what is still being built (tools, refusals, graders, hosting) is labelled as such.
+// Numbers appear only once a committed eval run supplies them. Update the "Where it stands" aside and
+// the in-progress labels as the M3 tools, the eval harness and the Workers cutover land.
 import Base from '../layouts/Base.astro';
 import EvalScorecard from '../components/how/EvalScorecard.astro';
 import RequestPath from '../components/how/RequestPath.astro';
@@ -12,7 +14,7 @@ const failureStates = [
   { state: 'Switched off', shows: 'The agent says it’s off and points to the work. This is the default until launch.' },
   { state: 'Budget spent', shows: 'The agent says it’s paused and, when it knows, the time it resumes.' },
   { state: 'Conversation limit', shows: 'The conversation ends and the agent points to the work.' },
-  { state: 'Blocked', shows: 'The agent is unavailable to that connection until its entry expires. Every page still loads.' },
+  { state: 'Blocked', shows: 'The agent is unavailable from that address until its entry expires. Every page still loads.' },
   { state: 'Not verified', shows: 'If Cloudflare challenges the request, the agent says it couldn’t confirm a person is asking.' },
   { state: 'Declined', shows: 'Questions outside the published work, about personal details, or trying to steer it elsewhere get a short refusal.' },
   { state: 'No answer', shows: 'If the model or the run fails, it says it couldn’t answer instead of guessing.' },
@@ -36,43 +38,45 @@ const questionKinds = [
     <header class="how-header">
       <h1 class="prose-serif">How the agent on this site works</h1>
       <p class="how-lede">
-        The homepage has an agent that answers questions about my work. It reads only what I’ve published here, and
-        when it can’t help, it says so and points you to the pages themselves. This page shows how it’s put together,
-        what limits it, and how I check its answers.
+        I’m building an agent for the homepage that answers questions about my work from what I’ve published here,
+        and that says so and points you to the pages when it can’t help. This page shows how it’s put together, what
+        limits it, how I’ll check its answers, and which parts are done.
       </p>
     </header>
 
     <aside class="rule-callout how-status" aria-label="Where it stands">
       <p>
-        <strong>Where it stands.</strong> The request path, the guards and every homepage state are built and tested
-        against simulated responses. The agent stays switched off until its evaluation runs are published below and
-        I’ve reviewed the answers. It hasn’t been load tested, so I make no claims about scale.
+        <strong>Where it stands.</strong> The agent isn’t live: this site is still served by GitHub Pages, which has no
+        agent, so the homepage shows only its introduction. Built and tested so far are the Worker, the guard,
+        per-visitor sessions and every homepage state, the last against simulated responses. The two corpus tools,
+        refusals and the evaluation harness are in progress. The agent stays switched off until its evaluation runs
+        are published below and I’ve reviewed the answers. It hasn’t been load tested, so I make no claims about scale.
       </p>
     </aside>
 
     <h2 id="request-path">The request path</h2>
     <p>
       Every page on this site is pre-rendered and served as a file before any code runs, so the pages work the same
-      whether the agent is on, off or failing. Only requests to <code>/agent/</code> reach the Worker, which
-      runs on the same origin as the pages.
+      whether the agent is on, off or failing. Once the site moves to Cloudflare Workers, only requests to
+      <code>/agent/</code> reach the Worker, which runs on the same origin as the pages.
     </p>
 
     <RequestPath />
 
     <p>
-      Each agent request checks one shared guard first. Each visitor then gets a session of their own: the server
-      picks its name and keeps it in a cookie that page scripts can’t read. The session runs the agent on the Pi
-      harness and stores its conversation itself. Every model call goes through AI Gateway, which is where the spend
-      limit is enforced.
+      Every question passes one shared guard before it reaches a session. Each visitor gets a session of their own:
+      the server picks its name and keeps it in a cookie that page scripts can’t read. The session runs the agent on
+      the Pi harness and stores its conversation itself. Every model call goes through AI Gateway, where the spend
+      limit will be set; confirming it holds is one of the checks before launch.
     </p>
 
     <h2 id="what-it-can-reach">What it can reach</h2>
     <p>
-      The agent’s only source is a corpus built from this site’s case studies, essays and résumé each time the site
-      is built. It changes when the site does, through a code change and a rebuild. Nothing writes to it while the
-      site is running.
+      The agent’s only source will be a corpus built from this site’s case studies, essays and résumé each time the
+      site is built. The extractor that builds it exists today. The corpus changes when the site does, through a code
+      change and a rebuild; nothing writes to it while the site is running.
     </p>
-    <p>The design gives the agent two tools, and both only read:</p>
+    <p>The two tools that read it are being built now, to this design. Both only read:</p>
     <ul>
       <li><code>search_corpus</code> finds passages and returns each one with the page it came from.</li>
       <li><code>read_source</code> opens one source, chosen from the IDs fixed when the site was built.</li>
@@ -80,23 +84,23 @@ const questionKinds = [
     <p>
       Neither tool takes a URL. The Worker makes no outbound <code>fetch()</code> calls: its only connections are the
       platform bindings for storage, the model and the site’s own files. A build test already fails if the Worker
-      gains another binding or an outbound call. The matching test for the tool list lands with the tools.
+      gains another binding or an outbound call. A matching test for the tool list lands with the tools.
     </p>
 
     <h2 id="guardrails">Guardrails</h2>
     <ul>
-      <li><strong>Same origin only.</strong> The agent accepts requests only from this site’s own pages.</li>
+      <li><strong>Same origin only.</strong> Starting a conversation or asking a question from another site’s page is rejected.</li>
       <li><strong>Limits per conversation.</strong> A conversation has a message limit, and a question has a length limit.</li>
       <li><strong>A daily ceiling.</strong> Agent requests across all visitors are counted, and the count resets at midnight UTC.</li>
-      <li><strong>A spending cap.</strong> When AI Gateway’s spend limit stops a call, the guard pauses the agent until the budget resets, and the homepage says so.</li>
-      <li><strong>An expiring blocklist.</strong> An address on the blocklist is refused by the agent only, and only until its entry expires.</li>
+      <li><strong>A spending cap.</strong> When AI Gateway’s spend limit stops a call, the guard pauses the agent until midnight UTC, and the homepage says so.</li>
+      <li><strong>An expiring blocklist.</strong> The guard refuses an address on its blocklist until the entry expires, so a shared or VPN address recovers. Only the agent is refused; nothing adds entries automatically yet.</li>
       <li><strong>Human checks, planned.</strong> Before launch, Cloudflare Turnstile and a challenge rule on <code>/agent/</code> will confirm a person is asking. Neither is switched on yet.</li>
     </ul>
 
     <h2 id="how-it-fails">How it fails</h2>
     <p>
-      An agent is judged as much by how it fails as by how it answers. Each failure has its own state on the
-      homepage, and none of them is a dead end:
+      An agent is judged as much by how it fails as by how it answers. Each failure already has its own state in
+      the homepage island, tested against simulated responses, and none of them is a dead end:
     </p>
     <dl class="fact-grid how-states">
       {
@@ -115,7 +119,8 @@ const questionKinds = [
 
     <h2 id="evaluation">How I check its answers</h2>
     <p>
-      I score the agent against a fixed question set that I write and approve. It covers five kinds of question:
+      I’ll score the agent against a fixed question set that I write and approve. The harness is in progress, and the
+      set will cover five kinds of question:
     </p>
     <dl class="fact-grid how-kinds">
       {
@@ -127,17 +132,17 @@ const questionKinds = [
         ))
       }
     </dl>
-    <p>Grading is deterministic first. An answer passes only when:</p>
+    <p>Grading is deterministic first. An answer passes only when it meets all four checks:</p>
     <ol>
-      <li>it cites source IDs that exist in the corpus;</li>
-      <li>every number in it appears in a source it cites;</li>
-      <li>unanswerable and personal questions get a refusal; and</li>
-      <li>an injection attempt doesn’t change what the agent does.</li>
+      <li>It cites source IDs that exist in the corpus.</li>
+      <li>Every number in it appears in a source it cites.</li>
+      <li>It refuses unanswerable and personal questions.</li>
+      <li>An injection attempt doesn’t change what it does.</li>
     </ol>
     <p>
-      A model-based grader may score fluency, and that score is reported separately. Each run puts the same questions
-      to each candidate model, spends its own budget rather than visitors’, and is committed to the repository with its
-      date. The model the homepage uses is the one the scorecard supports.
+      A model-based grader may score fluency, reported separately. Each run will put the same questions to each
+      candidate model, spend its own budget rather than visitors’, and be committed to the repository with its date.
+      The homepage will use the model the scorecard supports.
     </p>
 
     <EvalScorecard />

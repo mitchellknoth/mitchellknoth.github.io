@@ -50,7 +50,6 @@
   text-underline-offset: 4px;
 }
 
-.agent-status,
 .agent-notice p {
   margin: 0;
   color: var(--fg-muted);

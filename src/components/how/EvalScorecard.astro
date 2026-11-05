@@ -1,14 +1,15 @@
 ---
 // INTEGRATION POINT — eval scorecard history (#17 evals, #18).
 //
-// The eval harness (stream B of #13) commits each scored run under `evals/results/` and is still
-// defining that format. Until it lands, this component renders an honest empty state and nothing
-// else: no example rows, no placeholder numbers.
+// The eval harness (stream B of #13, PR #22) commits each scored run as
+// `evals/results/<YYYY-MM-DD>/<model-slug>.json` (`schemaVersion: 1`) with a `.md` summary beside it.
+// Until runs land on main, this component renders an honest empty state and nothing else: no example
+// rows, no placeholder numbers.
 //
-// To wire it once the format exists:
+// To wire it once results are on main:
 //   1. Read the runs at build time, e.g.
-//        const runs = Object.values(import.meta.glob('/evals/results/*.json', { eager: true, import: 'default' }));
-//      and validate each against the harness's schema (fail the build on a malformed run).
+//        const runs = Object.values(import.meta.glob('/evals/results/*/*.json', { eager: true, import: 'default' }));
+//      and validate each against the harness's schemaVersion 1 (fail the build on a malformed run).
 //   2. Pass them in as `runs`, newest first, and render one row per run: date, model, question-set
 //      version, and each deterministic grader's result exactly as recorded, with the fluency score
 //      apart. Link each run to its committed file on GitHub so every figure is inspectable.
