@@ -34,6 +34,27 @@ async function stored(name: string) {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * The session's stored state once its alarm is armed for the purge. Starting Pi on the first question queues Pi's own
+ * wake job for "now", so an alarm fires straight after `ask` returns; while that alarm runs, `getAlarm()` reads null,
+ * and the Lifecycle then re-arms it for the purge job. Reading the alarm before that settles is a race, not a missing
+ * alarm: the purge job stays in the durable queue the whole time.
+ */
+async function armedForPurge(name: string) {
+  const read = () =>
+    runInDurableObject(env.VISITOR_SESSION.getByName(name), async (instance) => ({
+      jobs: instance.lifecycle.jobs.list(),
+      purgeAt: instance.lifecycle.jobs.get(PURGE_JOB.id)?.time,
+    }));
+  for (let i = 0; i < 100; i += 1) {
+    const [{ purgeAt }, now] = await Promise.all([read(), stored(name)]);
+    if (purgeAt !== undefined && now.alarm === purgeAt) return { ...now, purgeAt };
+    await sleep(20);
+  }
+  const [{ jobs, purgeAt }, now] = await Promise.all([read(), stored(name)]);
+  throw new Error(`alarm never armed for the purge: alarm=${now.alarm} purgeAt=${purgeAt} jobs=${JSON.stringify(jobs)}`);
+}
+
+/**
  * Moves a session's expiry into the past, as if its TTL had run out, without queueing the purge job. Real alarms
  * fire in tests, so waiting out a short TTL would race the purge.
  */
@@ -120,7 +141,7 @@ describe('session TTL', () => {
     await stub.ask(PERSONAL, LIMITS);
     const second = await runInDurableObject(env.VISITOR_SESSION.getByName(name), (s) => s.lifecycle.jobs.list());
     expect(second.map((job) => job.time)).toEqual([first[0]!.time]);
-    expect((await stored(name)).alarm).not.toBeNull();
+    expect((await armedForPurge(name)).alarm).toBe(first[0]!.time);
   });
 
   it('refuses questions after expiry without answering them', async () => {
@@ -154,9 +175,8 @@ describe('session TTL', () => {
   it('deletes the whole session storage when the purge job runs after expiry', async () => {
     const { name, stub } = session();
     await stub.ask(PERSONAL, LIMITS);
-    const live = await stored(name);
+    const live = await armedForPurge(name);
     expect(live.tables).toContain('visitor_meta');
-    expect(live.alarm).not.toBeNull();
 
     expect(await expireAndPurge(name)).toEqual({ tables: [], keys: [], alarm: null });
   });
@@ -200,9 +220,9 @@ describe('session TTL', () => {
       return { expiresAt, result: await instance.onJob({ job: { fn: PURGE_JOB.fn }, attempt: 1 } as never) };
     });
     expect(outcome.result).toEqual({ rescheduleAt: outcome.expiresAt });
-    const after = await stored(name);
+    const after = await armedForPurge(name);
     expect(after.tables).toContain('visitor_meta');
-    expect(after.alarm).not.toBeNull();
+    expect(after.alarm).toBe(outcome.expiresAt);
   });
 
   it('answers a question that arrives during the purge as expired, without touching storage', async () => {
