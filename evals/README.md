@@ -144,9 +144,14 @@ apply to it. It passes only if all of them pass.
 
 How numbers are compared:
 - Values are compared, not spellings. Digits, decimals, thousands separators (`1,200` = `1200`)
-  and the number words `zero` to `ninety-nine` all count.
-- Magnitudes are part of the number: `1.2k`, `1,200` and `1.2 thousand` are equal, and
-  `two million` is `2000000`, not `2`.
+  and the number words `zero` to `ninety-nine` all count. Number words match in any case, and a
+  compound can be hyphenated or spaced (`Twenty-One` = `twenty one` = `21`).
+- Magnitudes are part of the number: `1.2k`, `1,200` and `1.2 thousand` are equal,
+  `two million` is `2000000` rather than `2`, and stacked magnitudes multiply
+  (`two hundred thousand` = `200000`). `a` or `one` before a magnitude counts as 1 (`a dozen`,
+  `one hundred`).
+- Answer and source text are normalised the same way first: Unicode compatibility forms become
+  plain digits, and zero-width characters are removed.
 - List numbering at the start of a line (`1. `, `2) `) and footnote markers (`[1]`) are ignored.
 - A bare `one` in an answer is skipped because it is usually a pronoun. A `one` in a source still
   supports a `1` in the answer.

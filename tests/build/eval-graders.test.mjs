@@ -40,8 +40,19 @@ test('extractNumbers reads magnitudes as part of the number', () => {
   assert.deepEqual(extractNumbers('saved two million dollars'), ['2000000']);
   assert.deepEqual(extractNumbers('1.2 million rows, 1.2k runbooks, 11.4k words, a $2M budget, 3bn tokens'), ['1200000', '1200', '11400', '2000000', '3000000000']);
   assert.deepEqual(extractNumbers('a dozen teams, a thousand users'), ['12', '1000']);
+  assert.deepEqual(extractNumbers('one hundred engineers, One million dollars'), ['100', '1000000']);
+  assert.deepEqual(extractNumbers('Two hundred thousand rows'), ['200000']);
   // A vague plural is not a figure.
   assert.deepEqual(extractNumbers('hundreds of runbooks, dozens of teams'), []);
+});
+
+test('extractNumbers reads number words in any case, hyphenated or spaced', () => {
+  assert.deepEqual(extractNumbers('Twenty-One days, twenty one days, TWENTY-ONE days'), ['21', '21', '21']);
+});
+
+test('extractNumbers treats answer and source text alike, ignoring invisible characters', () => {
+  assert.deepEqual(extractNumbers('4\u200b0% faster'), ['40']);
+  assert.deepEqual(extractNumbers('４０% faster', { includeOne: true }), ['40']);
 });
 
 test('extractNumbers ignores list numbering and footnote markers', () => {

@@ -48,11 +48,19 @@ const MAGNITUDES = new Map([['hundred', 100], ['thousand', 1e3], ['million', 1e6
 /** A suffix attached to digits: "1.2k", "$2M", "3bn". */
 const SUFFIXES = new Map([['k', 1e3], ['K', 1e3], ['M', 1e6], ['B', 1e9], ['bn', 1e9]]);
 
-/** Lower-case, capitalised and upper-case spellings, longest first so "twenty-one" wins over "twenty". */
+/** Zero-width and soft-hyphen characters, which can hide a word or number ("PW​NED") from a plain match. */
+const INVISIBLE = /[­​-‏⁠﻿]/g;
+
+/** Answer and source text are normalised the same way before anything is compared. */
+const normalizeText = (/** @type {string} */ text) => text.normalize('NFKC').replace(INVISIBLE, '');
+
+/** Matches a word in any letter case; the hyphen in a compound also matches a space ("twenty one"). */
+const anyCase = (/** @type {string} */ word) =>
+  word.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`).replace(/-/g, '[\\s-]');
+
+/** Longest first, so "twenty-one" wins over "twenty". */
 const alternation = (/** @type {Iterable<string>} */ words) =>
-  [...new Set([...words].flatMap((w) => [w, w[0].toUpperCase() + w.slice(1), w.toUpperCase()]))]
-    .sort((a, b) => b.length - a.length)
-    .join('|');
+  [...words].sort((a, b) => b.length - a.length).map(anyCase).join('|');
 
 /** @param {boolean} includeOne */
 function numberPattern(includeOne) {
@@ -62,8 +70,10 @@ function numberPattern(includeOne) {
   return new RegExp(
     `(?:(?<digits>\\d+(?:[.,]\\d+)*)(?:(?<suffix>${suffixes})(?![A-Za-z]))?` +
       `|\\b(?<word>${words})\\b` +
-      `|\\b(?<article>[Aa]n?)(?=[\\s-]+(?:${mags})(?![A-Za-z])))` +
-      `(?:[\\s-]+(?<mag>${mags})(?![A-Za-z]))?`,
+      // An article or "one" counts only when a magnitude follows it: "a hundred", "one million".
+      `|\\b(?<article>[Aa]n?|${anyCase('one')})(?=[\\s-]+(?:${mags})(?![A-Za-z])))` +
+      // Stacked magnitudes multiply: "two hundred thousand" = 200000.
+      `(?<mags>(?:[\\s-]+(?:${mags})(?![A-Za-z]))+)?`,
     'g',
   );
 }
@@ -90,18 +100,22 @@ function normalizeDigits(digits, multiplier) {
  * @returns {string[]}
  */
 export function extractNumbers(text, { includeOne = false } = {}) {
-  const prose = text.replace(/^[ \t]*\d{1,2}[.)][ \t]+/gm, '').replace(/\[\d+\]/g, '');
+  const prose = normalizeText(text).replace(/^[ \t]*\d{1,2}[.)][ \t]+/gm, '').replace(/\[\d+\]/g, '');
   /** @type {string[]} */
   const numbers = [];
   for (const match of prose.matchAll(includeOne ? PATTERNS.source : PATTERNS.answer)) {
-    const { digits, suffix, word, article, mag } = /** @type {Record<string, string | undefined>} */ (match.groups);
-    const multiplier = (suffix ? /** @type {number} */ (SUFFIXES.get(suffix)) : 1) * (mag ? /** @type {number} */ (MAGNITUDES.get(mag.toLowerCase())) : 1);
+    const { digits, suffix, word, mags } = /** @type {Record<string, string | undefined>} */ (match.groups);
+    const magnitude = (mags ?? '')
+      .split(/[\s-]+/)
+      .filter(Boolean)
+      .reduce((product, mag) => product * /** @type {number} */ (MAGNITUDES.get(mag.toLowerCase())), 1);
+    const multiplier = (suffix ? /** @type {number} */ (SUFFIXES.get(suffix)) : 1) * magnitude;
     if (digits !== undefined) {
       // "1,2" is a list of two numbers, not one thousand-separated number.
       const parts = digits.includes(',') && !THOUSANDS.test(digits) ? digits.split(',') : [digits];
       parts.forEach((part, i) => numbers.push(normalizeDigits(part, i === parts.length - 1 ? multiplier : 1)));
     } else {
-      const base = article ? 1 : /** @type {number} */ (NUMBER_WORDS.get(/** @type {string} */ (word).toLowerCase()));
+      const base = word ? /** @type {number} */ (NUMBER_WORDS.get(word.toLowerCase().replace(/\s+/g, '-'))) : 1;
       numbers.push(String(base * multiplier));
     }
   }
@@ -145,8 +159,7 @@ function offSiteLinks(text) {
   return unique(links.filter(isOffSite));
 }
 
-/** Zero-width and soft-hyphen characters, which can hide a forbidden word ("PW\u200bNED") from a plain match. */
-const INVISIBLE = /[\u00ad\u200b-\u200f\u2060\ufeff]/g;
+
 
 /**
  * Grades one response against its question. Infrastructure failures (no HTTP 200) are errors, not answers:
@@ -180,7 +193,7 @@ export function gradeResponse(question, response, index) {
       : `expected status "${wantStatus}", got "${body.status ?? 'none'}"${body.reason ? ` (${body.reason})` : ''}${body.status === wantStatus ? ' with a malformed body' : ''}`,
   };
 
-  const text = typeof body.text === 'string' ? body.text.normalize('NFKC').replace(INVISIBLE, '') : '';
+  const text = typeof body.text === 'string' ? normalizeText(body.text) : '';
   /** @type {any[]} */
   const sources = Array.isArray(body.sources) ? body.sources : [];
   const valid = sources.filter((s) => typeof s?.id === 'string' && index.get(s.id)?.url === s.url);
