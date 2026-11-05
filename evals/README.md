@@ -54,17 +54,21 @@ is met: every category has questions, and the set is approved (`"status": "appro
 
 ## Running the evals
 
-Evals run against a local `wrangler dev` copy of the agent. Two terminals:
+Evals run against a `wrangler dev` copy of the agent on this machine. Two terminals, with the
+scoped eval token (see [The eval token](#the-eval-token)):
 
 ```bash
 npm run build                                          # writes dist/ and generated/corpus.json
-EVAL_MODEL=@cf/<vendor>/<model> npm run evals:serve    # terminal 1: the agent on http://127.0.0.1:8787
-EVAL_MODEL=@cf/<vendor>/<model> npm run evals -- --base-url http://127.0.0.1:8787   # terminal 2
+export EVAL_MODEL=@cf/<vendor>/<model> CLOUDFLARE_API_TOKEN=<eval token> CLOUDFLARE_ACCOUNT_ID=<account id>
+npm run evals:serve                                    # terminal 1: the agent on http://127.0.0.1:8787
+npm run evals -- --base-url http://127.0.0.1:8787      # terminal 2 (needs only EVAL_MODEL)
 ```
 
-`npm run evals:serve` starts `wrangler dev --local` with the kill switch on, the model under test
-and the eval AI Gateway (see below). `npm run evals` asks every question in the set, grades the
-answers and writes a dated scorecard. It uses only the public HTTP contract, the same calls the
+`npm run evals:serve` refuses to start unless `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` are set. It writes `generated/wrangler.evals.json`, a copy of
+`wrangler.jsonc` with the kill switch on, the model under test, the eval AI Gateway and the AI
+binding marked remote, and runs `wrangler dev` with it. `wrangler.jsonc` itself never changes.
+`npm run evals` asks every question in the set, grades the answers and writes a dated scorecard. It uses only the public HTTP contract, the same calls the
 chat island makes. For each question it:
 
 1. opens a fresh session (`POST /agent/session` with the server's `Origin` header) and keeps the
@@ -103,10 +107,33 @@ Guard and session Durable Objects with visitors. An eval run there would use up 
 daily request admissions. A spend-limit 429 would also make the Guard pause the agent for every
 visitor until UTC midnight. Preview version URLs aren't an option either, because Cloudflare
 doesn't generate them for Workers that implement a Durable Object. So the runner accepts only a
-loopback `--base-url`. Under `wrangler dev --local` the Durable Objects are local, so the visitor
-Guard is never touched. Local runs don't go through Turnstile or the zone's WAF rules either.
+loopback `--base-url`. Under `wrangler dev` the Worker and its Durable Objects run on this
+machine, so the visitor Guard is never touched. Local runs don't go through Turnstile or the zone's
+WAF rules either.
 
-**A separate AI Gateway.** Workers AI still runs remotely in local dev. The Worker sends every
+**Only the AI binding is remote.** Workers AI has no local simulator ("AI models always run
+remotely"), so `wrangler dev` reaches it through a remote proxy session. `wrangler dev --local`
+can't be used: it disables remote bindings, AI included, and every question would come back
+`unanswered`. `--remote` isn't used either: it would run the whole Worker, Durable Objects
+included, in a preview on Cloudflare. In Wrangler 4.158's default mode, a binding that Wrangler
+can simulate (Durable Objects, assets) stays local, and AI, which it can't, goes remote. That is
+why the eval config sets `"remote": true` on the `ai` binding: the docs say a Workers AI binding
+without it "will connect to the remote resource and issue a warning", and with `remote: false`
+it errors.
+
+To set up the remote proxy session, Wrangler (`startRemoteProxySession` in the pinned source) does
+three things on the account:
+- reads the account's workers.dev subdomain. It registers a random one only if the account has
+  none; this account already has one.
+- requests an `edge-preview` session.
+- uploads a small proxy Worker that carries the AI binding, as a preview
+  (`POST /accounts/{account}/workers/scripts/mitchellknoth-com-evals/edge-preview`).
+
+The generated config names the Worker `mitchellknoth-com-evals`, so that preview never uses the
+production script's name. It is a preview session, like the "temporary preview environment" of
+`wrangler dev --remote`, not a deployment.
+
+**A separate AI Gateway.** The Worker sends every
 model call through the gateway named in its `AI_GATEWAY_ID` var. `wrangler.jsonc` names the visitor
 gateway, `mitchellknoth-com-agent`, and `npm run evals:serve` always overrides it with
 `mitchellknoth-com-evals`. Create that gateway the same way as the visitor gateway
@@ -115,17 +142,43 @@ full runs, and logging off. Its spend limit caps eval spending. Don't start an e
 other way, for example with `npm run preview:workers`: that uses the visitor gateway.
 
 The runner can't see which gateway the server uses. The scorecard's `declaredAiGateway` is what
-`evals/config.json` says `evals:serve` used. Remote AI in local dev needs a scoped Cloudflare API
-token in `CLOUDFLARE_API_TOKEN` (and `CLOUDFLARE_ACCOUNT_ID`), never a personal `wrangler login`.
-Nobody has done a live run yet, so the first one should confirm in the gateway's analytics that
-the calls land on `mitchellknoth-com-evals`.
+`evals/config.json` says `evals:serve` used. Nobody has done a live run yet, so the first one should
+confirm in the gateway's analytics that the calls land on `mitchellknoth-com-evals`.
+
+### The eval token
+
+The remote proxy authenticates as whatever Wrangler finds, and a personal `wrangler login` can reach
+unrelated accounts. So `evals:serve` requires `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+Wrangler documents that an API token in `CLOUDFLARE_API_TOKEN` takes priority over any stored
+OAuth login, so the login is never used. Create a dedicated API token:
+
+| Setting | Value |
+|---|---|
+| Permission | Account → **Workers Scripts → Edit** |
+| Account resources | Include → this site's account only |
+| Zone resources | none |
+| TTL / IP filtering | optional; a short TTL or your IP keeps a leaked token harmless |
+
+Why this is enough:
+- The subdomain read accepts "Workers Scripts Read" or "Workers Scripts Write" (Cloudflare API
+  reference, *Get a Workers Subdomain*). Registering a subdomain would need Write, but this account
+  already has one.
+- The `edge-preview` endpoints aren't in the API reference. They are `workers/scripts` writes, the
+  same as a preview upload.
+- The model calls go through the proxy Worker's AI binding, not the Workers AI REST API, so the
+  token shouldn't need a Workers AI permission. The REST API's "Workers AI - Read" and "Workers AI -
+  Edit" apply only to direct `/ai/run` calls.
+
+This is derived from the docs plus Wrangler's source, not stated in one place. If the first run
+fails with an authentication error on the AI binding, add Account → **Workers AI → Read**, and
+record the result here.
 
 Inference calls still carry the Worker's `{ "surface": "visitor" }` gateway metadata, which is
 hard-coded in `worker/session.ts`. On the eval gateway every request is an eval, so this doesn't
 affect the budget. The tag would need to come from a var to read correctly in gateway analytics.
 
 CI runs the harness's tests on every build (`npm run test:build`, fixtures only). Live runs need
-the API token and spend money, so they stay manual. A workflow that runs them would need a
+the eval token and spend money, so they stay manual. A workflow that runs them would need a
 protected environment of its own.
 
 ## Grading

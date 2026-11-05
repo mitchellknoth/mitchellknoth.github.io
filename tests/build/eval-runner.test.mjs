@@ -8,7 +8,7 @@ import test from 'node:test';
 import { askAll, assertEvalTarget, createRun } from '../../scripts/evals/run.mjs';
 import { renderSummary, validateRun, writeRun } from '../../scripts/evals/results.mjs';
 import { main } from '../../scripts/evals/cli.mjs';
-import { serveArgs } from '../../scripts/evals/serve.mjs';
+import { evalWranglerConfig, readWranglerConfig, requireEvalEnv, serveArgs } from '../../scripts/evals/serve.mjs';
 
 const rootDir = process.cwd();
 const fixture = (/** @type {string} */ name) => JSON.parse(readFileSync(path.join(rootDir, 'evals/fixtures', name), 'utf8'));
@@ -79,14 +79,46 @@ test('the runner only targets a local wrangler dev server', () => {
   assert.equal(assertEvalTarget('http://[::1]:8787', config).kind, 'local');
 });
 
-test('the eval server always uses the eval gateway and the model under test', () => {
-  assert.throws(() => serveArgs({}), /EVAL_MODEL/);
-  const args = serveArgs({ EVAL_MODEL: '@cf/test/model' });
-  for (const pair of ['AGENT_ENABLED:true', `AI_GATEWAY_ID:${config.aiGateway}`, 'AGENT_MODEL:@cf/test/model']) {
-    assert.equal(args[args.indexOf(pair) - 1], '--var', pair);
-  }
-  assert.ok(args.includes('--local'));
-  assert.ok(!args.some((arg) => /mitchellknoth-com-agent/.test(arg)), 'never the visitor gateway');
+test('the eval server refuses to start without an explicit Cloudflare token and account', () => {
+  const ok = { EVAL_MODEL: '@cf/test/model', CLOUDFLARE_API_TOKEN: 'token', CLOUDFLARE_ACCOUNT_ID: 'account' };
+  assert.doesNotThrow(() => requireEvalEnv(ok));
+  assert.throws(() => requireEvalEnv({ ...ok, EVAL_MODEL: '' }), /EVAL_MODEL/);
+  assert.throws(() => requireEvalEnv({ ...ok, CLOUDFLARE_API_TOKEN: undefined }), /CLOUDFLARE_API_TOKEN/);
+  assert.throws(() => requireEvalEnv({ ...ok, CLOUDFLARE_ACCOUNT_ID: ' ' }), /CLOUDFLARE_ACCOUNT_ID/);
+  assert.throws(() => requireEvalEnv({}), /CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID/);
+});
+
+test('the eval Wrangler config keeps Durable Objects local, runs only AI remotely, and uses the eval gateway', () => {
+  const production = readWranglerConfig(rootDir);
+  const configDir = path.join(rootDir, 'generated');
+  const evalConfig = evalWranglerConfig(production, { model: '@cf/test/model', configDir, rootDir });
+
+  // Its own Worker name, so the remote proxy's preview upload never uses the production script name.
+  assert.equal(evalConfig.name, `${production.name}-evals`);
+  assert.equal(path.resolve(configDir, evalConfig.main), path.join(rootDir, production.main));
+  assert.equal(path.resolve(configDir, evalConfig.assets.directory), path.resolve(rootDir, production.assets.directory));
+  assert.deepEqual(evalConfig.ai, { binding: production.ai.binding, remote: true });
+  assert.deepEqual(evalConfig.durable_objects, production.durable_objects);
+  assert.deepEqual(evalConfig.migrations, production.migrations);
+  assert.equal(evalConfig.vars.AGENT_ENABLED, 'true');
+  assert.equal(evalConfig.vars.AI_GATEWAY_ID, config.aiGateway);
+  assert.notEqual(evalConfig.vars.AI_GATEWAY_ID, production.vars.AI_GATEWAY_ID, 'never the visitor gateway');
+  assert.equal(evalConfig.vars.AGENT_MODEL, '@cf/test/model');
+  assert.equal(evalConfig.vars.MAX_PROMPT_CHARS, production.vars.MAX_PROMPT_CHARS);
+  assert.equal(evalConfig.$schema, undefined);
+  // The production config is not modified.
+  assert.equal(readWranglerConfig(rootDir).vars.AGENT_ENABLED, production.vars.AGENT_ENABLED);
+});
+
+test('the eval server runs wrangler dev in its default mode, so the AI binding can reach Workers AI', () => {
+  const args = serveArgs({ configPath: '/repo/generated/wrangler.evals.json', port: '8787' });
+  // --local disables every remote binding, including AI, so the model would never answer.
+  assert.ok(!args.includes('--local'));
+  assert.ok(!args.includes('--remote'), 'the Worker itself and its Durable Objects stay local');
+  assert.equal(args[0], 'dev');
+  assert.equal(args[args.indexOf('--config') + 1], '/repo/generated/wrangler.evals.json');
+  assert.equal(args[args.indexOf('--ip') + 1], '127.0.0.1');
+  assert.equal(args[args.indexOf('--port') + 1], '8787');
 });
 
 test('each question gets its own session, opened with the site Origin and asked with its cookie', async () => {

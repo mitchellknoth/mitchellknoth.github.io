@@ -1,5 +1,5 @@
-// EVAL_MODEL=@cf/<vendor>/<model> npm run evals:serve        (one terminal)
-// EVAL_MODEL=@cf/<vendor>/<model> npm run evals -- --base-url http://127.0.0.1:8787
+// EVAL_MODEL=… CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npm run evals:serve   (one terminal)
+// EVAL_MODEL=@cf/<vendor>/<model> npm run evals -- --base-url http://127.0.0.1:8787    (another)
 //
 // Asks the eval question set against a local `wrangler dev` copy of the agent, grades the answers
 // deterministically and writes a dated scorecard under evals/results/. See evals/README.md.
