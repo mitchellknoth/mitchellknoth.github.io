@@ -1,0 +1,19 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	// M1 (#15): serve the pre-rendered site from Workers static assets. There is no `main` script yet,
+	// so every request is answered from dist/ and no Worker code runs. The agent entry arrives in M2.
+	"name": "mitchellknoth-com",
+	// Pinned; change it deliberately and re-run the Workers parity test when you do.
+	"compatibility_date": "2026-11-05",
+	"assets": {
+		"directory": "./dist",
+		// Matches the site's directory-style URLs: /about redirects to /about/, which serves about/index.html.
+		"html_handling": "auto-trailing-slash",
+		// Serve dist/404.html with a 404 status for unknown paths, as GitHub Pages does.
+		"not_found_handling": "404-page"
+	},
+	// The custom domain is attached once in the Cloudflare dashboard (docs/runbooks/workers-cutover.md),
+	// so the CI deploy token needs no zone or DNS permissions and this file declares no routes.
+	"workers_dev": true,
+	"preview_urls": false
+}

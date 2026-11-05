@@ -45,6 +45,14 @@ jobs:
         with:
           path: dist
 
+      # The same validated build, for the Workers deploy below.
+      - name: Upload site for Workers
+        uses: actions/upload-artifact@v7
+        with:
+          name: site-dist
+          path: dist
+          retention-days: 7
+
   deploy:
     needs: build
     environment:
@@ -55,3 +63,40 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+  # M1 (#15): deploy the same build to Cloudflare Workers static assets. GitHub Pages keeps serving the
+  # custom domain until the cutover in docs/runbooks/workers-cutover.md, so this job only updates the
+  # Worker. It is off until the repository variable CF_WORKERS_DEPLOY is set to "true".
+  deploy-workers:
+    needs: build
+    if: vars.CF_WORKERS_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: cloudflare-workers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download validated site
+        uses: actions/download-artifact@v8
+        with:
+          name: site-dist
+          path: dist
+
+      - name: Deploy to Cloudflare Workers
+        run: npm run deploy:workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'

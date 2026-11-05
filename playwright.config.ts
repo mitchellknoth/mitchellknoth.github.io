@@ -28,6 +28,14 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
+    {
+      // Serves dist/ through the Workers static-assets config in wrangler.jsonc for the parity
+      // contract (tests/workers-parity.spec.ts). Local only; nothing is deployed.
+      command: 'npm run preview:workers',
+      url: 'http://127.0.0.1:8787',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
   ],
   projects: [
     {
