@@ -53,7 +53,7 @@ async function handleAgent(request: Request, env: Env, path: string): Promise<Re
 
   if (path === '/agent/health' && request.method === 'GET') {
     const status = await guard.status();
-    return json({ state: status.paused ? 'paused' : 'online' });
+    return status.paused ? refused('paused', 200, status.pausedUntil ?? undefined) : json({ state: 'online' });
   }
 
   if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405, { allow: 'POST' });

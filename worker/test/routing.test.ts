@@ -89,11 +89,14 @@ describe('agent API', () => {
   });
 
   it('refuses everyone with 503 while the agent is paused', async () => {
-    await env.GUARD.getByName(GUARD_NAME).pause(Date.now() + 60_000, 'test');
+    const until = Date.now() + 60_000;
+    await env.GUARD.getByName(GUARD_NAME).pause(until, 'test');
     const response = await ask('What has Mitch built?', { 'cf-connecting-ip': '198.51.100.24' });
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ state: 'paused' });
-    expect((await exports.default.fetch(`${ORIGIN}/agent/health`).then((r) => r.json()))).toEqual({ state: 'paused' });
+    const health = await exports.default.fetch(`${ORIGIN}/agent/health`);
+    expect(health.status).toBe(200);
+    expect(await health.json()).toEqual({ state: 'paused', until: new Date(until).toISOString() });
   });
 
   it('allows only the documented methods and paths', async () => {
