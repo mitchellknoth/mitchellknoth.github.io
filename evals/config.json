@@ -1,0 +1,6 @@
+{
+  "harnessVersion": "1.0.0",
+  "aiGateway": "mitchellknoth-com-evals",
+  "localHosts": ["localhost", "127.0.0.1", "[::1]"],
+  "timeoutMs": 60000
+}

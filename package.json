@@ -13,6 +13,8 @@
     "test:visual:headed": "playwright test --headed",
     "test:build": "node --test \"tests/build/*.test.mjs\"",
     "corpus": "node scripts/corpus/build.mjs",
+    "evals": "node scripts/evals/cli.mjs",
+    "evals:serve": "node scripts/evals/serve.mjs",
     "quality": "npm run lint:design && npm run check && npm run build && npm run check:worker && npm run test:build && npm run test:worker && npm run test:visual",
     "lint:design": "designmd lint DESIGN.md",
     "preview:workers": "wrangler dev --local --ip 127.0.0.1 --port 8787 --show-interactive-dev-session=false",

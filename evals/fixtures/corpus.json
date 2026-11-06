@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "stats": { "documents": 2, "entries": 3, "words": 60 },
+  "documents": [
+    {
+      "id": "project/sample-tool",
+      "kind": "project",
+      "title": "Sample Tool",
+      "summary": "A test-only project.",
+      "url": "/work/sample-tool/",
+      "source": "src/content/projects/sample-tool.mdx",
+      "dataSources": [],
+      "entryIds": ["project/sample-tool#intro", "project/sample-tool#results"]
+    },
+    {
+      "id": "post/sample-essay",
+      "kind": "post",
+      "title": "Sample Essay",
+      "summary": "A test-only essay.",
+      "url": "/writing/sample-essay/",
+      "source": "src/content/posts/sample-essay.mdx",
+      "dataSources": [],
+      "entryIds": ["post/sample-essay#intro"]
+    }
+  ],
+  "entries": [
+    {
+      "id": "project/sample-tool#intro",
+      "documentId": "project/sample-tool",
+      "kind": "project",
+      "source": "src/content/projects/sample-tool.mdx",
+      "url": "/work/sample-tool/",
+      "title": "Sample Tool",
+      "headings": [],
+      "text": "Sample Tool indexes runbooks for an operations team. It started in 2024 with three engineers.",
+      "sha256": "fixture"
+    },
+    {
+      "id": "project/sample-tool#results",
+      "documentId": "project/sample-tool",
+      "kind": "project",
+      "source": "src/content/projects/sample-tool.mdx",
+      "url": "/work/sample-tool/#results",
+      "title": "Sample Tool",
+      "headings": ["Results"],
+      "text": "Search time fell by 40% across 1,200 runbooks. Version 2.3.1 shipped the citation view; about 11.4k words are indexed.",
+      "sha256": "fixture"
+    },
+    {
+      "id": "post/sample-essay#intro",
+      "documentId": "post/sample-essay",
+      "kind": "post",
+      "source": "src/content/posts/sample-essay.mdx",
+      "url": "/writing/sample-essay/",
+      "title": "Sample Essay",
+      "headings": [],
+      "text": "Models are table stakes; the operating system around them is the product.",
+      "sha256": "fixture"
+    }
+  ],
+  "excluded": []
+}
