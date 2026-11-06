@@ -1,6 +1,6 @@
 # mitchellknoth.com
 
-Personal site. Astro 6 + Tailwind v4 + MDX, dark-first with a light mode toggle. Deployed to GitHub Pages via Actions.
+Personal site. Astro 6 + Tailwind v4 + MDX, dark-first with a light mode toggle. Deployed to Cloudflare Workers static assets via GitHub Actions.
 
 ## Quick start
 
@@ -17,27 +17,17 @@ run it after a build.
 
 For visual critique, run `npm run test:visual:headed`. The suite opens Chromium and exercises every
 public route at phone, tablet, desktop, and ultrawide viewports. Failed checks retain a screenshot and
-trace in `test-results/`; CI runs the same contract before GitHub Pages can deploy.
+trace in `test-results/`; CI runs the same contract before the Worker deploys.
 
-## Deploying to GitHub Pages
+## Deploying
 
-This is a **user site** deployed through GitHub Pages and served at `https://mitchellknoth.com`. Cloudflare manages registration and DNS.
+The site is served from Cloudflare Workers static assets at `https://mitchellknoth.com`. Cloudflare manages registration and DNS.
 
-1. The repo is `mitchellknoth/mitchellknoth.github.io` and must stay **public**.
-2. Repo → **Settings → Pages → Source → "GitHub Actions"**.
-3. Push to `main`. The workflow at `.github/workflows/deploy.yml` builds and publishes.
+1. Push to `main`. The workflow at `.github/workflows/deploy.yml` (**Deploy site**) runs `npm run quality`, then the `deploy-workers` job publishes the validated build to the Worker `mitchellknoth-com`.
+2. `deploy-workers` runs only while the repository variable `CF_WORKERS_DEPLOY` is `true`; its secrets and variables are described in `docs/runbooks/workers-cutover.md`.
+3. `SITE` in `astro.config.mjs` is the public origin for canonical URLs, RSS, and the sitemap. Update it if the public domain changes.
 
-First deploy takes ~1 minute. Subsequent deploys are incremental and usually under 30 seconds.
-
-### Custom domain
-
-- GitHub repository **Settings → Pages → Custom domain**: `mitchellknoth.com`. The GitHub Actions publishing source uses this setting; a `CNAME` file is not required.
-- Cloudflare DNS: four DNS-only `A` records for `@`, pointing to `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, and `185.199.111.153`.
-- Cloudflare DNS: a DNS-only `CNAME` record for `www`, pointing to `mitchellknoth.github.io`. GitHub redirects this alias to the apex domain.
-- Enable **Enforce HTTPS** in GitHub Pages once the custom-domain certificate is issued.
-- `SITE` in `astro.config.mjs` is the public origin for canonical URLs, RSS, and the sitemap. Update it if the public domain changes.
-
-The repository name and profile link in `src/config.ts` do not change when the public domain changes. No Wrangler deployment is needed for this DNS connection.
+The custom domain is a Worker Custom Domain on the apex; `www` redirects to the apex with Cloudflare redirect rules. GitHub Pages was retired after the 2026-11-06 cutover; the history is in `docs/runbooks/workers-cutover.md`.
 
 ## Writing posts
 
@@ -127,7 +117,7 @@ question set; see `evals/README.md`.
 
 - **Astro** over Next: content-first, zero JS by default, MDX is first-class.
 - **Tailwind v4** over hand-CSS: faster iteration, no runtime cost.
-- **HashRouter-less**: Astro is fully static, so every page is a real HTML file that GitHub Pages serves directly — no 404-on-refresh hacks needed.
+- **HashRouter-less**: Astro is fully static, so every page is a real HTML file that Workers static assets serve directly — no 404-on-refresh hacks needed.
 - **View Transitions API** via Astro's `<ClientRouter />`: smooth page transitions without shipping a SPA.
 
 ### Downloadable résumé
