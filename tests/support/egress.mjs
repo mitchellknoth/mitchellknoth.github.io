@@ -12,6 +12,27 @@ export const SITE_ORIGIN = 'https://mitchellknoth.com';
 export const THIRD_PARTY_ALLOWLIST = [];
 
 /**
+ * Absolute URLs that bundled scripts contain as plain strings and never request. The static scan
+ * (tests/build/egress.test.mjs) flags every absolute URL in a script, so each one here was reviewed
+ * (#18) and is matched exactly or by the listed prefix. The runtime check (tests/egress.spec.ts)
+ * still fails on any real request to these hosts.
+ * @type {ReadonlyArray<{ url: string, match: 'exact' | 'prefix', reason: string }>}
+ */
+export const SCRIPT_URL_REFERENCES = [
+  { url: 'http://www.w3.org/2000/svg', match: 'exact', reason: 'SVG namespace URI used by react-dom and the icon components' },
+  { url: 'http://www.w3.org/1999/xlink', match: 'exact', reason: 'XLink namespace URI used by react-dom' },
+  { url: 'http://www.w3.org/1998/Math/MathML', match: 'exact', reason: 'MathML namespace URI used by react-dom' },
+  { url: 'http://www.w3.org/XML/1998/namespace', match: 'exact', reason: 'XML namespace URI used by react-dom' },
+  { url: 'https://react.dev/errors/', match: 'prefix', reason: 'text of React production error messages' },
+  { url: 'https://base-ui.com/production-error', match: 'exact', reason: 'text of Base UI production error messages' },
+];
+
+/** Whether an absolute URL found in a script is a reviewed non-request reference. */
+export function isScriptUrlReference(/** @type {string} */ url) {
+  return SCRIPT_URL_REFERENCES.some((ref) => (ref.match === 'exact' ? url === ref.url : url.startsWith(ref.url)));
+}
+
+/**
  * Whether a request URL is allowed from a page served at `pageOrigin`.
  * @param {string} url
  * @param {string} pageOrigin
@@ -62,7 +83,7 @@ export function cssUrls(css) {
 
 /** @param {string} script */
 export function scriptUrls(script) {
-  return [...script.matchAll(SCRIPT_URL)].map((m) => m[0]);
+  return [...script.matchAll(SCRIPT_URL)].map((m) => m[0]).filter((url) => !isScriptUrlReference(url));
 }
 
 /** @typedef {{ nodeName: string, tagName?: string, value?: string, attrs?: Array<{ name: string, value: string }>, childNodes?: Node[], content?: Node }} Node */

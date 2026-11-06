@@ -5,6 +5,7 @@ export const routes = [
   '/resume/',
   '/work/',
   '/writing/',
+  '/how-this-works/',
   '/work/agentic-engineering/',
   '/work/team-brain/',
   '/work/secure-agent-execution/',

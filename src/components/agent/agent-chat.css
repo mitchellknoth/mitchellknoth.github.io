@@ -1,0 +1,128 @@
+/* Layout of the homepage agent island. Colours come from site tokens (global.css) and the shadcn
+   token map (src/styles/agent-theme.css); this file only composes the island. Width class: the
+   island sits in the hero's second column, so it never stretches across the shell on its own. */
+.agent-island {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--fg);
+  font-size: 17px;
+  line-height: 1.7;
+}
+@media (min-width: 768px) {
+  .agent-island { padding: 1.5rem 1.75rem; }
+}
+
+.agent-header h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 2.2vw, 2rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+.agent-lede {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--fg-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.agent-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 1rem;
+}
+.agent-header-row h2 { margin-bottom: 0.25rem; }
+.agent-how,
+.agent-notice a,
+.agent-reply a:not(.agent-source) {
+  color: var(--accent);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.agent-notice p {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 60ch;
+}
+.agent-notice {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border-left: 2px solid var(--editorial-border);
+  outline-offset: 3px;
+}
+.agent-notice p:first-child { color: var(--fg); }
+.agent-routes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  font-size: 14px;
+}
+.agent-routes a { text-decoration: underline; text-underline-offset: 4px; }
+
+.agent-suggestions {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.agent-suggestion {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.85rem;
+  /* The border is what marks a suggestion as a control, so it meets 3:1. */
+  border: 1px solid var(--editorial-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.agent-suggestion:hover:not(:disabled) { border-color: var(--accent); background: var(--muted); }
+.agent-suggestion:disabled { cursor: default; color: var(--fg-muted); }
+
+
+.agent-reply p { margin: 0; text-wrap: pretty; max-width: 68ch; }
+.agent-source { display: flex; text-decoration: none; }
+.agent-source:hover [data-slot="trace-title"] { text-decoration: underline; text-underline-offset: 3px; }
+
+/* The field's boundary is essential, so it uses the 3:1 editorial border rather than a tint. */
+.agent-field {
+  border-color: var(--input);
+  background: var(--bg);
+}
+.agent-hint {
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+@media (max-width: 479px) {
+  .agent-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-suggestion { transition: none; }
+}
