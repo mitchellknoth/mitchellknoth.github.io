@@ -1,9 +1,9 @@
 ---
 // How the homepage agent works (#18): architecture, guardrails, failure states and the evaluation
 // method. Claims stay inside the agreed plan in #13 and the code on main: what exists is stated in the
-// present tense; what is still being built (graders, hosting) is labelled as such.
+// present tense; what isn't done yet (the question set, scored runs, hosting) is labelled as such.
 // Numbers appear only once a committed eval run supplies them. Update the "Where it stands" aside and
-// the in-progress labels as the eval harness and the Workers cutover land.
+// the in-progress labels as the question set, the first runs and the Workers cutover land.
 import Base from '../layouts/Base.astro';
 import EvalScorecard from '../components/how/EvalScorecard.astro';
 import RequestPath from '../components/how/RequestPath.astro';
@@ -48,8 +48,9 @@ const questionKinds = [
       <p>
         <strong>Where it stands.</strong> The agent isn’t live: this site is still served by GitHub Pages, which has no
         agent, so the homepage shows only its introduction. Built and tested so far are the Worker, the guard,
-        per-visitor sessions, the two corpus tools, refusals and every homepage state, the last against simulated
-        responses. The evaluation harness is in progress. The agent stays switched off until its evaluation runs
+        per-visitor sessions, the two corpus tools, refusals, the evaluation harness and every homepage state, the
+        last against simulated responses. The question set isn’t written yet, so nothing has been scored. The agent
+        stays switched off until its evaluation runs
         are published below and I’ve reviewed the answers. It hasn’t been load tested, so I make no claims about scale.
       </p>
     </aside>
@@ -119,8 +120,8 @@ const questionKinds = [
 
     <h2 id="evaluation">How I check its answers</h2>
     <p>
-      I’ll score the agent against a fixed question set that I write and approve. The harness is in progress, and the
-      set will cover five kinds of question:
+      I’ll score the agent against a fixed question set that I write and approve. The harness that runs and grades
+      it is built; the questions aren’t written yet. The set will cover five kinds of question:
     </p>
     <dl class="fact-grid how-kinds">
       {
@@ -132,17 +133,19 @@ const questionKinds = [
         ))
       }
     </dl>
-    <p>Grading is deterministic first. An answer passes only when it meets all four checks:</p>
+    <p>Grading is deterministic. An answer passes only when it meets every check that applies to it:</p>
     <ol>
-      <li>It cites source IDs that exist in the corpus.</li>
+      <li>It cites the sources the question expects, and every source it cites exists in the corpus.</li>
       <li>Every number in it appears in a source it cites.</li>
-      <li>It refuses unanswerable and personal questions.</li>
-      <li>An injection attempt doesn’t change what it does.</li>
+      <li>It refuses unanswerable and personal questions, with the expected kind of refusal.</li>
+      <li>An injection attempt doesn’t change what it says, and it links to no other site.</li>
     </ol>
     <p>
-      A model-based grader may score fluency, reported separately. Each run will put the same questions to each
-      candidate model, spend its own budget rather than visitors’, and be committed to the repository with its date.
-      The homepage will use the model the scorecard supports.
+      There’s no fluency score. If I add one, it will be reported separately and won’t change whether an answer
+      passes. Each run puts the whole set to one model, against a copy of the agent on my machine and through a
+      separate AI Gateway, so it never touches the visitors’ budget; that gateway gets its own spend limit before the
+      first run. Each run’s scorecard is committed to the
+      repository with its date, and the homepage will use the model the scorecards support.
     </p>
 
     <EvalScorecard />

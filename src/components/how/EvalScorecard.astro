@@ -1,21 +1,23 @@
 ---
 // INTEGRATION POINT — eval scorecard history (#17 evals, #18).
 //
-// The eval harness (stream B of #13, PR #22) commits each scored run as
-// `evals/results/<YYYY-MM-DD>/<model-slug>.json` (`schemaVersion: 1`) with a `.md` summary beside it.
-// Until runs land on main, this component renders an honest empty state and nothing else: no example
-// rows, no placeholder numbers.
+// The eval harness (scripts/evals/, merged in #22; format in evals/README.md, "Scorecards") commits each
+// scored run as `evals/results/<YYYY-MM-DD>/<model-slug>.json` (`schemaVersion: 1`) with a `.md` summary
+// beside it. No run is committed yet, so this component renders an honest empty state and nothing else:
+// no example rows, no placeholder numbers.
 //
-// To wire it once results are on main:
+// To wire it once the first run is committed:
 //   1. Read the runs at build time, e.g.
 //        const runs = Object.values(import.meta.glob('/evals/results/*/*.json', { eager: true, import: 'default' }));
-//      and validate each against the harness's schemaVersion 1 (fail the build on a malformed run).
+//      `npm run test:build` already checks every committed scorecard with `validateRun` from
+//      scripts/evals/results.mjs; reuse it here so a malformed run fails the build.
 //   2. Pass them in as `runs`, newest first, and render one row per run: date, model, question-set
-//      version, and each deterministic grader's result exactly as recorded, with the fluency score
-//      apart. Link each run to its committed file on GitHub so every figure is inspectable.
-//   3. Add a Playwright check that the table matches the committed files.
+//      version, `summary.passRate` and the per-check counts exactly as recorded. Link each run to its
+//      committed .json on GitHub so every figure is inspectable.
+//   3. Replace the "no figures" check in tests/how-this-works.spec.ts with one that the rows match the
+//      committed files.
 interface Props {
-  /** Scored runs from evals/results/. Empty until the harness's results format lands. */
+  /** Scored runs from evals/results/. Empty until the first run is committed. */
   runs?: readonly unknown[];
 }
 
@@ -28,7 +30,7 @@ const { runs = [] } = Astro.props;
     runs.length === 0 && (
       <p>
         No scored runs are published yet. Each run will appear here with its date, the model it tested and the
-        result of each grader, linked to the results file it came from.
+        result of each check, linked to the results file it came from.
       </p>
     )
   }
