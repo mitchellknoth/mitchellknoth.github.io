@@ -8,7 +8,7 @@
   "website": "https://mitchellknoth.com",
   "github": "https://github.com/mitchellknoth",
   "linkedin": "https://www.linkedin.com/in/mitchellknoth/",
-  "updated": "October 2026",
+  "updated": "November 2026",
   "employer": "John Deere",
   "experience": [
     {
@@ -55,18 +55,18 @@
       "period": "2019 - 2021",
       "href": "/work/global-gateway/",
       "points": [
-        "Architected the platform’s first external-facing dealer API with role-based authorization and audit logging; the design became a reusable pattern for external access."
+        "Architected the platform\u2019s first external-facing dealer API with role-based authorization and audit logging; the design became a reusable pattern for external access."
       ]
     }
   ],
   "skills": "TypeScript, Python, Java; AWS, Terraform, Step Functions, Lambda; Redis; GitHub Actions; Datadog; identity and credential boundaries; agent harness and context engineering.",
   "education": "B.S. Software Engineering, Iowa State University, 2020. Cum Laude; cyber security minor.",
   "credentials": [
+    "AWS Certified Solutions Architect - Professional (November 2026)",
     "AWS Certified DevOps Engineer - Professional (May 2026)",
     "AWS Certified Advanced Networking - Specialty (August 2025)",
     "AWS Certified SysOps Administrator - Associate (February 2025)",
-    "AWS Certified Solutions Architect - Associate (March 2024)",
-    "AWS Certified Cloud Practitioner (November 2021)"
+    "AWS Certified Solutions Architect - Associate (March 2024)"
   ],
   "employmentPeriod": "2019 - present",
   "publicWork": {
