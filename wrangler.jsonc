@@ -40,6 +40,9 @@
 		// Reasoning effort for the model: off, minimal, low, medium, high, xhigh or max. Higher effort bills more
 		// output tokens per question; the live check (#16) records the real cost. The gateway spend limit still caps it.
 		"AGENT_REASONING": "max",
+		// The intent check in front of the agent (worker/intent.ts): "off", "shadow" (log the verdict, never refuse) or
+		// "enforce". The eval config inherits it, so scored runs measure the check together with the agent.
+		"INTENT_MODE": "enforce",
 		// The AI Gateway that carries the inference spend limit.
 		"AI_GATEWAY_ID": "mitchellknoth-com-agent",
 		"MAX_PROMPT_CHARS": "1000",
