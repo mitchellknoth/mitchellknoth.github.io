@@ -40,6 +40,19 @@ differs from the generated corpus IDs.
 1. **Screening.** `screenQuestion()` refuses clearly personal, social-engineering and prompt-injection questions
    before the model is called. The patterns are deliberately narrow, because the corpus itself discusses
    credentials, secrets and tokens; the instructions cover the rest.
+   **Intent check.** Questions the patterns miss go to Cloudflare's Clef decision model (`worker/intent.ts`,
+   `@cf/cloudflare/clef`) before the agent. Clef reads the visitor's message as its only state and returns a
+   probability for three yes/no questions (injection, social engineering, personal). A probability at or above
+   `INTENT_THRESHOLD` (0.8) gets the matching fixed refusal. Clef returns numbers, not text, so a message that
+   targets it cannot make it say anything; the code decides. The call goes through the visitor AI Gateway with
+   logging off, so the spend limit covers it, and it is the visitor's message alone: nothing from the conversation
+   or the corpus. If Clef errors or times out (4 s) the question goes on to the agent, as before the check
+   existed; a spent gateway limit is reported as the inference budget, as for the agent. `INTENT_MODE` in
+   `wrangler.jsonc` is `off`, `shadow` (log `{event, mode, refusal, probability}`, never the question, and
+   refuse nothing) or `enforce`; the eval config inherits it, so scored runs measure the check with the agent.
+   The threshold and the question wording are unvalidated until an eval run scores them; check that questions
+   *about* credentials or agents as topics of the work (answerable-008, -009 and the suggested sandbox
+   question) are not refused.
 2. **Citations.** The model cites with the marker the tools print, `[[project/team-brain#the-problem]]`. The Worker
    removes the markers from the text and returns each cited ID as `{id, title, url}` from the bundled corpus.
 3. **Ungrounded answers.** These come back as `refused` / `not-in-corpus` and are never shown: an answer with no
