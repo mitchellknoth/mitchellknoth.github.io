@@ -142,7 +142,8 @@ describe('reasoning effort', () => {
     expect(reasoningLevel('ultra')).toBe('off');
   });
 
-  it('ships off, so deploying the setting changes nothing', () => {
-    expect(env.AGENT_REASONING).toBe('off');
+  it('ships the chosen model and a valid effort', () => {
+    expect(env.AGENT_MODEL).toBe('openai/gpt-6-luna');
+    expect(reasoningLevel(env.AGENT_REASONING)).toBe(env.AGENT_REASONING);
   });
 });
