@@ -12,7 +12,8 @@ export default defineConfig({
       // account a developer happens to be logged in to.
       remoteBindings: false,
       miniflare: {
-        bindings: { AGENT_ENABLED: 'true' },
+        // The intent check is off by default here so existing tests stay offline; its own tests turn it on with a stub.
+        bindings: { AGENT_ENABLED: 'true', INTENT_MODE: 'off' },
       },
     }),
   ],

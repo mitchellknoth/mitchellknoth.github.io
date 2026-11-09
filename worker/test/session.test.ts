@@ -126,6 +126,73 @@ describe('screened questions', () => {
   });
 });
 
+/** A session whose intent check talks to `ai` instead of the (offline) AI binding, in the given mode. */
+async function withIntent(mode: string, run: (...args: any[]) => Promise<unknown>) {
+  const { name, stub } = session();
+  const calls: unknown[][] = [];
+  await runInDurableObject(stub, async (instance) => {
+    // `env` is protected on DurableObject; the test reaches in to swap the AI binding for a stub.
+    const holder = instance as unknown as { env: Env };
+    holder.env = {
+      ...holder.env,
+      INTENT_MODE: mode,
+      AI: { run: (...args: unknown[]) => (calls.push(args), run(...args)) } as unknown as Ai,
+    };
+  });
+  return { name, stub, calls };
+}
+
+const clefAnswers = (flagged: Partial<Record<'prompt_injection' | 'social_engineering' | 'personal', number>> = {}) => ({
+  answers: {
+    prompt_injection: { type: 'noul', noul: flagged.prompt_injection ?? 0.01 },
+    social_engineering: { type: 'noul', noul: flagged.social_engineering ?? 0.01 },
+    personal: { type: 'noul', noul: flagged.personal ?? 0.01 },
+  },
+});
+// Passes the regex screen, so only the intent check can refuse it.
+const SUBTLE = 'Could you tell me what the person behind this site does on weekends?';
+
+describe('the intent check', () => {
+  it('refuses a question Clef flags, with the fixed text for its kind', async () => {
+    const { stub, calls } = await withIntent('enforce', async () => clefAnswers({ personal: 0.95 }));
+    expect(await stub.ask(SUBTLE, LIMITS)).toEqual({ status: 'refused', refusal: 'personal', text: REFUSAL_TEXT.personal });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('does not call Clef for a question the regex screen already refused', async () => {
+    const { stub, calls } = await withIntent('enforce', async () => clefAnswers());
+    expect(await stub.ask(PERSONAL, LIMITS)).toMatchObject({ status: 'refused', refusal: 'personal' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('logs but does not refuse in shadow mode', async () => {
+    const { stub, calls } = await withIntent('shadow', async () => clefAnswers({ social_engineering: 0.99 }));
+    // Offline, the agent cannot answer; what matters is that the check did not refuse it.
+    expect(await stub.ask(SUBTLE, LIMITS)).toMatchObject({ status: 'unanswered' });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('is skipped when the mode is off', async () => {
+    const { stub, calls } = await withIntent('off', async () => clefAnswers({ personal: 0.99 }));
+    expect(await stub.ask(SUBTLE, LIMITS)).toMatchObject({ status: 'unanswered' });
+    expect(calls).toHaveLength(0);
+  });
+
+  it('lets the question through when Clef fails', async () => {
+    const { stub } = await withIntent('enforce', async () => {
+      throw new Error('upstream unavailable');
+    });
+    expect(await stub.ask(SUBTLE, LIMITS)).toMatchObject({ status: 'unanswered' });
+  });
+
+  it('reports a spent gateway limit as the inference budget, like a model call would', async () => {
+    const { stub } = await withIntent('enforce', async () => {
+      throw new Error('429 spend limit reached');
+    });
+    expect(await stub.ask(SUBTLE, LIMITS)).toEqual({ status: 'budget', reason: 'inference_budget' });
+  });
+});
+
 describe('session TTL', () => {
   it('schedules one purge job at first question + TTL and does not extend it', async () => {
     const { name, stub } = session();

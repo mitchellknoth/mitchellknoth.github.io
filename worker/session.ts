@@ -5,6 +5,7 @@ import { PiHarness } from 'agents/harness/pi';
 import { Lifecycle, type LifecycleJobContext, type LifecycleJobOutcome } from 'agents/lifecycle';
 import { createAI } from 'agents/models/pi-ai';
 import { corpus } from './corpus';
+import { classifyIntent, intentMode, type IntentAi } from './intent';
 import { INSTRUCTIONS, refusal, screenQuestion, shapeReply, type AgentReply } from './reply';
 import { SITE_TOOLS } from './tools';
 
@@ -31,6 +32,14 @@ const PURGE_RETRY_MS = 5_000;
 /** True when a model error looks like AI Gateway refusing the call because a spend or rate limit was reached. */
 export function isBudgetRefusal(detail: string | undefined): boolean {
   return Boolean(detail && /\b429\b|spend limit|rate limit|too many requests/i.test(detail));
+}
+
+const REASONING_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type ReasoningLevel = (typeof REASONING_LEVELS)[number];
+
+/** The model's reasoning effort from `AGENT_REASONING`. Unset or unknown values mean `off`, so a typo never raises spend. */
+export function reasoningLevel(value: string | undefined): ReasoningLevel {
+  return REASONING_LEVELS.find((level) => level === value) ?? 'off';
 }
 
 export class VisitorSession extends DurableObject<Env> {
@@ -65,7 +74,11 @@ export class VisitorSession extends DurableObject<Env> {
         context,
       );
     },
-    defaults: { model: this.ai(this.env.AGENT_MODEL), maxTurns: 4 },
+    defaults: {
+      model: this.ai(this.env.AGENT_MODEL),
+      thinkingLevel: reasoningLevel(this.env.AGENT_REASONING),
+      maxTurns: 4,
+    },
   });
 
   lifecycle = Lifecycle.install(this).use(this.harness);
@@ -112,6 +125,9 @@ export class VisitorSession extends DurableObject<Env> {
     const screened = screenQuestion(question);
     if (screened) return refusal(screened);
 
+    const intent = await this.checkIntent(question);
+    if (intent) return intent;
+
     const result = await this.harness.prompt(question);
     if (result.status === 'done') return shapeReply(result.text ?? '', corpus);
 
@@ -119,6 +135,26 @@ export class VisitorSession extends DurableObject<Env> {
       return { status: 'budget', reason: 'inference_budget' };
     }
     return { status: 'unanswered', reason: result.reason ?? 'unknown' };
+  }
+
+  /**
+   * The intent check (worker/intent.ts): a refusal or a spent budget to return now, or null to carry on to the
+   * agent. In `shadow` mode the verdict is logged (never the question) and the question always carries on.
+   */
+  private async checkIntent(question: string): Promise<AskResult | null> {
+    const mode = intentMode(this.env.INTENT_MODE);
+    if (mode === 'off') return null;
+    const verdict = await classifyIntent(this.env.AI as unknown as IntentAi, question, { gatewayId: this.env.AI_GATEWAY_ID });
+    if (verdict.status === 'unavailable') {
+      if (isBudgetRefusal(verdict.detail)) return { status: 'budget', reason: 'inference_budget' };
+      console.error('intent check unavailable; the question goes to the agent', verdict.detail);
+      return null;
+    }
+    if (verdict.status === 'flagged') {
+      console.log(JSON.stringify({ event: 'intent', mode, refusal: verdict.refusal, probability: verdict.probability }));
+      if (mode === 'enforce') return refusal(verdict.refusal);
+    }
+    return null;
   }
 
   /**
