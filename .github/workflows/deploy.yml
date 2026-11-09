@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy site
 
 on:
   push:
@@ -8,12 +8,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
   build:
@@ -28,9 +22,6 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v6
-
       - name: Install dependencies
         run: npm ci
 
@@ -40,33 +31,16 @@ jobs:
       - name: Validate design, types, build, and visual contract
         run: npm run quality
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: dist
-
-      # The same validated build, for the Workers deploy below.
-      - name: Upload site for Workers
+      # The validated build, for the Workers deploy below.
+      - name: Upload site
         uses: actions/upload-artifact@v7
         with:
           name: site-dist
           path: dist
           retention-days: 7
 
-  deploy:
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
-
-  # M1 (#15): deploy the same build to Cloudflare Workers static assets. GitHub Pages keeps serving the
-  # custom domain until the cutover in docs/runbooks/workers-cutover.md, so this job only updates the
-  # Worker. It is off until the repository variable CF_WORKERS_DEPLOY is set to "true".
+  # Deploys the validated build to Cloudflare Workers static assets, which serve mitchellknoth.com
+  # (docs/runbooks/workers-cutover.md). Skipped unless the repository variable CF_WORKERS_DEPLOY is "true".
   deploy-workers:
     needs: build
     if: vars.CF_WORKERS_DEPLOY == 'true'

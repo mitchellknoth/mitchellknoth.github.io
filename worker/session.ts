@@ -34,6 +34,14 @@ export function isBudgetRefusal(detail: string | undefined): boolean {
   return Boolean(detail && /\b429\b|spend limit|rate limit|too many requests/i.test(detail));
 }
 
+const REASONING_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type ReasoningLevel = (typeof REASONING_LEVELS)[number];
+
+/** The model's reasoning effort from `AGENT_REASONING`. Unset or unknown values mean `off`, so a typo never raises spend. */
+export function reasoningLevel(value: string | undefined): ReasoningLevel {
+  return REASONING_LEVELS.find((level) => level === value) ?? 'off';
+}
+
 export class VisitorSession extends DurableObject<Env> {
   ai = createAI({
     binding: this.env.AI,
@@ -66,7 +74,11 @@ export class VisitorSession extends DurableObject<Env> {
         context,
       );
     },
-    defaults: { model: this.ai(this.env.AGENT_MODEL), maxTurns: 4 },
+    defaults: {
+      model: this.ai(this.env.AGENT_MODEL),
+      thinkingLevel: reasoningLevel(this.env.AGENT_REASONING),
+      maxTurns: 4,
+    },
   });
 
   lifecycle = Lifecycle.install(this).use(this.harness);
