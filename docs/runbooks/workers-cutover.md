@@ -13,7 +13,8 @@ Checked against the Cloudflare and GitHub docs on 2026-11-05. Re-check the linke
 - Every deploy, to either host, comes from the same build that passed `npm run quality`.
 - The zone's Universal SSL certificate (Let's Encrypt, active for `mitchellknoth.com` and `*.mitchellknoth.com`
   as of 2026-11-05) covers both hostnames, so moving them should not wait on a new certificate. Confirm it is
-  still active under **SSL/TLS → Edge Certificates** before step 4.
+  still active under **SSL/TLS → Edge Certificates** before step 4. In the 2026-11-06 cutover, the apex Custom
+  Domain also brought its own certificate (Google Trust Services, apex and `www`) within a minute or two.
 
 ## 1. One-time setup (Mitch)
 
@@ -41,9 +42,14 @@ These steps create credentials or change account settings, so Mitch does them.
 
 1. Re-run **Deploy to GitHub Pages** on `main` (workflow_dispatch). The `deploy-workers` job deploys the
    Worker `mitchellknoth-com`, reachable at `https://mitchellknoth-com.mitchellknoth.workers.dev`.
-2. Run the parity contract against it, from a checkout of the same commit after `npm run build`:
+2. Run the parity contract against it, from a checkout of the same commit. Compare against the exact build that
+   was deployed: download the run's `site-dist` artifact into `dist/` instead of rebuilding. Run
+   `npm run corpus` first; the local `wrangler dev` server Playwright starts imports `generated/corpus.json`
+   even when the test targets a remote URL.
 
    ```bash
+   gh run download <run-id> -n site-dist -D dist
+   npm run corpus
    WORKERS_BASE_URL=https://mitchellknoth-com.mitchellknoth.workers.dev npx playwright test workers-parity --project desktop
    ```
 
@@ -58,36 +64,56 @@ place to rehearse the DNS change.
 
 1. Delete the `www` CNAME record (`mitchellknoth.github.io`). A Custom Domain can't be created over an
    existing CNAME.
-2. **Workers & Pages → mitchellknoth-com → Settings → Domains & Routes → Add → Custom Domain**:
-   `www.mitchellknoth.com`. Cloudflare creates the DNS record.
+2. **Workers & Pages → mitchellknoth-com → Domains → Add Domain → mitchellknoth.com**, subdomain `www`.
+   Cloudflare creates a proxied `AAAA www → 100::` record that it manages for the Worker. Before adding, read
+   the subdomain field's value back: a field that looked empty in a screenshot once held a typed value, and the
+   domain was created as `wwwwww`. Leaving the field empty attaches the apex.
 3. Run the parity contract with `WORKERS_BASE_URL=https://www.mitchellknoth.com`.
 4. Rehearse rollback: remove the `www` Custom Domain, recreate the CNAME (step 6), and confirm
    `https://www.mitchellknoth.com` redirects to the apex again through GitHub Pages. Then redo steps 1–3.
+   The local resolver may keep the rollback CNAME for up to its TTL (5 minutes); test with
+   `curl --noproxy '*'` and wait for `server: cloudflare` before re-running parity.
 
 ## 4. Move the apex
 
-1. Delete the four apex `A` records (GitHub Pages IPs, listed in step 6). The Cloudflare docs don't say
-   whether existing `A` records block a Custom Domain; if the dashboard accepts the Custom Domain with them
-   in place, it replaces them. Either way, expect up to the record TTL (5 minutes) of mixed answers.
-2. Add Custom Domain `mitchellknoth.com` to the Worker.
-3. Run the parity contract with `WORKERS_BASE_URL=https://mitchellknoth.com`, then the headed spot-check.
+The dashboard refuses the apex Custom Domain while the GitHub `A` records exist ("already has externally managed
+DNS records"), so delete them first and add the Custom Domain within seconds:
+
+1. Open **Add Domain** for `mitchellknoth.com` on the Worker with the subdomain empty, but don't submit yet.
+2. In a second tab, select the four apex `A` records (GitHub Pages IPs, listed in step 6) and bulk-delete them.
+3. Submit the Custom Domain. Cloudflare creates a proxied `AAAA @ → 100::` record and issues an edge certificate
+   for the apex and `www` within a minute or two. Expect up to the old record TTL (5 minutes) of mixed answers.
+4. Run the parity contract with `WORKERS_BASE_URL=https://mitchellknoth.com`, then the headed spot-check.
+   A corporate TLS-inspecting proxy may reject the first requests with a certificate error while the new
+   certificate propagates; check it directly with `openssl s_client -servername mitchellknoth.com`.
 
 ## 5. Point `www` back at the apex
 
 Serve `www` as a redirect, not a second copy of the site:
 
-1. Remove the `www` Custom Domain from the Worker.
-2. Add a proxied `AAAA` record `www` → `100::` (Cloudflare's reserved originless placeholder).
-3. **Rules → Redirect Rules**: hostname equals `www.mitchellknoth.com` → `https://mitchellknoth.com` with the
-   path and query string preserved, status 301.
-4. Confirm `https://www.mitchellknoth.com/about/` returns 301 to `https://mitchellknoth.com/about/`.
+1. **Rules → Redirect Rules → Create rule** (Single Redirect, wildcard pattern), status 301, **Preserve query
+   string** on. Wildcard patterns need an explicit scheme, so add one rule per scheme:
+   - `https://www.mitchellknoth.com/*` → `https://mitchellknoth.com/${1}`
+   - `http://www.mitchellknoth.com/*` → `https://mitchellknoth.com/${1}`
+
+   Redirect rules run before the Worker, so `www` redirects as soon as they deploy.
+2. Prepare **Add record**: `AAAA`, name `www`, `100::` (Cloudflare's reserved originless placeholder), proxied.
+3. Remove the `www` Custom Domain from the Worker (this deletes its managed `AAAA` record), then save the
+   prepared record straight away.
+4. Confirm, with `curl --noproxy '*'`:
+   - `https://www.mitchellknoth.com/about/` and `http://www.mitchellknoth.com/about/` return 301 to
+     `https://mitchellknoth.com/about/`
+   - `https://www.mitchellknoth.com/writing/?a=1` keeps `?a=1`
+
+`http://mitchellknoth.com` is served over plain HTTP until **SSL/TLS → Edge Certificates → Always Use HTTPS** is
+on. GitHub Pages enforced HTTPS, so turn it on to match.
 
 ## 6. Rollback
 
 GitHub Pages is still built and configured, so rollback is DNS only:
 
-1. Remove the Custom Domain(s) from the Worker.
-2. Delete any `www` placeholder record and redirect rule from step 5.
+1. Remove the Custom Domain(s) from the Worker. This deletes the `AAAA` records the Worker manages.
+2. Delete the `www` placeholder record and both redirect rules from step 5.
 3. Recreate the GitHub Pages records, all DNS-only:
    - `A` `@` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
    - `CNAME` `www` → `mitchellknoth.github.io`
