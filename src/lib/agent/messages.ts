@@ -8,7 +8,7 @@ import type { AskReply, Refusal } from './contract';
 export type AgentMessageMetadata =
   | { status: 'answered' }
   | { status: 'refused'; refusal: Refusal }
-  | { status: 'unanswered' };
+  | { status: 'unanswered'; reason: string };
 
 export type AgentUIMessage = UIMessage<AgentMessageMetadata>;
 
@@ -36,8 +36,8 @@ export function replyToMessage(id: string, reply: AskReply): AgentUIMessage {
         parts: [{ type: 'text', text: reply.text }],
       };
     case 'unanswered':
-      // `reason` is for operators; the visitor gets the island's own wording.
-      return { id, role: 'assistant', metadata: { status: 'unanswered' }, parts: [] };
+      // `reason` is for operators; the visitor gets the island's own wording, chosen by it (see Reply).
+      return { id, role: 'assistant', metadata: { status: 'unanswered', reason: reply.reason }, parts: [] };
   }
 }
 

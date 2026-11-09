@@ -16,12 +16,16 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from '@/components/ui/message-scroller';
-import { Trace, TraceIcon, TraceLine, TraceTitle } from '@/components/ui/trace';
+import { TraceIcon, TraceLine, TraceTitle } from '@/components/ui/trace';
 import { askQuestion, checkHealth } from '@/lib/agent/client';
 import type { StoppedState } from '@/lib/agent/contract';
 import { replyToMessage, sourcesOf, textOf, userMessage, type AgentUIMessage } from '@/lib/agent/messages';
 import { AgentSources } from './AgentSources';
 import { ensureHumanClearance } from './turnstile';
+
+const MAX_QUESTION_CHARS = 1000;
+// Show the count only when the visitor is getting close, so a short question carries no counter.
+const COUNT_FROM = 800;
 import './agent-chat.css';
 
 /** What the island shows. `data-state` on the root carries `kind`, for styling and tests. */
@@ -32,6 +36,8 @@ type View =
   /** The last question got no answer (502 or a malformed reply); the visitor may send it again. */
   | { kind: 'error' }
   | { kind: 'too-long'; maxChars?: number }
+  /** Cloudflare's per-IP rate limit answered instead of the agent; the question is back in the field. */
+  | { kind: 'throttled'; retryAfterSeconds?: number }
   /** This host has no agent (a static host, or a response outside the contract): render nothing. */
   | { kind: 'absent' }
   | StoppedState;
@@ -119,17 +125,32 @@ function StoppedNotice({ view, noticeRef }: { view: StoppedState; noticeRef: Rea
   );
 }
 
+/** The visitor-facing wording for an unanswered reply; `reason` is the Worker's, for operators. */
+function unansweredText(reason: string | undefined) {
+  return reason === 'turn_limit'
+    ? 'That question needed more steps than the agent takes for one answer. Try a narrower question, or go straight to the pages.'
+    : 'The agent couldn’t answer that one. Try asking another way, or go straight to the pages.';
+}
+
 function Reply({ message }: { message: AgentUIMessage }) {
   const text = textOf(message);
   const paragraphs = text.split(/\n{2,}/).filter((paragraph) => paragraph.trim() !== '');
+  const metadata = message.metadata;
   return (
     <Message className="text-[17px]">
       <MessageContent className="agent-reply gap-3">
-        {message.metadata?.status === 'unanswered' ? (
-          <>
-            <p>The agent couldn’t answer that one. Try asking another way, or go straight to the pages.</p>
+        {metadata?.status === 'unanswered' ? (
+          <div className="agent-notice" data-reply="unanswered">
+            <p>{unansweredText(metadata.reason)}</p>
             <WorkRoutes />
-          </>
+          </div>
+        ) : metadata?.status === 'refused' ? (
+          // The Worker's fixed wording, shown as a notice rather than as an answer: it has no sources and
+          // is not the agent's reading of the pages.
+          <div className="agent-notice" data-reply="refused" data-refusal={metadata.refusal}>
+            <p>{text}</p>
+            <WorkRoutes />
+          </div>
         ) : (
           paragraphs.map((paragraph, index) => (
             <p key={index} className="whitespace-pre-line">
@@ -140,6 +161,47 @@ function Reply({ message }: { message: AgentUIMessage }) {
         <AgentSources sources={sourcesOf(message)} />
       </MessageContent>
     </Message>
+  );
+}
+
+/** What the wait says as it gets longer. Answers are not streamed, so there is no progress to report. */
+const WAIT_NOTES = [
+  { from: 0, title: 'Searching the site and reading what it finds', note: 'Answers usually take 10 to 30 seconds.' },
+  { from: 35, title: 'Still working', note: 'Longer questions can take a minute or more.' },
+  { from: 80, title: 'Still working, and slower than usual', note: 'If there is no answer after two minutes, your question comes back to the field.' },
+] as const;
+
+function formatElapsed(seconds: number) {
+  return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+/**
+ * The indicator for an answer in flight. The words change only at the thresholds above and sit in a polite
+ * live region, so a screen reader hears each phase once; the running seconds are for sighted visitors.
+ */
+function Waiting({ confirming }: { confirming: boolean }) {
+  const [seconds, setSeconds] = React.useState(0);
+  React.useEffect(() => {
+    const start = Date.now();
+    const timer = window.setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const phase = WAIT_NOTES.reduce((current, candidate) => (seconds >= candidate.from ? candidate : current), WAIT_NOTES[0]);
+  return (
+    <div className="agent-waiting">
+      <div role="status" className="agent-waiting-text">
+        <TraceLine status="running">
+          <TraceIcon>
+            <LoaderCircleIcon className="animate-spin motion-reduce:animate-none" />
+          </TraceIcon>
+          <TraceTitle>{confirming ? 'Confirming you’re a person' : phase.title}…</TraceTitle>
+        </TraceLine>
+        {!confirming && <p className="agent-wait-note">{phase.note}</p>}
+      </div>
+      <span className="agent-elapsed" aria-hidden="true">
+        {formatElapsed(seconds)}
+      </span>
+    </div>
   );
 }
 
@@ -155,8 +217,13 @@ function usePrefersReducedMotion() {
   return reduce;
 }
 
-export default function AgentChat() {
+/** `idle`, `running` (Cloudflare is checking quietly) or `interactive` (it needs the visitor to act). */
+type Challenge = 'idle' | 'running' | 'interactive';
+
+export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?: string }) {
   const [view, setView] = React.useState<View>({ kind: 'loading' });
+  const [challenge, setChallenge] = React.useState<Challenge>('idle');
+  const turnstileHost = React.useRef<HTMLDivElement>(null);
   const [messages, setMessages] = React.useState<AgentUIMessage[]>([]);
   const [draft, setDraft] = React.useState('');
   const nextId = React.useRef(0);
@@ -166,16 +233,35 @@ export default function AgentChat() {
   const focusAfterUpdate = React.useRef<'field' | 'notice' | null>(null);
   const reduceMotion = usePrefersReducedMotion();
 
+  /**
+   * Runs Turnstile pre-clearance and says whether the visitor now holds a clearance cookie. With no site key
+   * configured there is nothing to run, and the edge challenge shows as the "unverified" notice.
+   */
+  const clearHumanCheck = React.useCallback(async () => {
+    const host = turnstileHost.current;
+    if (!turnstileSiteKey || !host) return false;
+    setChallenge('running');
+    const result = await ensureHumanClearance({
+      siteKey: turnstileSiteKey,
+      host,
+      onInteractive: (interactive) => setChallenge(interactive ? 'interactive' : 'running'),
+    });
+    setChallenge('idle');
+    return result === 'cleared';
+  }, [turnstileSiteKey]);
+
   React.useEffect(() => {
     let cancelled = false;
-    checkHealth().then((health) => {
-      if (cancelled) return;
-      setView(health.kind === 'online' ? { kind: 'online' } : health);
-    });
+    (async () => {
+      let health = await checkHealth();
+      // /agent/* sits behind a Managed Challenge, so a first visit is challenged before it is answered.
+      if (health.kind === 'unverified' && !cancelled && (await clearHumanCheck())) health = await checkHealth();
+      if (!cancelled) setView(health.kind === 'online' ? { kind: 'online' } : health);
+    })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [clearHumanCheck]);
 
   React.useEffect(() => {
     const target = focusAfterUpdate.current;
@@ -186,7 +272,8 @@ export default function AgentChat() {
 
   const busy = view.kind === 'answering';
   const stopped = isStopped(view);
-  const canSend = !busy && !stopped && view.kind !== 'loading' && draft.trim() !== '';
+  const tooLong = draft.length > MAX_QUESTION_CHARS;
+  const canSend = !busy && !stopped && view.kind !== 'loading' && draft.trim() !== '' && !tooLong;
   const id = (prefix: string) => `${prefix}-${(nextId.current += 1)}`;
 
   async function send(text: string) {
@@ -198,9 +285,9 @@ export default function AgentChat() {
     setDraft('');
     setView({ kind: 'answering' });
 
-    // Turnstile integration point: a no-op until the widget is wired (see ./turnstile.ts).
-    await ensureHumanClearance();
-    const outcome = await askQuestion(question);
+    let outcome = await askQuestion(question);
+    // Clearance lasts a while, not forever: if the edge challenges this question, clear the check and ask once more.
+    if (outcome.type === 'state' && outcome.state.kind === 'unverified' && (await clearHumanCheck())) outcome = await askQuestion(question);
 
     // Move focus only if the visitor left it in the form, or it was in the form when they sent and the
     // send button, disabled while answering, dropped it to the body. An answer can take a while; if
@@ -229,6 +316,11 @@ export default function AgentChat() {
         if (focusIsOurs) focusAfterUpdate.current = 'field';
         setView({ kind: 'too-long', maxChars: outcome.maxChars });
         break;
+      case 'throttled':
+        withdraw();
+        if (focusIsOurs) focusAfterUpdate.current = 'field';
+        setView({ kind: 'throttled', retryAfterSeconds: outcome.retryAfterSeconds });
+        break;
       default:
         withdraw();
         if (focusIsOurs) focusAfterUpdate.current = 'field';
@@ -249,6 +341,13 @@ export default function AgentChat() {
       <div className="agent-notice" role="alert" id={alertId}>
         <p>The agent hit an error and has no answer to show. Your question is back in the field if you want to send it again.</p>
         <WorkRoutes />
+      </div>
+    ) : view.kind === 'throttled' ? (
+      <div className="agent-notice" role="alert" id={alertId}>
+        <p>
+          That was too many questions too quickly, so none was sent. Wait{' '}
+          {view.retryAfterSeconds ? `about ${view.retryAfterSeconds} seconds` : 'a few seconds'}, then send it again; it’s back in the field.
+        </p>
       </div>
     ) : view.kind === 'too-long' ? (
       <div className="agent-notice" role="alert" id={alertId}>
@@ -280,7 +379,7 @@ export default function AgentChat() {
                 <MessageScrollerContent role="log" aria-label="Conversation" aria-busy={busy} className="gap-6 py-2">
                   {messages.map((message) =>
                     message.role === 'user' ? (
-                      <MessageScrollerItem key={message.id} messageId={message.id} scrollAnchor>
+                      <MessageScrollerItem key={message.id} messageId={message.id} className="agent-enter">
                         <Message align="end" className="text-base">
                           <MessageContent>
                             <Bubble align="end" variant="muted">
@@ -290,21 +389,14 @@ export default function AgentChat() {
                         </Message>
                       </MessageScrollerItem>
                     ) : (
-                      <MessageScrollerItem key={message.id} messageId={message.id}>
+                      <MessageScrollerItem key={message.id} messageId={message.id} className="agent-enter">
                         <Reply message={message} />
                       </MessageScrollerItem>
                     ),
                   )}
                   {busy && (
                     <MessageScrollerItem messageId="answering">
-                      <Trace>
-                        <TraceLine status="running">
-                          <TraceIcon>
-                            <LoaderCircleIcon className="animate-spin motion-reduce:animate-none" />
-                          </TraceIcon>
-                          <TraceTitle>Searching the site…</TraceTitle>
-                        </TraceLine>
-                      </Trace>
+                      <Waiting confirming={challenge !== 'idle'} />
                     </MessageScrollerItem>
                   )}
                 </MessageScrollerContent>
@@ -337,15 +429,18 @@ export default function AgentChat() {
           )}
           {alert}
           <form ref={formRef} onSubmit={onSubmit} className="agent-form">
-            {/* Turnstile integration point: the pre-clearance widget renders here (./turnstile.ts). */}
-            <div data-turnstile-slot hidden />
+            {/* The Turnstile widget renders here (./turnstile.ts); it is invisible unless Cloudflare needs the visitor. */}
+            <div className="agent-verify" hidden={challenge !== 'interactive'}>
+              <p>Cloudflare needs to confirm a person is asking before the agent answers.</p>
+              <div data-turnstile-slot ref={turnstileHost} />
+            </div>
             <InputGroup className="agent-field">
               <InputGroupTextarea
                 ref={fieldRef}
                 value={draft}
                 onChange={(event) => {
                   setDraft(event.target.value);
-                  if (view.kind === 'too-long' || view.kind === 'error') setView({ kind: 'online' });
+                  if (view.kind === 'too-long' || view.kind === 'error' || view.kind === 'throttled') setView({ kind: 'online' });
                 }}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -353,9 +448,9 @@ export default function AgentChat() {
                     formRef.current?.requestSubmit();
                   }
                 }}
-                placeholder={view.kind === 'loading' ? 'Checking whether the agent is available…' : 'Ask about a project, an essay or my experience'}
+                placeholder={view.kind === 'loading' ? (challenge === 'idle' ? 'Checking whether the agent is available…' : 'Confirming you’re a person…') : 'Ask about a project, an essay or my experience'}
                 aria-label="Ask about my work"
-                aria-invalid={view.kind === 'too-long' || undefined}
+                aria-invalid={view.kind === 'too-long' || tooLong || undefined}
                 aria-describedby={alert ? alertId : undefined}
                 disabled={view.kind === 'loading'}
                 rows={2}
@@ -363,6 +458,12 @@ export default function AgentChat() {
               />
               <InputGroupAddon align="block-end">
                 <span className="agent-hint">Enter to send · Shift+Enter for a new line</span>
+                {draft.length >= COUNT_FROM && (
+                  <span className="agent-count" data-over={tooLong || undefined}>
+                    {draft.length.toLocaleString('en-US')} / {MAX_QUESTION_CHARS.toLocaleString('en-US')}
+                    {tooLong && <span className="sr-only"> Too long to send.</span>}
+                  </span>
+                )}
                 <InputGroupButton type="submit" variant="default" size="icon-sm" disabled={!canSend} aria-label="Send" className="ml-auto size-11">
                   <ArrowUpIcon />
                 </InputGroupButton>

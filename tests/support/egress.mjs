@@ -5,11 +5,17 @@ import { parse } from 'parse5';
 export const SITE_ORIGIN = 'https://mitchellknoth.com';
 
 /**
- * Third-party hosts the browser may request. Starts empty. Each addition needs a reason and the
- * milestone that approved it; the only one planned is Turnstile (`challenges.cloudflare.com`) in M4.
+ * Third-party hosts the browser may request. Each addition needs a reason and the milestone that
+ * approved it. Turnstile is the only one (M4, #13): the agent island loads it on demand, and only when
+ * Cloudflare's edge challenges a request to /agent/*, so no page requests it on load.
  * @type {ReadonlyArray<{ host: string, reason: string }>}
  */
-export const THIRD_PARTY_ALLOWLIST = [];
+export const THIRD_PARTY_ALLOWLIST = [
+  {
+    host: 'challenges.cloudflare.com',
+    reason: 'Cloudflare Turnstile pre-clearance for /agent/*, loaded by src/components/agent/turnstile.ts only after an edge challenge',
+  },
+];
 
 /**
  * Absolute URLs that bundled scripts contain as plain strings and never request. The static scan

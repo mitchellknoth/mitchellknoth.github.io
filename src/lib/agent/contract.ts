@@ -37,10 +37,19 @@ export type AskOutcome =
   | { type: 'reply'; body: AskReply }
   | { type: 'state'; state: StoppedState }
   | { type: 'too-long'; maxChars?: number }
+  /**
+   * Too many requests too quickly, from Cloudflare's per-IP rate limit (a 429 whose body is its Error 1015 page,
+   * not the Worker's `{"state":"limit"}`). Nothing was asked; the visitor can try again shortly.
+   */
+  | { type: 'throttled'; retryAfterSeconds?: number }
   | { type: 'no-session' }
   | { type: 'error' };
 
-export type SessionOutcome = { type: 'ok' } | { type: 'state'; state: StoppedState } | { type: 'error' };
+export type SessionOutcome =
+  | { type: 'ok' }
+  | { type: 'state'; state: StoppedState }
+  | { type: 'throttled'; retryAfterSeconds?: number }
+  | { type: 'error' };
 
 /** A response as the island sees it; `null` when the request itself failed. */
 export type Received = { status: number; body: unknown; headers: Headers } | null;
@@ -62,6 +71,12 @@ function isoOrUndefined(value: unknown): string | undefined {
 }
 
 const challenged = (received: NonNullable<Received>) => received.headers.get('cf-mitigated') === 'challenge';
+
+/** A `Retry-After` in seconds, if the response has a sensible one (the HTTP-date form is ignored). */
+function retryAfter(received: NonNullable<Received>): { retryAfterSeconds?: number } {
+  const seconds = Number(received.headers.get('retry-after'));
+  return Number.isInteger(seconds) && seconds > 0 && seconds <= 3600 ? { retryAfterSeconds: seconds } : {};
+}
 
 function parseSources(value: unknown): Source[] | null {
   if (!Array.isArray(value)) return null;
@@ -100,6 +115,9 @@ function stoppedState(received: NonNullable<Received>): StoppedState | null {
 export function interpretHealth(received: Received): HealthState {
   if (!received) return { kind: 'absent' };
   if (received.status === 403 && challenged(received)) return { kind: 'unverified' };
+  // Cloudflare's per-IP rate limit answers with its own 429 page. The agent exists; this visitor is just
+  // going too fast, which the island says if they ask (see `throttled` in interpretAsk).
+  if (received.status === 429 && !isRecord(received.body)) return { kind: 'online' };
   if (!isRecord(received.body)) return { kind: 'absent' };
   if (received.status === 200 && received.body.state === 'online') return { kind: 'online' };
   if (received.status === 200 && received.body.state === 'paused') return { kind: 'paused' };
@@ -111,7 +129,8 @@ export function interpretSession(received: Received): SessionOutcome {
   if (!received) return { type: 'error' };
   if (received.status === 201) return { type: 'ok' };
   const state = stoppedState(received);
-  return state ? { type: 'state', state } : { type: 'error' };
+  if (state) return { type: 'state', state };
+  return received.status === 429 ? { type: 'throttled', ...retryAfter(received) } : { type: 'error' };
 }
 
 export function interpretAsk(received: Received): AskOutcome {
@@ -123,6 +142,8 @@ export function interpretAsk(received: Received): AskOutcome {
   }
   const state = stoppedState(received);
   if (state) return { type: 'state', state };
+  // Any other 429 is the edge's rate limit, not the agent's message limit (that one is the JSON above).
+  if (status === 429) return { type: 'throttled', ...retryAfter(received) };
   if (status === 401 && isRecord(body) && body.error === 'no_session') return { type: 'no-session' };
   if (status === 413 && isRecord(body) && body.error === 'question_too_long') {
     return typeof body.maxChars === 'number' ? { type: 'too-long', maxChars: body.maxChars } : { type: 'too-long' };

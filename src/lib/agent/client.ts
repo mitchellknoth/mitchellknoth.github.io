@@ -11,8 +11,10 @@ import {
 } from './contract';
 
 const HEALTH_TIMEOUT_MS = 8_000;
-// Answers wait on the model and its tool calls; streaming (a later change) will replace this wait.
-const ASK_TIMEOUT_MS = 60_000;
+// Answers wait on the model and its tool calls; streaming (a later change) will replace this wait. At max
+// reasoning effort the live check saw 11 to 26 s, and a minute or more under load, so this leaves headroom
+// past the slow end instead of abandoning an answer that is still coming.
+export const ASK_TIMEOUT_MS = 120_000;
 
 async function receive(path: string, init: RequestInit, timeoutMs: number): Promise<Received> {
   try {
@@ -56,6 +58,7 @@ export async function askQuestion(question: string): Promise<AskOutcome> {
   if (first.type !== 'no-session') return first;
   const session = await startSession();
   if (session.type === 'state') return session;
+  if (session.type === 'throttled') return session;
   if (session.type === 'error') return { type: 'error' };
   const second = await post(question);
   return second.type === 'no-session' ? { type: 'error' } : second;

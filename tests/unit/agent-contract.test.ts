@@ -25,6 +25,31 @@ describe('interpretHealth', () => {
   it('reports an edge challenge as unverified', () => {
     expect(interpretHealth(json(403, '<html>', { 'cf-mitigated': 'challenge' }))).toEqual({ kind: 'unverified' });
   });
+
+  it('treats the edge rate limit page as an agent that exists, not as an absent one', () => {
+    // Cloudflare's Error 1015 is a 429 with an HTML body. The visitor is going too fast; the agent is there.
+    expect(interpretHealth(json(429, '<!doctype html><title>Error 1015</title>'))).toEqual({ kind: 'online' });
+  });
+});
+
+describe('edge rate limit (Cloudflare Error 1015)', () => {
+  const page = '<!doctype html><title>Error 1015</title>';
+
+  it('is a throttled ask, never the agent’s own message limit', () => {
+    expect(interpretAsk(json(429, page))).toEqual({ type: 'throttled' });
+    expect(interpretAsk(json(429, { state: 'limit', reason: 'session_message_limit' }))).toEqual({ type: 'state', state: { kind: 'limit' } });
+  });
+
+  it('keeps a sensible Retry-After and ignores the rest', () => {
+    expect(interpretAsk(json(429, page, { 'retry-after': '10' }))).toEqual({ type: 'throttled', retryAfterSeconds: 10 });
+    expect(interpretAsk(json(429, page, { 'retry-after': 'Wed, 21 Oct 2026 07:28:00 GMT' }))).toEqual({ type: 'throttled' });
+    expect(interpretAsk(json(429, page, { 'retry-after': '99999' }))).toEqual({ type: 'throttled' });
+    expect(interpretAsk(json(429, page, { 'retry-after': '0' }))).toEqual({ type: 'throttled' });
+  });
+
+  it('applies to starting a session too', () => {
+    expect(interpretSession(json(429, page, { 'retry-after': '5' }))).toEqual({ type: 'throttled', retryAfterSeconds: 5 });
+  });
 });
 
 describe('interpretAsk', () => {

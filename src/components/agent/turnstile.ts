@@ -1,22 +1,136 @@
-// INTEGRATION POINT — Turnstile pre-clearance (#13 guardrails, #18).
+// Turnstile pre-clearance for the agent (#13 guardrails, #18).
 //
-// Not wired yet. The plan: render a Turnstile widget with pre-clearance in the island; solving it sets
-// the `cf_clearance` cookie, which passes the WAF Managed Challenge on /agent*. The edge enforces
-// it, so the Worker never calls Turnstile's verify endpoint.
+// The edge enforces it: a WAF Managed Challenge covers /agent and /agent/*, and a Turnstile widget with
+// pre-clearance, solved in the visitor's browser, sets the `cf_clearance` cookie that passes it. The Worker
+// never calls Turnstile's verify endpoint and this code never sees a secret: the site key below is public.
 //
-// To wire it, once Mitch has created the widget in Cloudflare (it needs a site key):
-//   1. Load https://challenges.cloudflare.com/turnstile/v0/api.js from this module, on demand, only on
-//      the homepage, and only when the visitor first asks a question.
-//   2. Add `challenges.cloudflare.com` to THIRD_PARTY_ALLOWLIST in tests/support/egress.mjs, with its
-//      reason, and update tests/build/egress.test.mjs, which asserts the allowlist is empty today.
-//   3. Render the widget into the element marked `data-turnstile-slot` in AgentChat.tsx and resolve
-//      `ensureHumanClearance` when its callback fires.
-// Until then the island already handles an edge challenge: a 403 carrying `cf-mitigated: challenge`
-// becomes the "unverified" state (src/lib/agent/contract.ts).
+// Cloudflare's script loads only when it is needed: when a request to /agent/* comes back challenged
+// (`403` with `cf-mitigated: challenge`, see contract.ts). A visitor who already holds a clearance cookie,
+// and every visitor on a host with no agent, never contacts challenges.cloudflare.com. The widget renders
+// with `appearance: interaction-only`, so it is invisible unless Cloudflare needs the visitor to do something.
 
-export type Clearance = 'cleared' | 'unavailable';
+/**
+ * The public site key of the `mitchellknoth-com-agent` widget (Cloudflare dashboard → Turnstile). Site keys are
+ * public by design. Leave it empty until the key is known: without one the island skips the widget and an edge
+ * challenge shows the "unverified" notice instead. `PUBLIC_TURNSTILE_SITE_KEY` overrides it for local runs and
+ * tests; Cloudflare publishes dummy keys for that (https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
+ */
+export const TURNSTILE_SITE_KEY = '';
 
-/** Resolves once the visitor holds a clearance cookie, or straight away while Turnstile is not wired. */
-export async function ensureHumanClearance(): Promise<Clearance> {
-  return 'cleared';
+const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+const SCRIPT_TIMEOUT_MS = 15_000;
+// A visitor may need to tick a box, so the whole check is allowed a generous minute.
+const SOLVE_TIMEOUT_MS = 60_000;
+
+interface TurnstileOptions {
+  sitekey: string;
+  action?: string;
+  theme?: 'light' | 'dark' | 'auto';
+  appearance?: 'always' | 'execute' | 'interaction-only';
+  size?: 'normal' | 'flexible' | 'compact';
+  retry?: 'auto' | 'never';
+  callback?: (token: string) => void;
+  'error-callback'?: (code?: string) => boolean | void;
+  'expired-callback'?: () => void;
+  'timeout-callback'?: () => void;
+  'unsupported-callback'?: () => void;
+  'before-interactive-callback'?: () => void;
+  'after-interactive-callback'?: () => void;
+}
+
+interface TurnstileApi {
+  render(container: HTMLElement, options: TurnstileOptions): string | undefined;
+  remove(widgetId: string): void;
+}
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
+
+/** `cleared`: the visitor now holds a clearance cookie. `failed`: they do not, and the island says so. */
+export type Clearance = 'cleared' | 'failed';
+
+let script: Promise<TurnstileApi | null> | null = null;
+
+function loadScript(): Promise<TurnstileApi | null> {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  script ??= new Promise<TurnstileApi | null>((resolve) => {
+    const element = document.createElement('script');
+    const finish = (api: TurnstileApi | null) => {
+      window.clearTimeout(timer);
+      // A failed load is not cached: a later question may try again (for instance after the network returns).
+      if (!api) {
+        element.remove();
+        script = null;
+      }
+      resolve(api);
+    };
+    const timer = window.setTimeout(() => finish(null), SCRIPT_TIMEOUT_MS);
+    element.src = SCRIPT_URL;
+    element.async = true;
+    element.onload = () => finish(window.turnstile ?? null);
+    element.onerror = () => finish(null);
+    document.head.append(element);
+  });
+  return script;
+}
+
+let solving: Promise<Clearance> | null = null;
+
+/**
+ * Runs the pre-clearance widget inside `host` and resolves when it finishes. `onInteractive` is told when
+ * Cloudflare needs the visitor to act (so the island can make room for the widget) and when that is over.
+ * Concurrent calls share one run.
+ */
+export function ensureHumanClearance(options: {
+  siteKey: string;
+  host: HTMLElement;
+  onInteractive?: (interactive: boolean) => void;
+}): Promise<Clearance> {
+  solving ??= run(options).finally(() => {
+    solving = null;
+  });
+  return solving;
+}
+
+async function run({ siteKey, host, onInteractive }: Parameters<typeof ensureHumanClearance>[0]): Promise<Clearance> {
+  const api = await loadScript();
+  if (!api) return 'failed';
+  return new Promise<Clearance>((resolve) => {
+    let widget: string | undefined;
+    const finish = (result: Clearance) => {
+      window.clearTimeout(timer);
+      onInteractive?.(false);
+      if (widget !== undefined) api.remove(widget);
+      host.replaceChildren();
+      resolve(result);
+    };
+    const timer = window.setTimeout(() => finish('failed'), SOLVE_TIMEOUT_MS);
+    try {
+      widget = api.render(host, {
+        sitekey: siteKey,
+        action: 'agent',
+        theme: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark',
+        appearance: 'interaction-only',
+        // The normal widget is 300px wide, more than a 320px phone leaves inside the island.
+        size: window.matchMedia('(max-width: 399px)').matches ? 'compact' : 'normal',
+        retry: 'never',
+        callback: () => finish('cleared'),
+        'error-callback': () => {
+          finish('failed');
+          // Returning true tells Turnstile the error is handled, so it does not log its own.
+          return true;
+        },
+        'timeout-callback': () => finish('failed'),
+        'expired-callback': () => finish('failed'),
+        'unsupported-callback': () => finish('failed'),
+        'before-interactive-callback': () => onInteractive?.(true),
+        'after-interactive-callback': () => onInteractive?.(false),
+      });
+    } catch {
+      finish('failed');
+    }
+  });
 }

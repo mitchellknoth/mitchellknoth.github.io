@@ -45,7 +45,7 @@ describe('AI SDK message adapter', () => {
 
   it('gives an unanswered reply no text, so the UI says so in its own words', () => {
     const message = replyToMessage('a3', { status: 'unanswered', reason: 'model_error' });
-    expect(message).toEqual({ id: 'a3', role: 'assistant', metadata: { status: 'unanswered' }, parts: [] });
+    expect(message).toEqual({ id: 'a3', role: 'assistant', metadata: { status: 'unanswered', reason: 'model_error' }, parts: [] });
     expect(textOf(message)).toBe('');
   });
 });

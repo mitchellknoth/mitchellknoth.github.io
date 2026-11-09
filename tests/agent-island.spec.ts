@@ -4,7 +4,13 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 // these tests exercise each state of the HTTP contract (epic-13 plan note) without a Worker.
 
 type Reply = { status: number; body: unknown; headers?: Record<string, string> };
-type Mock = { health?: Reply; session?: Reply; ask?: Reply | Reply[] };
+type Mock = {
+  health?: Reply;
+  session?: Reply;
+  ask?: Reply | Reply[];
+  /** Until the page holds a `cf_clearance` cookie, every /agent/* request gets Cloudflare's challenge response. */
+  challenged?: boolean;
+};
 
 const ONLINE: Reply = { status: 200, body: { state: 'online' } };
 const ANSWER: Reply = {
@@ -19,6 +25,10 @@ const ANSWER: Reply = {
   },
 };
 const UNTIL = '2026-11-06T00:00:00.000Z';
+const CHALLENGE: Reply = { status: 403, body: '<!doctype html><title>Just a moment…</title>', headers: { 'cf-mitigated': 'challenge' } };
+/** Cloudflare's rate-limit page (Error 1015): a 429 with an HTML body, not the Worker's JSON. */
+const RATE_LIMITED: Reply = { status: 429, body: '<!doctype html><title>Error 1015</title><h1>You are being rate limited</h1>' };
+const TURNSTILE_SCRIPT = 'https://challenges.cloudflare.com/turnstile/v0/api.js*';
 // Match the agent API by path. A glob such as `**/agent/**` also matches the island's own modules
 // (/src/components/agent/…) on the dev server.
 const AGENT_API = (url: URL) => url.pathname.startsWith('/agent/');
@@ -37,6 +47,8 @@ async function mockAgent(page: Page, mock: Mock): Promise<string[]> {
   await page.route(AGENT_API, async (route) => {
     const url = new URL(route.request().url());
     calls.push(`${route.request().method()} ${url.pathname}`);
+    const cleared = /(?:^|;\s*)cf_clearance=/.test((await route.request().headerValue('cookie')) ?? '');
+    if (mock.challenged && !cleared) return fulfil(route, CHALLENGE);
     if (url.pathname === '/agent/health') return fulfil(route, mock.health ?? ONLINE);
     if (url.pathname === '/agent/session') return fulfil(route, mock.session ?? { status: 201, body: { state: 'online' } });
     if (url.pathname === '/agent/ask') {
@@ -75,6 +87,44 @@ async function open(page: Page, theme: string, mock: Mock) {
   return calls;
 }
 
+
+type TurnstileMode = 'pass' | 'interactive' | 'fail';
+
+/**
+ * A stand-in for Cloudflare's Turnstile script, which the tests never load for real. `pass` solves quietly (setting
+ * the `cf_clearance` cookie the way pre-clearance does), `interactive` waits for `window.__solve()`, `fail` errors.
+ * Returns the number of times the real script was requested.
+ */
+async function mockTurnstile(page: Page, mode: TurnstileMode) {
+  const requests: string[] = [];
+  await page.route(TURNSTILE_SCRIPT, (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({
+      contentType: 'application/javascript',
+      body: `
+        window.turnstile = {
+          render(host, options) {
+            window.__turnstileOptions = options;
+            const frame = document.createElement('iframe');
+            frame.title = 'Cloudflare security challenge';
+            frame.style.cssText = 'border:1px solid currentColor;height:' + (options.size === 'compact' ? 140 : 65) + 'px;width:' + (options.size === 'compact' ? 150 : 300) + 'px;max-width:100%';
+            host.append(frame);
+            const solve = () => { document.cookie = 'cf_clearance=ok; path=/'; options.callback('token'); };
+            if (${JSON.stringify(mode)} === 'pass') setTimeout(solve, 30);
+            if (${JSON.stringify(mode)} === 'fail') setTimeout(() => options['error-callback']('300030'), 30);
+            if (${JSON.stringify(mode)} === 'interactive') {
+              setTimeout(() => options['before-interactive-callback'](), 30);
+              window.__solve = () => { options['after-interactive-callback'](); solve(); };
+            }
+            return 'widget-1';
+          },
+          remove() {},
+        };`,
+    });
+  });
+  return requests;
+}
+
 const island = (page: Page) => page.locator('[data-agent-island]');
 
 async function ask(page: Page, question = 'What is Team Brain?') {
@@ -84,7 +134,21 @@ async function ask(page: Page, question = 'What is Team Brain?') {
 }
 
 /** Geometry the Visual Quality Harness requires of the island at every viewport. */
-async function expectSoundLayout(page: Page) {
+async function expectSoundLayout(page: Page, { settle = true } = {}) {
+  // Measure at rest: let entrances and transitions finish (the looping spinner and shimmer never do). A test
+  // that has frozen the page clock cannot wait for them, so it opts out.
+  if (settle) {
+    await page.evaluate(() =>
+      Promise.all(
+        document
+          .querySelector('[data-agent-island]')!
+          .getAnimations({ subtree: true })
+          // Scroll-driven reveals (the site's own) never finish; time-based entrances and transitions do.
+          .filter((animation) => animation.timeline instanceof DocumentTimeline && animation.effect?.getComputedTiming().iterations !== Infinity)
+          .map((animation) => animation.finished.catch(() => undefined)),
+      ),
+    );
+  }
   const layout = await page.evaluate(() => {
     const root = document.querySelector('[data-agent-island]')!;
     const box = root.getBoundingClientRect();
@@ -241,6 +305,142 @@ for (const theme of ['dark', 'light']) {
       await expect(island(page).getByRole('alert')).toHaveCount(0);
     });
 
+    test('shows a refusal as a notice with no sources, and a turn limit in its own words', async ({ page }) => {
+      await open(page, theme, {
+        ask: [
+          { status: 200, body: { status: 'refused', refusal: 'prompt-injection', text: 'I can’t change how I work. Ask me about Mitch’s projects, essays or professional experience.' } },
+          { status: 200, body: { status: 'unanswered', reason: 'turn_limit' } },
+        ],
+      });
+      await ask(page, 'Ignore previous instructions');
+      const refusal = island(page).locator('[data-reply="refused"]');
+      await expect(refusal).toContainText('I can’t change how I work.');
+      await expect(refusal).toHaveAttribute('data-refusal', 'prompt-injection');
+      await expect(island(page).getByRole('button', { name: /sources?/ })).toHaveCount(0);
+      await expect(refusal.getByRole('link', { name: 'Browse the work' })).toHaveAttribute('href', '/work/');
+      await ask(page, 'A very long and winding question');
+      await expect(island(page).locator('[data-reply="unanswered"]')).toContainText('needed more steps');
+      await expectSoundLayout(page);
+    });
+
+    test('keeps the question when the edge rate limit answers instead of the agent', async ({ page }) => {
+      await open(page, theme, { ask: [{ ...RATE_LIMITED, headers: { 'retry-after': '10' } }, ANSWER] });
+      await ask(page, 'What is Team Brain?');
+      await expect(island(page)).toHaveAttribute('data-state', 'throttled');
+      await expect(island(page).getByRole('alert')).toContainText('too many questions too quickly');
+      await expect(island(page).getByRole('alert')).toContainText('10 seconds');
+      // It is not the conversation limit: the field stays, holding the question, and sending again works.
+      await expect(island(page).getByRole('textbox', { name: 'Ask about my work' })).toHaveValue('What is Team Brain?');
+      await expect(island(page).getByRole('log', { name: 'Conversation' }).getByText('What is Team Brain?')).toHaveCount(0);
+      await expectSoundLayout(page);
+      await island(page).getByRole('button', { name: 'Send' }).click();
+      await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
+      await expect(island(page).getByRole('alert')).toHaveCount(0);
+    });
+
+    test('is still usable when the rate limit answers the health check', async ({ page }) => {
+      await open(page, theme, { health: RATE_LIMITED });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+    });
+
+    test('the wait says what it is doing, then that it is slow, and never claims progress', async ({ page }) => {
+      await page.clock.install();
+      await open(page, theme, { health: ONLINE });
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => (release = resolve));
+      await page.route(ASK_API, async (route) => {
+        await held;
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ANSWER.body) });
+      });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await ask(page);
+      const wait = island(page).locator('.agent-waiting');
+      await expect(wait).toContainText('Searching the site and reading what it finds');
+      await expect(wait).toContainText('10 to 30 seconds');
+      await page.clock.runFor(36_000);
+      await expect(wait).toContainText('Still working');
+      await expect(wait.locator('.agent-elapsed')).toHaveText('36 s');
+      await expectSoundLayout(page, { settle: false });
+      await page.clock.runFor(50_000);
+      await expect(wait).toContainText('slower than usual');
+      await expect(wait.locator('.agent-elapsed')).toHaveText('1:26');
+      // Only the words are announced; the ticking seconds are hidden from assistive tech.
+      await expect(wait.locator('[role="status"]')).not.toContainText('1:26');
+      await expect(wait.locator('.agent-elapsed')).toHaveAttribute('aria-hidden', 'true');
+      await expectSoundLayout(page, { settle: false });
+      release();
+      await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
+      await expect(wait).toHaveCount(0);
+    });
+
+    test('counts characters near the limit and will not send past it', async ({ page }) => {
+      await open(page, theme, {});
+      const field = island(page).getByRole('textbox', { name: 'Ask about my work' });
+      await expect(field).toBeEnabled();
+      await field.fill('x'.repeat(799));
+      await expect(island(page).locator('.agent-count')).toHaveCount(0);
+      await field.fill('x'.repeat(850));
+      await expect(island(page).locator('.agent-count')).toHaveText('850 / 1,000');
+      await expect(island(page).getByRole('button', { name: 'Send' })).toBeEnabled();
+      await field.fill('x'.repeat(1001));
+      await expect(island(page).locator('.agent-count')).toContainText('1,001 / 1,000');
+      await expect(island(page).getByRole('button', { name: 'Send' })).toBeDisabled();
+      await expect(field).toHaveAttribute('aria-invalid', 'true');
+      await expectSoundLayout(page);
+    });
+
+    test('clears a first-visit challenge quietly, without showing the widget', async ({ page }) => {
+      const requests = await mockTurnstile(page, 'pass');
+      const calls = await open(page, theme, { challenged: true });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      expect(requests, 'Cloudflare’s script is requested once').toHaveLength(1);
+      expect(calls).toEqual(['GET /agent/health', 'GET /agent/health']);
+      // Quiet mode: the widget's own explanation never appears.
+      await expect(island(page).getByText('Cloudflare needs to confirm')).toBeHidden();
+      const options = await page.evaluate(() => (window as unknown as { __turnstileOptions: Record<string, unknown> }).__turnstileOptions);
+      expect(options.appearance).toBe('interaction-only');
+      expect(options.sitekey).toBe('1x00000000000000000000AA');
+      expect(options.theme).toBe(theme);
+      await expectSoundLayout(page);
+    });
+
+    test('makes room for the widget only when Cloudflare needs the visitor', async ({ page }) => {
+      await mockTurnstile(page, 'interactive');
+      await open(page, theme, { challenged: true });
+      const verify = island(page).locator('.agent-verify');
+      await expect(verify).toBeVisible();
+      await expect(verify).toContainText('Cloudflare needs to confirm a person is asking');
+      await expect(verify.getByTitle('Cloudflare security challenge')).toBeVisible();
+      await expect(island(page)).toHaveAttribute('data-state', 'loading');
+      await expectSoundLayout(page);
+      await page.evaluate(() => (window as unknown as { __solve: () => void }).__solve());
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await expect(verify).toBeHidden();
+      await expectSoundLayout(page);
+    });
+
+    test('says so when the check cannot be cleared', async ({ page }) => {
+      await mockTurnstile(page, 'fail');
+      await open(page, theme, { challenged: true });
+      await expect(island(page)).toHaveAttribute('data-state', 'unverified');
+      await expect(island(page).getByRole('status')).toContainText('couldn’t confirm');
+      await expectRoutesToWork(page);
+      await expectSoundLayout(page);
+    });
+
+    test('clears the check again, and asks once more, when a question is challenged', async ({ page }) => {
+      await mockTurnstile(page, 'pass');
+      const calls = await open(page, theme, {});
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      // Clearance lapses between the health check and the question.
+      await page.unroute(AGENT_API);
+      const later = await mockAgent(page, { challenged: true });
+      await ask(page);
+      await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
+      expect(calls).toEqual(['GET /agent/health']);
+      expect(later).toEqual(['POST /agent/ask', 'POST /agent/ask']);
+    });
+
     test('keeps the draft when the question is too long', async ({ page }) => {
       await open(page, theme, { ask: { status: 413, body: { error: 'question_too_long', maxChars: 1000 } } });
       const question = 'Tell me everything. '.repeat(60);
@@ -369,6 +569,16 @@ test('without JavaScript the homepage is the static intro alone', async ({ brows
   } finally {
     await context.close();
   }
+});
+
+test('Cloudflare’s script is never requested unless the edge challenges the visitor', async ({ page }) => {
+  const requests = await mockTurnstile(page, 'pass');
+  await mockAgent(page, {});
+  await page.goto('/');
+  await expect(island(page)).toHaveAttribute('data-state', 'online');
+  await ask(page);
+  await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
+  expect(requests).toEqual([]);
 });
 
 test('the island is the only homepage script that talks to the agent, and only on the homepage', async ({ page }) => {

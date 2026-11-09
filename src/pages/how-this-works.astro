@@ -15,9 +15,10 @@ const failureStates = [
   { state: 'Budget spent', shows: 'The agent says it’s paused and, when it knows, the time it resumes.' },
   { state: 'Conversation limit', shows: 'The conversation ends and the agent points to the work.' },
   { state: 'Blocked', shows: 'The agent is unavailable from that address until its entry expires. Every page still loads.' },
-  { state: 'Not verified', shows: 'If Cloudflare challenges the request, the agent says it couldn’t confirm a person is asking.' },
+  { state: 'Not verified', shows: 'A quiet Cloudflare check runs first and asks for a click only if it must. If it can’t confirm a person is asking, the agent says so.' },
+  { state: 'Too fast', shows: 'A burst of requests meets Cloudflare’s rate limit. The question goes back in the field and the agent says to wait a few seconds.' },
   { state: 'Declined', shows: 'Questions outside the published work, about personal details, or trying to steer it elsewhere get a short refusal.' },
-  { state: 'No answer', shows: 'If the model or the run fails, it says it couldn’t answer instead of guessing.' },
+  { state: 'No answer', shows: 'If the model or the run fails, or a question needs more steps than one answer allows, it says it couldn’t answer instead of guessing.' },
   { state: 'Too long', shows: 'The question goes back in the field with the length limit.' },
 ];
 
@@ -95,7 +96,7 @@ const questionKinds = [
       <li><strong>A daily ceiling.</strong> Agent requests across all visitors are counted, and the count resets at midnight UTC.</li>
       <li><strong>A spending cap.</strong> When AI Gateway’s spend limit stops a call, the guard pauses the agent until midnight UTC, and the homepage says so.</li>
       <li><strong>An expiring blocklist.</strong> The guard refuses an address on its blocklist until the entry expires, so a shared or VPN address recovers. Only the agent is refused; nothing adds entries automatically yet.</li>
-      <li><strong>Human checks, planned.</strong> Before launch, Cloudflare Turnstile and a challenge rule on <code>/agent/</code> will confirm a person is asking. Neither is switched on yet.</li>
+      <li><strong>Human checks and a rate limit.</strong> A Cloudflare challenge rule on <code>/agent/</code>, cleared by Turnstile in your browser, confirms a person is asking, and a per-address rate limit slows bursts. The check is invisible unless Cloudflare needs you to act.</li>
     </ul>
 
     <h2 id="how-it-fails">How it fails</h2>
