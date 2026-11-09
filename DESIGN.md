@@ -84,7 +84,7 @@ Give each component an explicit width class: `reading` (68–72ch), `diagram` (m
 
 - Under 768px: one column; consistent left edge for navigation, lists, dates, figures, and workflow steps. Below 360px, retain the two-row header with brand and theme control above navigation. No compressed tabbed columns.
 - 768–1023px: two columns only where labels and prose remain legible; allow long headlines and tags to wrap. No fixed card heights that clip content.
-- 1024–1439px: deliberate 12-column composition; hero may use 7/5, fact grids 2–3 columns, diagram comparisons 2–3. Reading copy does not inherit the shell width.
+- 1024–1439px: deliberate 12-column composition; the hero beside the agent island is 5/7 (intro / agent), so the agent gets the wider column; fact grids 2–3 columns, diagram comparisons 2–3. Reading copy does not inherit the shell width.
 - 1440px and above: shell remains capped; figures max 992px; long prose max 72ch. Use additional *internal* width for relationships, not blank card acreage. No full-screen stretching at 3440px.
 
 ### Page recipes

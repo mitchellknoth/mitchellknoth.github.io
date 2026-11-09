@@ -182,7 +182,7 @@ for (const theme of ['dark', 'light']) {
       { name: 'paused from the health check', mock: { health: { status: 200, body: { state: 'paused' } } }, state: 'paused', text: /budget/ },
       { name: 'paused with a resume time', mock: { ask: { status: 503, body: { state: 'paused', until: UNTIL } } }, state: 'paused', text: /budget[\s\S]*until/ },
       { name: 'offline after asking', mock: { ask: { status: 503, body: { state: 'offline' } } }, state: 'offline', text: /switched off/ },
-      { name: 'blocked', mock: { ask: { status: 403, body: { state: 'blocked', until: UNTIL } } }, state: 'blocked', text: /can’t use the agent/ },
+      { name: 'blocked', mock: { ask: { status: 403, body: { state: 'blocked', until: UNTIL } } }, state: 'blocked', text: /unavailable from this connection/ },
       { name: 'session limit', mock: { ask: { status: 429, body: { state: 'limit', reason: 'session_message_limit' } } }, state: 'limit', text: /message limit/ },
       {
         name: 'not verified as human',
@@ -212,7 +212,7 @@ for (const theme of ['dark', 'light']) {
       ['answers outside the contract', { status: 200, body: { state: 'something-new' } }],
     ] as const) {
       test(`removes itself when the host ${name}`, async ({ page }) => {
-        // GitHub Pages, which hosts the site until the Workers cutover, has no /agent/ routes at all.
+        // A static host with no Worker (GitHub Pages was one) has no /agent/ routes at all.
         await open(page, theme, { health: reply });
         await expect(island(page)).toHaveCount(0);
         await expect(page.getByRole('link', { name: 'Explore my work' })).toBeVisible();

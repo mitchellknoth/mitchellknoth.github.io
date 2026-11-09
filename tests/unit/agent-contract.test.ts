@@ -15,7 +15,7 @@ describe('interpretHealth', () => {
   });
 
   it('treats a host with no agent, and anything outside the contract, as absent', () => {
-    // Static hosting without the Worker (GitHub Pages today) answers /agent/health with the 404 page.
+    // Static hosting without the Worker (GitHub Pages, before the Workers cutover) answers /agent/health with the 404 page.
     expect(interpretHealth(json(404, '<!doctype html>'))).toEqual({ kind: 'absent' });
     expect(interpretHealth(json(200, { state: 'nonsense' }))).toEqual({ kind: 'absent' });
     expect(interpretHealth(json(503, 'Service Unavailable'))).toEqual({ kind: 'absent' });

@@ -42,7 +42,7 @@ const featuredMetrics = (await getProjects())
       The agent island (#18). The intro above is the page; the island is an addition to it.
       client:idle keeps React off the critical path. The server-rendered "loading" shell reserves
       its space. Without JavaScript it is hidden and the hero is one column, so the static intro
-      stands alone; on a host with no agent (GitHub Pages) the island removes itself the same way.
+      stands alone; on a host with no agent at all (a static host, or a 404 from /agent/health) the island removes itself the same way.
     */}
     <noscript><style is:inline>[data-agent-island] { display: none !important; } .home-hero { grid-template-columns: minmax(0, 1fr) !important; }</style></noscript>
     <AgentChat client:idle />
@@ -155,8 +155,8 @@ const featuredMetrics = (await getProjects())
   }
   @media (min-width: 1024px) {
     /* The readable lead beside the agent. The agent gets the wider column because the agreed plan
-       (#13) makes it the page's primary experience; DESIGN.md's Home recipe allows a 7/5 hero, and
-       this deliberately flips it (flagged for review in #18). Both columns hold content. */
+       (#13) makes it the page's primary experience; DESIGN.md's Home recipe specifies this 5/7 split.
+       Both columns hold content. */
     .home-hero:has([data-agent-island]) {
       grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
       align-items: start;

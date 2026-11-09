@@ -39,7 +39,7 @@ type View =
 const SUGGESTIONS = [
   'What is Team Brain, and why did Mitch build it?',
   'Why should the agent harness not live on a laptop?',
-  'What has Mitch worked on in cloud networking?',
+  'How were coding agents run in cloud sandboxes, and how were credentials kept out of them?',
 ];
 
 const isStopped = (view: View): view is StoppedState =>
@@ -85,27 +85,27 @@ function StoppedNotice({ view, noticeRef }: { view: StoppedState; noticeRef: Rea
   let message: React.ReactNode;
   switch (view.kind) {
     case 'offline':
-      message = 'The agent is switched off right now. Everything it would draw on is published here.';
+      message = 'The agent is switched off right now. Everything it answers from is published on this site.';
       break;
     case 'paused':
       message = (
         <>
           The agent has used its daily budget and is paused
-          {view.until ? <Until until={view.until} /> : ' until the budget resets'}. Everything it would draw on is
-          published here.
+          {view.until ? <Until until={view.until} /> : ' until the budget resets'}. Everything it answers from is
+          published on this site.
         </>
       );
       break;
     case 'blocked':
       message = (
         <>
-          This connection can’t use the agent right now
-          <Until until={view.until} />. The rest of the site is open as usual.
+          The agent is unavailable from this connection
+          <Until until={view.until} />. The rest of the site works as usual.
         </>
       );
       break;
     case 'limit':
-      message = 'This conversation has reached its message limit. The pages the agent draws on are all here.';
+      message = 'This conversation has reached its message limit. The pages the agent answers from are all here.';
       break;
     case 'unverified':
       message = 'Cloudflare couldn’t confirm this browser is operated by a person, so the agent is unavailable. Reloading the page may help; the rest of the site is open as usual.';
@@ -247,7 +247,7 @@ export default function AgentChat() {
   const alert =
     view.kind === 'error' ? (
       <div className="agent-notice" role="alert" id={alertId}>
-        <p>Something went wrong on the agent’s side, and there’s no answer to show. Your question is back in the field if you’d like to send it again.</p>
+        <p>The agent hit an error and has no answer to show. Your question is back in the field if you want to send it again.</p>
         <WorkRoutes />
       </div>
     ) : view.kind === 'too-long' ? (
@@ -268,7 +268,7 @@ export default function AgentChat() {
             How it works →
           </a>
         </div>
-        <p className="agent-lede">An agent that answers only from what’s published on this site, and cites the pages it used.</p>
+        <p className="agent-lede">Answers from the case studies, essays and résumé published on this site, and links the pages it used. If they don’t say, it tells you.</p>
       </header>
 
       {messages.length > 0 && (

@@ -11,7 +11,7 @@ test('explains the agent in the sections the plan calls for', async ({ page }) =
   }
   const status = page.getByRole('complementary', { name: 'Where it stands' });
   // The page must not present the agent as live, or unscored work as scored.
-  await expect(status).toContainText('The agent isn’t live');
+  await expect(status).toContainText('The agent is switched off in production');
   await expect(status).toContainText('nothing has been scored');
   await expect(page.getByRole('figure', { name: /One origin, two lanes/ })).toBeVisible();
 });

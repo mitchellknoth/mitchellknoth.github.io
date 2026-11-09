@@ -11,7 +11,7 @@ import RequestPath from '../components/how/RequestPath.astro';
 const repo = 'https://github.com/mitchellknoth/mitchellknoth.github.io';
 
 const failureStates = [
-  { state: 'Switched off', shows: 'The agent says it’s off and points to the work. This is the default until launch.' },
+  { state: 'Switched off', shows: 'The agent says it’s off and points to the work. This is how it ships today.' },
   { state: 'Budget spent', shows: 'The agent says it’s paused and, when it knows, the time it resumes.' },
   { state: 'Conversation limit', shows: 'The conversation ends and the agent points to the work.' },
   { state: 'Blocked', shows: 'The agent is unavailable from that address until its entry expires. Every page still loads.' },
@@ -46,20 +46,20 @@ const questionKinds = [
 
     <aside class="rule-callout how-status" aria-label="Where it stands">
       <p>
-        <strong>Where it stands.</strong> The agent isn’t live: this site is still served by GitHub Pages, which has no
-        agent, so the homepage shows only its introduction. Built and tested so far are the Worker, the guard,
-        per-visitor sessions, the two corpus tools, refusals, the evaluation harness and every homepage state, the
-        last against simulated responses. The question set isn’t written yet, so nothing has been scored. The agent
-        stays switched off until its evaluation runs
-        are published below and I’ve reviewed the answers. It hasn’t been load tested, so I make no claims about scale.
+        <strong>Where it stands.</strong> The agent is switched off in production. This site runs on Cloudflare
+        Workers, and the homepage shows a notice where the agent will appear. Built and tested so far are the Worker,
+        the guard, per-visitor sessions, the two corpus tools, refusals, the evaluation harness and every homepage
+        state, the last against simulated responses. The question set isn’t written yet, so nothing has been scored.
+        The agent stays off until its evaluation runs are published below and I’ve reviewed the answers. It hasn’t
+        been load tested, so I make no claims about scale.
       </p>
     </aside>
 
     <h2 id="request-path">The request path</h2>
     <p>
       Every page on this site is pre-rendered and served as a file before any code runs, so the pages work the same
-      whether the agent is on, off or failing. Once the site moves to Cloudflare Workers, only requests to
-      <code>/agent/</code> reach the Worker, which runs on the same origin as the pages.
+      whether the agent is on, off or failing. The site is served by Cloudflare Workers, and only requests to
+      <code>/agent/</code> reach the Worker’s code, which runs on the same origin as the pages.
     </p>
 
     <RequestPath />
