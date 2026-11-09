@@ -17,6 +17,7 @@ Run these on workers.dev before the agent is linked from the site. The agent shi
 | `wrangler` | 4.158.0 |
 | `compatibility_date` | 2026-11-05 |
 | Spike model (`AGENT_MODEL`) | `@cf/openai/gpt-oss-20b` (placeholder; M3 chooses from the eval scorecard) |
+| Reasoning effort (`AGENT_REASONING`) | `off` (`off`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max`; unknown values mean `off`) |
 
 Pi Durable is experimental. A conversation written by a newer Pi minor version can't be read after rolling
 back, so fix a bad deploy by rolling forward.

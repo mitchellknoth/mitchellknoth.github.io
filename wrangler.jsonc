@@ -36,6 +36,9 @@
 		"AGENT_ENABLED": "false",
 		// Spike default; M3 picks the model from the eval scorecard (#17).
 		"AGENT_MODEL": "@cf/openai/gpt-oss-20b",
+		// Reasoning effort for the model: off, minimal, low, medium, high, xhigh or max. Higher effort bills more
+		// output tokens per question, so raise it only after a live call shows the cost (#16).
+		"AGENT_REASONING": "off",
 		// The AI Gateway that carries the inference spend limit.
 		"AI_GATEWAY_ID": "mitchellknoth-com-agent",
 		"MAX_PROMPT_CHARS": "1000",
