@@ -10,12 +10,13 @@
 // with `appearance: interaction-only`, so it is invisible unless Cloudflare needs the visitor to do something.
 
 /**
- * The public site key of the `mitchellknoth-com-agent` widget (Cloudflare dashboard → Turnstile). Site keys are
- * public by design. Leave it empty until the key is known: without one the island skips the widget and an edge
- * challenge shows the "unverified" notice instead. `PUBLIC_TURNSTILE_SITE_KEY` overrides it for local runs and
- * tests; Cloudflare publishes dummy keys for that (https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
+ * The public site key of the agent's Turnstile widget (Cloudflare dashboard → Turnstile). Site keys are public
+ * by design, and only work on the hostnames the widget allows. If it is ever emptied, the island skips the
+ * widget and an edge challenge shows the "unverified" notice instead. `PUBLIC_TURNSTILE_SITE_KEY` overrides it
+ * for local runs and tests; Cloudflare publishes dummy keys for that
+ * (https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
  */
-export const TURNSTILE_SITE_KEY = '';
+export const TURNSTILE_SITE_KEY = '0x4AAAAAAF6Q_oxvuFdPjhpi';
 
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 const SCRIPT_TIMEOUT_MS = 15_000;
