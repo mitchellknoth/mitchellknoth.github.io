@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "status": "draft",
+  "status": "approved",
   "approval": {
-    "approvedBy": null,
-    "approvedOn": null
+    "approvedBy": "Mitch Knoth",
+    "approvedOn": "2026-11-09"
   },
   "categories": {
     "answerable": {
