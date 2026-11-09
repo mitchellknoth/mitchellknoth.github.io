@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import worker from '../index';
 import { SESSION_COOKIE } from '../session-cookie';
 import { GUARD_NAME } from '../guard';
-import { isBudgetRefusal } from '../session';
+import { isBudgetRefusal, reasoningLevel } from '../session';
 
 const ORIGIN = 'https://mitchellknoth.com';
 const SESSION = '0b6b2c1e-8f4a-4c3e-9d2a-5e7f1a2b3c4d';
@@ -89,11 +89,14 @@ describe('agent API', () => {
   });
 
   it('refuses everyone with 503 while the agent is paused', async () => {
-    await env.GUARD.getByName(GUARD_NAME).pause(Date.now() + 60_000, 'test');
+    const until = Date.now() + 60_000;
+    await env.GUARD.getByName(GUARD_NAME).pause(until, 'test');
     const response = await ask('What has Mitch built?', { 'cf-connecting-ip': '198.51.100.24' });
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ state: 'paused' });
-    expect((await exports.default.fetch(`${ORIGIN}/agent/health`).then((r) => r.json()))).toEqual({ state: 'paused' });
+    const health = await exports.default.fetch(`${ORIGIN}/agent/health`);
+    expect(health.status).toBe(200);
+    expect(await health.json()).toEqual({ state: 'paused', until: new Date(until).toISOString() });
   });
 
   it('allows only the documented methods and paths', async () => {
@@ -126,5 +129,21 @@ describe('budget refusals', () => {
     expect(isBudgetRefusal('Spend limit reached for gateway')).toBe(true);
     expect(isBudgetRefusal('500 Internal Server Error')).toBe(false);
     expect(isBudgetRefusal(undefined)).toBe(false);
+  });
+});
+
+describe('reasoning effort', () => {
+  it('uses the configured level and falls back to off for anything else', () => {
+    expect(reasoningLevel('max')).toBe('max');
+    expect(reasoningLevel('high')).toBe('high');
+    expect(reasoningLevel('off')).toBe('off');
+    expect(reasoningLevel(undefined)).toBe('off');
+    expect(reasoningLevel('Max')).toBe('off');
+    expect(reasoningLevel('ultra')).toBe('off');
+  });
+
+  it('ships the chosen model and a valid effort', () => {
+    expect(env.AGENT_MODEL).toBe('openai/gpt-6-luna');
+    expect(reasoningLevel(env.AGENT_REASONING)).toBe(env.AGENT_REASONING);
   });
 });
