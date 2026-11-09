@@ -1,5 +1,10 @@
 # Cutover: GitHub Pages to Cloudflare Workers static assets
 
+> [!NOTE]
+> Retired: the site moved on 2026-11-06 and GitHub Pages was retired after the rollback window closed
+> (see [After the window](#7-after-the-window)). Steps 3 to 6 are the record of the cutover and rollback
+> procedure. Rollback by DNS only is no longer available, because Pages no longer builds the site.
+
 Milestone M1 of [#13](https://github.com/mitchellknoth/mitchellknoth.github.io/issues/13), tracked in
 [#15](https://github.com/mitchellknoth/mitchellknoth.github.io/issues/15). The site moves from GitHub Pages to
 Workers static assets on the same domain. No Worker code runs yet; `wrangler.jsonc` serves `dist/` only.
@@ -40,7 +45,7 @@ These steps create credentials or change account settings, so Mitch does them.
 
 ## 2. First deploy to workers.dev
 
-1. Re-run **Deploy to GitHub Pages** on `main` (workflow_dispatch). The `deploy-workers` job deploys the
+1. Re-run **Deploy site** (formerly **Deploy to GitHub Pages**) on `main` (workflow_dispatch). The `deploy-workers` job deploys the
    Worker `mitchellknoth-com`, reachable at `https://mitchellknoth-com.mitchellknoth.workers.dev`.
 2. Run the parity contract against it, from a checkout of the same commit. Compare against the exact build that
    was deployed: download the run's `site-dist` artifact into `dist/` instead of rebuilding. Run
@@ -124,11 +129,16 @@ points at GitHub.
 
 ## 7. After the window
 
-1. Remove the GitHub Pages deploy job from `.github/workflows/deploy.yml`, and unpublish Pages in the repository
-   settings.
-2. Keep the `_github-pages-challenge-mitchellknoth` TXT record. It's harmless and keeps the domain verified on
+The window closed about 2026-11-20. GitHub Pages is retired:
+
+1. The Pages `deploy` job, its `pages: write` and `id-token: write` permissions, and the `pages` concurrency group
+   are gone from `.github/workflows/deploy.yml`, which is now **Deploy site** (`build` then `deploy-workers`).
+   The Pages artifact upload and `configure-pages` step went with it.
+2. Mitch unpublishes Pages in the repository (**Settings → Pages → Unpublish site**). This is a repository
+   setting, so it is done by hand and not by the workflow change.
+3. Keep the `_github-pages-challenge-mitchellknoth` TXT record. It's harmless and keeps the domain verified on
    GitHub.
-3. Record the cutover date and the parity results on #15.
+4. The cutover date and parity results are recorded on #15.
 
 ## Known differences from GitHub Pages
 
