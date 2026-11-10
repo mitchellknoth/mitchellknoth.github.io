@@ -41,8 +41,10 @@
 		// intent check (#30) is the separate System One gate in front of it. The eval scorecard (#17) can change this.
 		"AGENT_MODEL": "openai/gpt-6-luna",
 		// Reasoning effort for the model: off, minimal, low, medium, high, xhigh or max. Higher effort bills more
-		// output tokens per question; the live check (#16) records the real cost. The gateway spend limit still caps it.
-		"AGENT_REASONING": "max",
+		// output tokens and takes longer per question. Measured 2026-11-10 (#16) at "max": reasoning was 77% of each
+		// final answer's output tokens, about 2 s of a typical 11 s question. "low" keeps some reasoning for citations
+		// and refusals; re-check the eval scorecard before going lower.
+		"AGENT_REASONING": "low",
 		// The intent check in front of the agent (worker/intent.ts): "off", "shadow" (log the verdict, never refuse) or
 		// "enforce". The eval config inherits it, so scored runs measure the check together with the agent.
 		"INTENT_MODE": "enforce",
