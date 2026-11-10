@@ -166,9 +166,9 @@ function Reply({ message }: { message: AgentUIMessage }) {
   );
 }
 
-/** What the wait says as it gets longer. Answers are not streamed, so there is no progress to report. */
+/** What the wait says as it gets longer. Progress lines from the Worker keep the connection open; none says what the answer will be. */
 const WAIT_NOTES = [
-  { from: 0, title: 'Searching the site and reading what it finds', note: 'Answers usually take 10 to 30 seconds.' },
+  { from: 0, title: 'Searching the site and reading what it finds', note: 'Answers usually take a few seconds.' },
   { from: 35, title: 'Still working', note: 'Longer questions can take a minute or more.' },
   { from: 80, title: 'Still working, and slower than usual', note: 'If there is no answer after two minutes, your question comes back to the field.' },
 ] as const;
