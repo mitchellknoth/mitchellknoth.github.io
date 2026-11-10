@@ -7,12 +7,14 @@ interface Props {
   href?: string;
   /** Visible link text; defaults to "View all →". */
   linkText?: string;
+  /** An id for the heading, for an aria-labelledby on the section it heads. */
+  id?: string;
 }
-const { label, href, linkText = 'View all →' } = Astro.props;
+const { label, href, linkText = 'View all →', id } = Astro.props;
 ---
 
 <div class="mb-6 mt-14 flex items-center gap-4">
-  <h2 class="section-label__heading prose-serif shrink-0">{label}</h2>
+  <h2 id={id} class="section-label__heading prose-serif shrink-0">{label}</h2>
   <Separator className="flex-1" />
   {
     href && (

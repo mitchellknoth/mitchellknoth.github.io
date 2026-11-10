@@ -1,12 +1,16 @@
 ---
 import Base from '../../layouts/Base.astro';
 import SectionLabel from '../../components/SectionLabel.astro';
-import WorkRow from '../../components/WorkRow.astro';
+import WorkCard from '../../components/WorkCard.astro';
 import { getProjects } from '../../lib/content';
 
 const projects = await getProjects();
 const recent = projects.filter((p) => p.data.section === 'recent');
 const foundations = projects.filter((p) => p.data.section === 'foundations');
+
+// Two columns leave a lone card when the compact count is odd; that last card spans both and uses the lead's
+// two-column layout instead of sitting beside an empty cell. `lead` is the number of featured cards before the grid.
+const oddLast = (list: unknown[], index: number, lead = 1) => index === list.length - 1 && (list.length - lead) % 2 === 1 && list.length - lead > 1;
 
 const recentLede =
   'Production software, cloud execution, and developer-platform reliability.';
@@ -33,15 +37,27 @@ const foundationsLede =
   <p class="mb-6 max-w-[60ch] text-[15px] leading-[1.65] text-pretty" style="color: var(--fg-muted);">
     {recentLede}
   </p>
-  <div class="flex flex-col gap-2">
-    {recent.map((p, i) => <WorkRow project={p} lead={i === 0} />)}
+  <div class="grid gap-4 md:grid-cols-2">
+    {
+      recent.map((p, i) => (
+        <div class={i === 0 || oddLast(recent, i) ? 'md:col-span-2' : ''}>
+          <WorkCard project={p} lead={i === 0} wide={oddLast(recent, i)} />
+        </div>
+      ))
+    }
   </div>
 
   <SectionLabel label="Platform & Cloud Foundations" />
   <p class="mb-6 max-w-[60ch] text-[15px] leading-[1.65] text-pretty" style="color: var(--fg-muted);">
     {foundationsLede}
   </p>
-  <div class="flex flex-col gap-2">
-    {foundations.map((project) => <WorkRow project={project} />)}
+  <div class="grid gap-4 md:grid-cols-2">
+    {
+      foundations.map((project, i) => (
+        <div class={oddLast(foundations, i, 0) ? 'md:col-span-2' : ''}>
+          <WorkCard project={project} wide={oddLast(foundations, i, 0)} />
+        </div>
+      ))
+    }
   </div>
 </Base>

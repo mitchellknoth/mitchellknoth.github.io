@@ -1,4 +1,7 @@
 ---
+import { Card, CardContent, CardHeader } from './ui/card';
+import { cardLinkClass, stretchedLinkClass } from '../lib/site-ui';
+
 interface Props {
   href: string;
   value: string;
@@ -7,14 +10,11 @@ interface Props {
 const { href, value, label } = Astro.props;
 ---
 
-<a href={href} class="block p-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px]" style="background: var(--bg);">
-  <h3
-    class="prose-serif mb-[10px] text-[25px] leading-tight"
-    style="color: var(--accent);"
-  >
-    {value}
-  </h3>
-  <div class="text-[13px] leading-[1.55]" style="color: var(--fg-muted);">
-    {label}
-  </div>
-</a>
+<Card className={cardLinkClass}>
+  <CardHeader>
+    <h3 class="prose-serif text-[25px] leading-tight">
+      <a href={href} data-slot="button" data-site="link" class={`${stretchedLinkClass} text-primary`}>{value}<span aria-hidden="true" class="ml-1.5 font-sans text-[0.65em]">→</span></a>
+    </h3>
+  </CardHeader>
+  <CardContent className="text-[14px] leading-[1.55] text-muted-foreground">{label}</CardContent>
+</Card>

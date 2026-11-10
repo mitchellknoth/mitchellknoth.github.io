@@ -1,0 +1,27 @@
+---
+import { formatPostDate } from '../lib/content';
+import { cardLinkClass, stretchedLinkClass } from '../lib/site-ui';
+import { Card, CardContent, CardHeader } from './ui/card';
+
+interface Props {
+  href: string;
+  date: Date;
+  title: string;
+  summary: string;
+  readingTime?: string;
+}
+const { href, date, title, summary, readingTime } = Astro.props;
+---
+
+<Card className={cardLinkClass}>
+  <CardHeader>
+    <div class="mono-meta">
+      <time datetime={date.toISOString()}>{formatPostDate(date)}</time>
+      {readingTime && <span> · {readingTime}</span>}
+    </div>
+    <h3 class="prose-serif text-[1.6rem] leading-[1.2] text-balance xl:min-h-[2.4em]">
+      <a href={href} data-slot="button" data-site="link" class={stretchedLinkClass}>{title}</a>
+    </h3>
+  </CardHeader>
+  <CardContent className="text-[1rem] leading-[1.7] text-pretty text-muted-foreground">{summary}</CardContent>
+</Card>

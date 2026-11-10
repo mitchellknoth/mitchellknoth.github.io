@@ -44,6 +44,19 @@ export const brandClass = cn(
 /** A heading that is itself a link (card and list titles): inherits the heading's type, 44px tall. */
 export const titleLinkClass = "inline-flex min-h-11 items-center underline-offset-4 hover:underline"
 
+/**
+ * A card that is one link: the title link stretches over the whole card (one tab stop, one accessible name),
+ * the border steps up on hover for pointers that can hover, and keyboard focus outlines the card, not just the
+ * title. Apply `cardLinkClass` to the Card and `stretchedLinkClass` to the title's <a>. The card-level states
+ * live in src/styles/agent-theme.css (`.card-link`): that file's Card border is unlayered, so a Tailwind hover
+ * utility here would lose to it.
+ */
+export const stretchedLinkClass = cn(titleLinkClass, "after:absolute after:inset-0 after:content-[''] focus-visible:outline-none")
+export const cardLinkClass = "card-link"
+
+/** A technology or status label (Badge variant="outline"): 3px, mono, quiet. */
+export const tagClass = "h-auto rounded-[3px] border-(--border-strong) bg-transparent px-1.5 py-0.5 font-mono text-xs font-normal text-(--fg-dim)"
+
 export const linkProps = { class: linkClass, "data-slot": "button", "data-site": "link" } as const
 export const navProps = { class: navClass, "data-slot": "button", "data-site": "nav" } as const
 export const footerLinkProps = { class: footerLinkClass, "data-slot": "button", "data-site": "footer" } as const

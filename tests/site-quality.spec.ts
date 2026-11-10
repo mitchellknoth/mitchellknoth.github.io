@@ -118,9 +118,9 @@ for (const theme of ['dark', 'light']) {
       }
 
       if (route === '/work/') {
-        await expect(page.locator('.work-row')).not.toHaveCount(0);
+        await expect(page.locator('.work-card')).not.toHaveCount(0);
         if (page.viewportSize()!.width === 320) {
-          const title = await page.locator('.work-row h3').first().boundingBox();
+          const title = await page.locator('.work-card h3').first().boundingBox();
           expect(title?.y, 'first case should be visible within the opening screen').toBeLessThanOrEqual(700);
         }
       }
