@@ -15,8 +15,7 @@ function marker(id: string): string {
   return `[[${id}]]`;
 }
 
-/** One passage as the tools (and the prefetched prompt) show it: citation marker, page, then the text. */
-export function describeEntry(entry: CorpusEntry): string {
+function describeEntry(entry: CorpusEntry): string {
   const section = entry.headings.length ? ` > ${entry.headings.join(' > ')}` : '';
   return [
     `${marker(entry.id)} ${entry.title}${section}`,
