@@ -48,7 +48,10 @@ export function reasoningLevel(value: string | undefined): ReasoningLevel {
 }
 
 export class VisitorSession extends DurableObject<Env> {
-  ai = createVisitorAI(this.env.AI, this.env.AI_GATEWAY_ID, modelTimeoutMs(this.env.MODEL_TIMEOUT_MS));
+  /** How long one model call may stay silent (worker/model.ts); parsed once for the provider and the model. */
+  private modelTimeout = modelTimeoutMs(this.env.MODEL_TIMEOUT_MS);
+
+  ai = createVisitorAI(this.env.AI, this.env.AI_GATEWAY_ID, this.modelTimeout);
 
   registry = createRegistry();
 
@@ -73,7 +76,7 @@ export class VisitorSession extends DurableObject<Env> {
       );
     },
     defaults: {
-      model: visitorModel(this.ai, this.env.AGENT_MODEL, modelTimeoutMs(this.env.MODEL_TIMEOUT_MS)),
+      model: visitorModel(this.ai, this.env.AGENT_MODEL, this.modelTimeout),
       thinkingLevel: reasoningLevel(this.env.AGENT_REASONING),
       maxTurns: 4,
     },

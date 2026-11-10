@@ -15,8 +15,8 @@ describe('modelTimeoutMs', () => {
     expect(modelTimeoutMs('-5')).toBe(MODEL_TIMEOUT_MS);
   });
 
-  it('defaults to 20 seconds: above the slowest healthy round measured (15 s), far below a hung call', () => {
-    expect(MODEL_TIMEOUT_MS).toBe(20_000);
+  it('defaults to 30 seconds: twice the slowest healthy round measured (15 s), far below a hung call', () => {
+    expect(MODEL_TIMEOUT_MS).toBe(30_000);
   });
 });
 
