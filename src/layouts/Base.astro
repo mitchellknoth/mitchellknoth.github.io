@@ -46,6 +46,9 @@ const socialImageUrl = new URL('/social-card.png', Astro.site).toString();
     <meta name="twitter:description" content={pageDesc} />
     <meta name="twitter:image" content={socialImageUrl} />
 
+    {/* No `preload`: Astro's local font provider can't filter preloads by subset, so preloading would also
+        fetch every latin-ext file (~130 KB) that these pages never use. The size-adjusted fallbacks
+        (optimizedFallbacks in astro.config.mjs) are what keep the swap from re-wrapping the hero. */}
     <Font cssVariable="--font-inter" />
     <Font cssVariable="--font-instrument-serif" />
     <Font cssVariable="--font-jetbrains-mono" />
@@ -107,11 +110,11 @@ const socialImageUrl = new URL('/social-card.png', Astro.site).toString();
       </main>
 
       <footer
-        class="flex flex-wrap justify-between gap-3 border-t py-5 text-[12px]"
+        class="flex flex-wrap items-center justify-between gap-3 border-t py-5 text-[12px]"
         style="border-color: var(--border); color: var(--fg-dim); font-family: var(--font-mono);"
       >
         <span>{site.location}</span>
-        <span class="footer-links flex flex-wrap gap-x-3">
+        <span class="footer-links flex flex-wrap">
           <a href={site.github} target="_blank" rel="noreferrer" class="footer-link">github</a>
           <a href={site.linkedin} target="_blank" rel="noreferrer" class="footer-link">linkedin</a>
           <a href={`mailto:${site.email}`} class="footer-link">email</a>

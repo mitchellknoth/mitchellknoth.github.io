@@ -3,6 +3,63 @@
 @import "./agent-theme.css";
 
 /* =============================================================
+   Metric-matched fallbacks
+   -------------------------------------------------------------
+   Local faces scaled to the real fonts' metrics (the values Astro's font optimizer computes from the font
+   files), so the swap from fallback to Inter / Instrument Serif / JetBrains Mono does not re-wrap the hero.
+   The unicode-range keeps them to text: symbols such as the arrows in link labels are not in the served
+   font subsets and keep falling through to the system UI font. Re-derive the numbers if a font file or
+   weight changes (set `optimizedFallbacks: true` in astro.config.mjs and read the generated @font-face). */
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial");
+  font-weight: 400 500;
+  size-adjust: 107.1194%;
+  ascent-override: 90.4365%;
+  descent-override: 22.518%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+2000-206F, U+2122;
+}
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 600 700;
+  size-adjust: 107.1194%;
+  ascent-override: 90.4365%;
+  descent-override: 22.518%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+2000-206F, U+2122;
+}
+@font-face {
+  font-family: "Instrument Serif Fallback";
+  src: local("Times New Roman"), local("TimesNewRomanPSMT");
+  font-style: normal;
+  size-adjust: 83.9385%;
+  ascent-override: 117.9435%;
+  descent-override: 36.9318%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+2000-206F, U+2122;
+}
+@font-face {
+  font-family: "Instrument Serif Fallback";
+  src: local("Times New Roman Italic"), local("TimesNewRomanPS-ItalicMT");
+  font-style: italic;
+  size-adjust: 83.9385%;
+  ascent-override: 117.9435%;
+  descent-override: 36.9318%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+2000-206F, U+2122;
+}
+@font-face {
+  font-family: "JetBrains Mono Fallback";
+  src: local("Courier New"), local("CourierNewPSMT");
+  size-adjust: 99.9837%;
+  ascent-override: 102.0166%;
+  descent-override: 30.0049%;
+  unicode-range: U+0000-00FF, U+2000-206F, U+2122;
+}
+
+/* =============================================================
    Theme tokens — exposed as Tailwind v4 @theme variables
    ------------------------------------------------------------- */
 @theme {
@@ -130,7 +187,10 @@ body {
   color: var(--fg);
   font-family: var(--font-mono);
   font-size: 12px;
+  min-height: 44px;
   padding: 0.65rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
 }
 
 .skip-link:focus {
@@ -149,9 +209,9 @@ body {
 
 .mono-meta {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--fg-dim);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -177,7 +237,7 @@ a:focus-visible,
 button:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 /* Primary nav links — real hover + active feedback (color is set here, not inline,
@@ -202,6 +262,11 @@ button:focus-visible,
   min-width: 44px;
 }
 .site-brand { justify-content: flex-start; }
+/* Footer links keep a 44px hit area from equal padding, not from min-width, so the labels sit at an even
+   rhythm; the group's negative inline margin puts the last label on the shell's right edge and, when the
+   footer wraps on a phone, the first label on the left edge shared with the location line. */
+.footer-link { min-width: 0; padding-inline: 0.75rem; }
+.footer-links { margin-inline: -0.75rem; }
 .footer-link:hover, .standalone-link:hover, .site-brand:hover {
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -332,7 +397,9 @@ button:focus-visible,
 
 :root[data-theme="dark"] .content pre.astro-code {
   color: var(--shiki-dark);
-  background: var(--shiki-dark-bg) !important;
+  /* The dimmed GitHub theme ships a cool slate background (#22272e); the page is warm, so the block sits on
+     the same elevated surface as every other panel. */
+  background: var(--bg-elevated) !important;
 }
 :root[data-theme="dark"] .content pre.astro-code span {
   color: var(--shiki-dark) !important;
@@ -392,6 +459,12 @@ button:focus-visible,
   font-size: clamp(2.75rem, 9vw, 3.45rem);
   line-height: 1.1;
   margin: 0;
+}
+
+/* The summary's `mt-4` utility loses to `.content p { margin: 0 0 1.2em }`, which left the title and
+   its summary touching. State the gap where the specificity can win. */
+.content header h1 + p {
+  margin-top: 1rem;
 }
 
 .content .work-title {

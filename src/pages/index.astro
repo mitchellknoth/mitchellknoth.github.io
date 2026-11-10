@@ -102,17 +102,8 @@ const featuredMetrics = (await getProjects())
       </>
     ) : (
       <>
-        <SectionLabel label="Writing" />
+        <SectionLabel label="Writing" href="/writing/" linkText="All writing →" />
         <FeaturedPost post={featured} />
-        <div class="mt-4 text-right">
-          <a
-            href="/writing/"
-            class="standalone-link text-[13px] underline underline-offset-4"
-            style="color: var(--accent); font-family: var(--font-mono);"
-          >
-            All writing →
-          </a>
-        </div>
       </>
     )
   }
@@ -158,11 +149,18 @@ const featuredMetrics = (await getProjects())
   @media (min-width: 1024px) {
     /* The readable lead beside the agent. The agent gets the wider column because the agreed plan
        (#13) makes it the page's primary experience; DESIGN.md's Home recipe specifies this 5/7 split.
-       Both columns hold content. */
-    .home-hero:has([data-agent-island]) {
+       Both columns hold content. The split is unconditional on purpose: the island is always in the server
+       HTML, and a rule that waited for it (`:has([data-agent-island])`) let the first paint, on a slow
+       connection, lay the hero out full width before the island's markup arrived, then jump to two columns
+       (CLS 0.07). Without JavaScript the noscript rule above returns the hero to one column, and an island
+       that removes itself marks the hero `data-island="absent"` (AgentChat.tsx). */
+    .home-hero {
       grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
       align-items: start;
       gap: 3rem;
+    }
+    .home-hero[data-island='absent'] {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>

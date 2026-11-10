@@ -371,6 +371,11 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
     void send(draft);
   }
 
+  // The hero is two columns for the island; when the island removes itself the intro goes back to one.
+  React.useEffect(() => {
+    if (view.kind === 'absent') document.querySelector('.home-hero')?.setAttribute('data-island', 'absent');
+  }, [view.kind]);
+
   if (view.kind === 'absent') return null;
 
   const alertId = 'agent-alert';

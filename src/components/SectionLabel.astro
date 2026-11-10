@@ -2,8 +2,10 @@
 interface Props {
   label: string;
   href?: string;
+  /** Visible link text; defaults to "View all →". */
+  linkText?: string;
 }
-const { label, href } = Astro.props;
+const { label, href, linkText = 'View all →' } = Astro.props;
 ---
 
 <div class="mb-6 mt-14 flex items-center gap-4">
@@ -14,16 +16,21 @@ const { label, href } = Astro.props;
       <a
         href={href}
         aria-label={`View all ${label.toLowerCase()}`}
-        class="standalone-link mono-meta shrink-0"
-        style="color: var(--accent);"
+        class="standalone-link section-label__link shrink-0"
       >
-        View all →
+        {linkText}
       </a>
     )
   }
 </div>
 
 <style>
+  .section-label__link {
+    color: var(--accent);
+    font-size: 14px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
   .section-label__heading {
     color: var(--fg);
     font-size: clamp(1.35rem, 3vw, 1.55rem);

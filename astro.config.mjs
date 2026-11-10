@@ -57,8 +57,12 @@ function localFamily(name, cssVariable, variants, fallbacks) {
     name,
     cssVariable,
     display: /** @type {const} */ ('swap'),
-    // Keep the exact fallback stacks the site used with Google Fonts.
-    fallbacks,
+    // `fallbacks` starts with a size-adjusted local face (the "<Family> Fallback" faces in
+    // src/styles/global.css) so the swap to the real font moves the layout by pixels, not by a re-wrap.
+    // Astro's own `optimizedFallbacks` would do the same, but it declares the face for every character, and
+    // the arrows (U+2192) that the served font subsets don't cover then render in Arial's long arrow instead
+    // of the system one the site has always used. The site's original stacks follow as the secondary fallbacks.
+    fallbacks: [`${name} Fallback`, ...fallbacks],
     optimizedFallbacks: false,
     options: { variants: /** @type {[typeof variants[number], ...typeof variants]} */ (variants) },
   };

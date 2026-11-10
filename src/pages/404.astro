@@ -1,5 +1,11 @@
 ---
 import Base from '../layouts/Base.astro';
+
+const routes = [
+  { href: '/work/', label: 'Work' },
+  { href: '/writing/', label: 'Writing' },
+  { href: '/about/', label: 'About' },
+];
 ---
 
 <Base title="Not found">
@@ -8,8 +14,16 @@ import Base from '../layouts/Base.astro';
     <h1 class="prose-serif mb-4 text-[40px] leading-[1.1]" style="color: var(--fg);">
       That page doesn’t exist.
     </h1>
-    <p class="text-[16px]" style="color: var(--fg-muted);">
-      Check the URL, or head back to the <a href="/" style="color: var(--accent);">home page</a>.
+    <p class="max-w-[60ch] text-[16px]" style="color: var(--fg-muted);">
+      Check the URL, or start from one of these.
     </p>
+    <nav aria-label="Where to go" class="mt-4 flex flex-wrap gap-x-6 text-[14px]" style="color: var(--accent);">
+      <a href="/" class="standalone-link underline underline-offset-4">Home →</a>
+      {
+        routes.map((route) => (
+          <a href={route.href} class="standalone-link underline underline-offset-4">{route.label} →</a>
+        ))
+      }
+    </nav>
   </div>
 </Base>
