@@ -1,5 +1,6 @@
 import { GUARD_NAME, nextUtcMidnight } from './guard';
 import { SESSION_COOKIE } from './session-cookie';
+import { serverTimingHeader } from './timing';
 
 export { Guard } from './guard';
 export { VisitorSession } from './session';
@@ -82,35 +83,52 @@ async function handleAgent(request: Request, env: Env, path: string): Promise<Re
     if (typeof question !== 'string' || question.trim() === '') return json({ error: 'empty_question' }, 400);
     if (question.length > maxChars) return json({ error: 'question_too_long', maxChars }, 413);
 
+    // Phase timing (worker/timing.ts): durations only, never the question, the IP address or the session name.
+    const requestStart = Date.now();
     const admission = await guard.admit(clientIp(request), intVar(env.DAILY_AGENT_REQUESTS, 500));
+    const admitMs = Date.now() - requestStart;
     if (!admission.allowed) {
       return admission.reason === 'blocked'
         ? refused('blocked', 403, admission.until)
         : refused('paused', 503, admission.until);
     }
 
+    const wantTiming = env.TIMING_HEADER === 'true';
     const session = env.VISITOR_SESSION.getByName(name);
+    const sessionStart = Date.now();
     let result: Awaited<ReturnType<typeof session.ask>>;
     try {
       result = await session.ask(question, {
         maxMessages: intVar(env.MAX_MESSAGES_PER_SESSION, 20),
         ttlSeconds: intVar(env.SESSION_TTL_SECONDS, 86_400),
+        timing: wantTiming,
       });
     } catch (error) {
       // Log the cause for the operator; the visitor gets a plain state, never a stack trace.
       console.error('agent session failed', error);
+      console.log(JSON.stringify({ event: 'agent_request', outcome: 'error', admit: admitMs, session: Date.now() - sessionStart, total: Date.now() - requestStart }));
       return refused('error', 502);
     }
-    if (result.status === 'budget') {
+    const sessionMs = Date.now() - sessionStart;
+    const { timing, ...body } = result;
+    // Called as each response is returned, so `total` includes any guard write that came before it.
+    const timed = (response: Response): Response => {
+      const worker = { admit: admitMs, session: sessionMs, total: Date.now() - requestStart };
+      console.log(JSON.stringify({ event: 'agent_request', outcome: body.status, ...worker }));
+      if (wantTiming) response.headers.set('server-timing', serverTimingHeader(worker, timing));
+      return response;
+    };
+
+    if (body.status === 'budget') {
       const until = nextUtcMidnight(Date.now());
       await guard.pause(until, 'inference_budget');
-      return refused('paused', 503, until);
+      return timed(refused('paused', 503, until));
     }
-    if (result.status === 'limit') return json({ state: 'limit', reason: result.reason }, 429);
+    if (body.status === 'limit') return timed(json({ state: 'limit', reason: body.reason }, 429));
     // An expired session's storage is deleted (worker/session.ts); its cookie has also expired, so start over.
-    if (result.status === 'expired') return json({ error: 'no_session' }, 401);
+    if (body.status === 'expired') return timed(json({ error: 'no_session' }, 401));
     // `answered`, `refused` or `unanswered`, shaped and source-checked by worker/reply.ts.
-    return json(result);
+    return timed(json(body));
   }
 
   return json({ error: 'not_found' }, 404);
