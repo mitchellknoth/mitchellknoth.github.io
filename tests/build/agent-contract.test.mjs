@@ -80,8 +80,7 @@ test('the Worker declares only the Durable Object, AI and ASSETS bindings', () =
 });
 
 test('the agent is off unless explicitly enabled', () => {
-  // TEMPORARY (#16 live-check window): the window PR ships it on; the follow-up PR restores 'false' here.
-  assert.ok(['true', 'false'].includes(readWranglerConfig().vars.AGENT_ENABLED));
+  assert.equal(readWranglerConfig().vars.AGENT_ENABLED, 'false');
 });
 
 test('agent code makes no public fetch() or connect() calls', () => {
