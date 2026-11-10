@@ -32,10 +32,11 @@
 	},
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Guard", "VisitorSession"] }],
 	"vars": {
-		// Kill switch. The agent answers only when this is "true"; the static site never depends on it. The homepage
+		// Kill switch. The agent answers only when this is "true"; the static site never depends on it. Switched on
+		// 2026-11-10 (#16) so the latency work can measure the real agent; set it back to "false" to turn it off. The homepage
 		// island reads this same value at build time (src/lib/agent/enabled.ts): while it is "false" the island shows
 		// its switched-off notice and makes no /agent request, so visitors never meet the edge's human check for it.
-		"AGENT_ENABLED": "false",
+		"AGENT_ENABLED": "true",
 		// The answering model (System Two). GPT-6 Luna runs through the AI binding and the gateway below. The Clef
 		// intent check (#30) is the separate System One gate in front of it. The eval scorecard (#17) can change this.
 		"AGENT_MODEL": "openai/gpt-6-luna",
@@ -49,7 +50,8 @@
 		"AI_GATEWAY_ID": "mitchellknoth-com-agent",
 		// "true" adds a Server-Timing header (phase durations and model-round token counts, never content) to
 		// POST /agent/ask answers, for measurement windows (#16). Every question logs the same figures regardless.
-		"TIMING_HEADER": "false",
+		// "true" for the latency measurements; the fix PRs set it back to "false".
+		"TIMING_HEADER": "true",
 		"MAX_PROMPT_CHARS": "1000",
 		"MAX_MESSAGES_PER_SESSION": "20",
 		"DAILY_AGENT_REQUESTS": "500",

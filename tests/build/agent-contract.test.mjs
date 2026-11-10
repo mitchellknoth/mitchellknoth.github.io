@@ -79,8 +79,12 @@ test('the Worker declares only the Durable Object, AI and ASSETS bindings', () =
   assert.equal(config.ai.binding, 'AI');
 });
 
-test('the agent is off unless explicitly enabled', () => {
-  assert.equal(readWranglerConfig().vars.AGENT_ENABLED, 'false');
+test('the kill switch and the timing header are explicit "true" or "false" strings', () => {
+  // Anything else would read as off (worker/index.ts compares to 'true'), so a typo can never turn them on.
+  // Switched on 2026-11-10 (#16); the Worker answers only when AGENT_ENABLED is exactly 'true'.
+  const { vars } = readWranglerConfig();
+  assert.ok(['true', 'false'].includes(vars.AGENT_ENABLED), `AGENT_ENABLED is ${JSON.stringify(vars.AGENT_ENABLED)}`);
+  assert.ok(['true', 'false'].includes(vars.TIMING_HEADER), `TIMING_HEADER is ${JSON.stringify(vars.TIMING_HEADER)}`);
 });
 
 test('agent code makes no public fetch() or connect() calls', () => {
