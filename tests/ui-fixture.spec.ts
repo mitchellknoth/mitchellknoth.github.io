@@ -31,8 +31,10 @@ for (const theme of ['dark', 'light'] as const) {
     });
 
     test('hydrates and does not overflow', async ({ page }) => {
-      // Astro drops the island's `ssr` attribute once React has taken it over.
-      await expect(page.locator('astro-island')).not.toHaveAttribute('ssr', /.*/);
+      // Astro drops an island's `ssr` attribute once React has taken it over; the page has the fixture and the
+      // header's theme switch, and neither may be left server-rendered.
+      await expect(page.locator('astro-island')).not.toHaveCount(0);
+      await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(0);
     });

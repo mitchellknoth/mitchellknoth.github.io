@@ -99,7 +99,7 @@ export default defineConfig({
     ]),
   ],
   // React renders one island: the homepage agent chat (src/components/agent). No other page ships it.
-  integrations: [mdx(), sitemap(), agentCorpus(), react({ include: ['**/components/agent/**', '**/components/ui/**', '**/components/dev/**'] })],
+  integrations: [mdx(), sitemap(), agentCorpus(), react({ include: ['**/components/agent/**', '**/components/ui/**', '**/components/dev/**', '**/components/site/**'] })],
   vite: {
     plugins: [tailwindcss()],
     build: {

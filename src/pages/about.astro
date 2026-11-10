@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { site } from '../config';
+import { linkProps } from '../lib/site-ui';
 
 const certs = [
   { name: 'AWS Certified Solutions Architect – Professional', year: 'Nov 2026' },
@@ -52,11 +53,11 @@ const eyebrow =
     <div>
       <dt class="skills-cat">Links</dt>
       <dd class="fact-links skills-list">
-        <a href={site.github} target="_blank" rel="noreferrer" style="color: var(--accent); text-decoration: underline; text-underline-offset: 2px;">GitHub</a>
+        <a href={site.github} target="_blank" rel="noreferrer" {...linkProps}>GitHub</a>
         <span style="color: var(--fg-dim);"> · </span>
-        <a href={site.linkedin} target="_blank" rel="noreferrer" style="color: var(--accent); text-decoration: underline; text-underline-offset: 2px;">LinkedIn</a>
+        <a href={site.linkedin} target="_blank" rel="noreferrer" {...linkProps}>LinkedIn</a>
         <span style="color: var(--fg-dim);"> · </span>
-        <a href={`mailto:${site.email}`} style="color: var(--accent); text-decoration: underline; text-underline-offset: 2px;">Email</a>
+        <a href={`mailto:${site.email}`} {...linkProps}>Email</a>
       </dd>
     </div>
   </dl>

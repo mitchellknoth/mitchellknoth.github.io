@@ -1,4 +1,6 @@
 ---
+import { titleLinkClass } from '../../lib/site-ui';
+
 interface Props {
   href: string;
   title: string;
@@ -10,7 +12,7 @@ const { href, title, description } = Astro.props;
 
 <aside class="editorial-reading related-work" aria-labelledby="related-work-title" data-corpus-ignore>
   <div class="mono-meta">Related work</div>
-  <h2 id="related-work-title"><a class="standalone-link" href={href}>{title}</a></h2>
+  <h2 id="related-work-title"><a class={titleLinkClass} href={href}>{title}</a></h2>
   <p>{description}</p>
 </aside>
 

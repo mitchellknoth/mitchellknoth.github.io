@@ -1,6 +1,7 @@
 ---
 import type { CollectionEntry } from 'astro:content';
 import { formatPostDate } from '../../lib/content';
+import { linkClass, titleLinkClass } from '../../lib/site-ui';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -16,11 +17,11 @@ const dateLabel = formatPostDate(post.data.date);
 <article class="featured-post">
   <div class="mono-meta">Featured writing · {dateLabel}</div>
   <Heading class="prose-serif">
-    <a class="standalone-link" href={href}>{post.data.title}</a>
+    <a class={titleLinkClass} href={href}>{post.data.title}</a>
   </Heading>
   <p>{post.data.summary}</p>
-  <a class="featured-post__link" href={href}>
-    Read the piece <span aria-hidden="true">→</span>
+  <a class:list={[linkClass, 'featured-post__link']} data-slot="button" data-site="link" href={href}>
+    Read the piece →
   </a>
 </article>
 
@@ -58,17 +59,6 @@ const dateLabel = formatPostDate(post.data.date);
     max-width: 60ch;
   }
 
-  .featured-post__link {
-    color: var(--accent);
-    display: inline-block;
-    font-size: 0.875rem;
-    min-height: 44px;
-    min-width: 44px;
-    align-content: center;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-
   @media (min-width: 900px) {
     .featured-post {
       align-items: start;
@@ -103,6 +93,7 @@ const dateLabel = formatPostDate(post.data.date);
     .featured-post__link {
       grid-column: 2;
       grid-row: 3;
+      justify-self: start;
       margin-top: 0.35rem;
     }
   }

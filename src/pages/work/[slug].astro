@@ -2,6 +2,7 @@
 import { render, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { getProjects } from '../../lib/content';
+import { linkClass } from '../../lib/site-ui';
 
 export async function getStaticPaths() {
   const projects = await getProjects();
@@ -17,7 +18,7 @@ const { Content } = await render(project);
 
 <Base title={project.data.title} description={project.data.summary} ogType="article">
   <article class="content mx-auto">
-    <a href="/work/" class="standalone-link eyebrow-link" data-corpus-ignore>← all work</a>
+    <a href="/work/" data-slot="button" data-site="link" class={`${linkClass} eyebrow-link`} data-corpus-ignore>← all work</a>
 
     <header class="mb-10 mt-5">
       <div class="mono-meta mb-4">{project.data.period}</div>
