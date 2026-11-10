@@ -17,7 +17,7 @@ Run these on workers.dev before the agent is linked from the site. The agent shi
 | `wrangler` | 4.158.0 |
 | `compatibility_date` | 2026-11-05 |
 | Answering model (`AGENT_MODEL`) | `openai/gpt-6-luna` (through the AI binding and the gateway; the eval scorecard can change it) |
-| Reasoning effort (`AGENT_REASONING`) | `max` (`off`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max`; unknown values mean `off`). If Cloudflare rejects `max` for the model, drop to `high` and record the error. |
+| Reasoning effort (`AGENT_REASONING`) | `low` since 2026-11-10 (#16; it was `max` during the live checks) (`off`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max`; unknown values mean `off`). If Cloudflare rejects `max` for the model, drop to `high` and record the error. |
 
 Pi Durable is experimental. A conversation written by a newer Pi minor version can't be read after rolling
 back, so fix a bad deploy by rolling forward.

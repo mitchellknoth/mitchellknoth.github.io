@@ -3,9 +3,9 @@ import { createModels } from '@earendil-works/pi-ai/models';
 import { createRegistry, Harness, type LiveState } from '@earendil-works/pi-durable';
 import { PiHarness } from 'agents/harness/pi';
 import { Lifecycle, type LifecycleJobContext, type LifecycleJobOutcome } from 'agents/lifecycle';
-import { createAI } from 'agents/models/pi-ai';
 import { corpus } from './corpus';
 import { classifyIntent, intentMode, type IntentAi } from './intent';
+import { createVisitorAI, modelTimeoutMs, visitorModel } from './model';
 import { promptWithPassages } from './retrieval';
 import { INSTRUCTIONS, refusal, screenQuestion, shapeReply, type AgentReply } from './reply';
 import { createTimer, summarizeRounds, type AskTiming, type PhaseTimer } from './timing';
@@ -49,14 +49,10 @@ export function reasoningLevel(value: string | undefined): ReasoningLevel {
 }
 
 export class VisitorSession extends DurableObject<Env> {
-  ai = createAI({
-    binding: this.env.AI,
-    // Every call goes through this AI Gateway, where the spend limit lives. Gateway logs are off so
-    // visitor prompts are not stored outside this object.
-    id: this.env.AI_GATEWAY_ID,
-    collectLog: false,
-    metadata: { surface: 'visitor' },
-  });
+  /** How long one model call may stay silent (worker/model.ts); parsed once for the provider and the model. */
+  private modelTimeout = modelTimeoutMs(this.env.MODEL_TIMEOUT_MS);
+
+  ai = createVisitorAI(this.env.AI, this.env.AI_GATEWAY_ID, this.modelTimeout);
 
   registry = createRegistry();
 
@@ -81,7 +77,7 @@ export class VisitorSession extends DurableObject<Env> {
       );
     },
     defaults: {
-      model: this.ai(this.env.AGENT_MODEL),
+      model: visitorModel(this.ai, this.env.AGENT_MODEL, this.modelTimeout),
       thinkingLevel: reasoningLevel(this.env.AGENT_REASONING),
       maxTurns: 4,
     },
