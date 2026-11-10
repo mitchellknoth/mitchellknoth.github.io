@@ -27,6 +27,9 @@ export type AskResult =
   | { status: 'budget'; reason: 'inference_budget' }
   | { status: 'expired' };
 
+/** Where a streamed answer's work is (worker/ask-response.ts): what the visitor is told while it waits. */
+export type AskPhase = 'checking' | 'searching' | 'writing';
+
 /** What `ask` returns: the result, plus its phase timings when `limits.timing` is set. */
 export type TimedAskResult = AskResult & { timing?: AskTiming };
 
@@ -99,13 +102,35 @@ export class VisitorSession extends DurableObject<Env> {
   /** Set once the purge starts; the object is reset when it ends, so this never needs clearing. */
   private purging = false;
 
-  async ask(question: string, limits: AskLimits): Promise<TimedAskResult> {
+  /**
+   * The same answer as `ask`, as a stream of newline-delimited JSON events for the Worker to pass on
+   * (worker/ask-response.ts): `status` lines while the work moves, then one `result` line.
+   */
+  askStream(question: string, limits: AskLimits): ReadableStream<Uint8Array> {
+    const encoder = new TextEncoder();
+    return new ReadableStream<Uint8Array>({
+      start: async (controller) => {
+        const send = (event: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+        try {
+          send({ type: 'status', phase: 'checking' });
+          send({ type: 'result', result: await this.ask(question, limits, (phase) => send({ type: 'status', phase })) });
+        } catch (error) {
+          // No `result` line: the Worker reports a failed run, never a stack trace.
+          console.error('agent stream failed', error instanceof Error ? error.message : String(error));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+  }
+
+  async ask(question: string, limits: AskLimits, onPhase?: (phase: AskPhase) => void): Promise<TimedAskResult> {
     // The purge awaits non-storage work, so a question can arrive while it runs. It must not touch storage.
     if (this.purging) return { status: 'expired' };
     this.inFlight += 1;
     const timer = createTimer();
     try {
-      const result = await this.answer(question, limits, timer);
+      const result = await this.answer(question, limits, timer, onPhase);
       // Durations and token counts only (worker/timing.ts); a logging failure never fails the question.
       const timing = timer.finish(result, { model: this.env.AGENT_MODEL, effort: reasoningLevel(this.env.AGENT_REASONING) });
       try {
@@ -117,7 +142,7 @@ export class VisitorSession extends DurableObject<Env> {
     }
   }
 
-  private async answer(question: string, limits: AskLimits, timer: PhaseTimer): Promise<AskResult> {
+  private async answer(question: string, limits: AskLimits, timer: PhaseTimer, onPhase?: (phase: AskPhase) => void): Promise<AskResult> {
     const expired = await timer.time('start', async () => {
       await this.lifecycle.start();
       return this.expired(limits.ttlSeconds);
@@ -139,6 +164,7 @@ export class VisitorSession extends DurableObject<Env> {
     const intent = await timer.time('intent', () => this.checkIntent(question));
     if (intent) return intent;
 
+    onPhase?.('searching');
     const result = await timer.time('agent', () => this.harness.prompt(question));
     timer.rounds = this.modelRounds(result.messages);
     if (result.status === 'done') return shapeReply(result.text ?? '', corpus);

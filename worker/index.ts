@@ -1,4 +1,5 @@
-import { GUARD_NAME, nextUtcMidnight } from './guard';
+import { describeResult, streamResponse, wantsStream } from './ask-response';
+import { GUARD_NAME } from './guard';
 import { SESSION_COOKIE } from './session-cookie';
 import { serverTimingHeader } from './timing';
 
@@ -95,14 +96,45 @@ async function handleAgent(request: Request, env: Env, path: string): Promise<Re
 
     const wantTiming = env.TIMING_HEADER === 'true';
     const session = env.VISITOR_SESSION.getByName(name);
+    const limits = {
+      maxMessages: intVar(env.MAX_MESSAGES_PER_SESSION, 20),
+      ttlSeconds: intVar(env.SESSION_TTL_SECONDS, 86_400),
+      timing: wantTiming,
+    };
     const sessionStart = Date.now();
+
+    // The streamed form (worker/ask-response.ts): the same answer as lines, with the work's progress and pings.
+    if (wantsStream(request)) {
+      let upstream: ReadableStream<Uint8Array>;
+      try {
+        upstream = await session.askStream(question, limits);
+      } catch (error) {
+        console.error('agent session failed', error);
+        console.log(JSON.stringify({ event: 'agent_request', outcome: 'error', admit: admitMs, session: Date.now() - sessionStart, total: Date.now() - requestStart }));
+        return refused('error', 502);
+      }
+      return streamResponse(upstream, async (result) => {
+        const worker = () => ({ admit: admitMs, session: Date.now() - sessionStart, total: Date.now() - requestStart });
+        if (!result) {
+          console.log(JSON.stringify({ event: 'agent_request', outcome: 'error', ...worker() }));
+          return { status: 502, body: { state: 'error' } };
+        }
+        const { timing, ...rest } = result;
+        const described = describeResult(rest, Date.now());
+        if (described.pauseUntil) await guard.pause(described.pauseUntil, 'inference_budget');
+        const figures = worker();
+        console.log(JSON.stringify({ event: 'agent_request', outcome: rest.status, ...figures }));
+        return {
+          status: described.status,
+          body: described.body,
+          ...(wantTiming ? { serverTiming: serverTimingHeader(figures, timing) } : {}),
+        };
+      });
+    }
+
     let result: Awaited<ReturnType<typeof session.ask>>;
     try {
-      result = await session.ask(question, {
-        maxMessages: intVar(env.MAX_MESSAGES_PER_SESSION, 20),
-        ttlSeconds: intVar(env.SESSION_TTL_SECONDS, 86_400),
-        timing: wantTiming,
-      });
+      result = await session.ask(question, limits);
     } catch (error) {
       // Log the cause for the operator; the visitor gets a plain state, never a stack trace.
       console.error('agent session failed', error);
@@ -119,16 +151,9 @@ async function handleAgent(request: Request, env: Env, path: string): Promise<Re
       return response;
     };
 
-    if (body.status === 'budget') {
-      const until = nextUtcMidnight(Date.now());
-      await guard.pause(until, 'inference_budget');
-      return timed(refused('paused', 503, until));
-    }
-    if (body.status === 'limit') return timed(json({ state: 'limit', reason: body.reason }, 429));
-    // An expired session's storage is deleted (worker/session.ts); its cookie has also expired, so start over.
-    if (body.status === 'expired') return timed(json({ error: 'no_session' }, 401));
-    // `answered`, `refused` or `unanswered`, shaped and source-checked by worker/reply.ts.
-    return timed(json(body));
+    const described = describeResult(body, Date.now());
+    if (described.pauseUntil) await guard.pause(described.pauseUntil, 'inference_budget');
+    return timed(json(described.body, described.status));
   }
 
   return json({ error: 'not_found' }, 404);

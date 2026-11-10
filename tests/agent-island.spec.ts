@@ -365,7 +365,7 @@ for (const theme of ['dark', 'light']) {
       await ask(page);
       const wait = island(page).locator('.agent-waiting');
       await expect(wait).toContainText('Searching the site and reading what it finds');
-      await expect(wait).toContainText('10 to 30 seconds');
+      await expect(wait).toContainText('a few seconds');
       await page.clock.runFor(36_000);
       await expect(wait).toContainText('Still working');
       await expect(wait.locator('.agent-elapsed')).toHaveText('36 s');
@@ -380,6 +380,67 @@ for (const theme of ['dark', 'light']) {
       release();
       await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
       await expect(wait).toHaveCount(0);
+    });
+
+    /** Replaces the island's own fetch of /agent/ask with a stream the test controls, line by line. */
+    async function streamedAsks(page: Page) {
+      await page.addInitScript(() => {
+        const real = window.fetch.bind(window);
+        const w = window as unknown as Record<string, unknown>;
+        w.__accepts = [] as string[];
+        window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+          const url = typeof input === 'string' ? input : input instanceof URL ? input.pathname : input.url;
+          if (!url.endsWith('/agent/ask')) return real(input, init);
+          (w.__accepts as string[]).push(new Headers(init?.headers).get('accept') ?? '');
+          const encoder = new TextEncoder();
+          let controller!: ReadableStreamDefaultController<Uint8Array>;
+          const body = new ReadableStream<Uint8Array>({ start: (c) => (controller = c) });
+          w.__push = (event: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+          w.__end = () => controller.close();
+          return Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': 'application/x-ndjson' } }));
+        };
+      });
+    }
+    const push = (page: Page, event: unknown) => page.evaluate((e) => (window as unknown as { __push: (e: unknown) => void }).__push(e), event);
+
+    test('asks for the stream, shows where the work is, and answers on the final event', async ({ page }) => {
+      await streamedAsks(page);
+      await open(page, theme, { health: ONLINE });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await ask(page);
+      const wait = island(page).locator('.agent-waiting');
+      await expect(wait).toContainText('Searching the site and reading what it finds');
+      await push(page, { type: 'status', phase: 'checking' });
+      await push(page, { type: 'ping' });
+      await expect(wait).toContainText('Searching the site and reading what it finds');
+      await push(page, { type: 'status', phase: 'writing' });
+      await expect(wait).toContainText('Writing the answer');
+      await push(page, { type: 'final', status: 200, body: ANSWER.body });
+      await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
+      await expect(wait).toHaveCount(0);
+      const accepts = await page.evaluate(() => (window as unknown as { __accepts: string[] }).__accepts);
+      expect(accepts[0]).toContain('application/x-ndjson');
+      await expectSoundLayout(page);
+    });
+
+    test('treats a stream that ends without a final event as an answer that failed', async ({ page }) => {
+      await streamedAsks(page);
+      await open(page, theme, { health: ONLINE });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await ask(page);
+      await push(page, { type: 'status', phase: 'searching' });
+      await page.evaluate(() => (window as unknown as { __end: () => void }).__end());
+      await expect(island(page)).toHaveAttribute('data-state', 'error');
+      await expect(island(page).getByRole('alert')).toContainText('no answer to show');
+    });
+
+    test('shows a streamed stopped state exactly like the plain one', async ({ page }) => {
+      await streamedAsks(page);
+      await open(page, theme, { health: ONLINE });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await ask(page);
+      await push(page, { type: 'final', status: 429, body: { state: 'limit', reason: 'session_message_limit' } });
+      await expect(island(page)).toHaveAttribute('data-state', 'limit');
     });
 
     test('counts characters near the limit and will not send past it', async ({ page }) => {

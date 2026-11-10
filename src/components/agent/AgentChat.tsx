@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/message-scroller';
 import { TraceIcon, TraceLine, TraceTitle } from '@/components/ui/trace';
 import { askQuestion, checkHealth } from '@/lib/agent/client';
+import type { AskPhase } from '@/lib/agent/stream';
 import type { StoppedState } from '@/lib/agent/contract';
 import { replyToMessage, sourcesOf, textOf, userMessage, type AgentUIMessage } from '@/lib/agent/messages';
 import { AgentSources } from './AgentSources';
@@ -165,12 +166,24 @@ function Reply({ message }: { message: AgentUIMessage }) {
   );
 }
 
-/** What the wait says as it gets longer. Answers are not streamed, so there is no progress to report. */
+/**
+ * What the wait says as it gets longer. The Worker reports where the work is (`PHASE_TITLES`) but never what the
+ * answer says, so the words below only change on the clock.
+ */
 const WAIT_NOTES = [
-  { from: 0, title: 'Searching the site and reading what it finds', note: 'Answers usually take 10 to 30 seconds.' },
+  { from: 0, title: 'Searching the site and reading what it finds', note: 'Answers usually take a few seconds.' },
   { from: 35, title: 'Still working', note: 'Longer questions can take a minute or more.' },
   { from: 80, title: 'Still working, and slower than usual', note: 'If there is no answer after two minutes, your question comes back to the field.' },
 ] as const;
+
+/**
+ * The wait's first words, from the phase the Worker last reported; after the first threshold the clock's words win.
+ * `checking` lasts well under a second, so it keeps the default words instead of flashing a title of its own.
+ */
+const PHASE_TITLES: Partial<Record<AskPhase, string>> = {
+  searching: 'Searching the site and reading what it finds',
+  writing: 'Writing the answer',
+};
 
 function waitPhrase(seconds: number | undefined) {
   if (!seconds) return 'a few seconds';
@@ -187,7 +200,7 @@ function formatElapsed(seconds: number) {
  * The indicator for an answer in flight. The words change only at the thresholds above and sit in a polite
  * live region, so a screen reader hears each phase once; the running seconds are for sighted visitors.
  */
-function Waiting({ confirming }: { confirming: boolean }) {
+function Waiting({ confirming, phase: reported }: { confirming: boolean; phase: AskPhase | null }) {
   const [seconds, setSeconds] = React.useState(0);
   React.useEffect(() => {
     const start = Date.now();
@@ -195,6 +208,7 @@ function Waiting({ confirming }: { confirming: boolean }) {
     return () => window.clearInterval(timer);
   }, []);
   const phase = WAIT_NOTES.reduce((current, candidate) => (seconds >= candidate.from ? candidate : current), WAIT_NOTES[0]);
+  const title = (reported && phase === WAIT_NOTES[0] && PHASE_TITLES[reported]) || phase.title;
   return (
     <div className="agent-waiting">
       <div role="status" className="agent-waiting-text">
@@ -202,7 +216,7 @@ function Waiting({ confirming }: { confirming: boolean }) {
           <TraceIcon>
             <LoaderCircleIcon className="animate-spin motion-reduce:animate-none" />
           </TraceIcon>
-          <TraceTitle>{confirming ? 'Confirming you’re a person' : phase.title}…</TraceTitle>
+          <TraceTitle>{confirming ? 'Confirming you’re a person' : title}…</TraceTitle>
         </TraceLine>
         {!confirming && <p className="agent-wait-note">{phase.note}</p>}
       </div>
@@ -241,6 +255,7 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
   const focusWasInVerify = React.useRef(false);
   /** Which ask is in flight, so the wait indicator starts again for the retry after a clearance. */
   const [attempt, setAttempt] = React.useState(0);
+  const [phase, setPhase] = React.useState<AskPhase | null>(null);
   const [messages, setMessages] = React.useState<AgentUIMessage[]>([]);
   const [draft, setDraft] = React.useState('');
   const nextId = React.useRef(0);
@@ -318,13 +333,15 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
     setMessages((current) => [...current, asked]);
     setDraft('');
     setView({ kind: 'answering' });
+    setPhase(null);
 
-    let outcome = await askQuestion(question);
+    let outcome = await askQuestion(question, setPhase);
     // Clearance lasts a while, not forever: if the edge challenges this question, clear the check and ask once
     // more, with the wait indicator starting over. Only once: a second challenge is shown as it is.
     if (outcome.type === 'state' && outcome.state.kind === 'unverified' && (await clearHumanCheck())) {
       setAttempt((current) => current + 1);
-      outcome = await askQuestion(question);
+      setPhase(null);
+      outcome = await askQuestion(question, setPhase);
     }
 
     // Move focus only if the visitor left it in the form, or it was in the form when they sent and the
@@ -439,7 +456,7 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
                   )}
                   {busy && (
                     <MessageScrollerItem messageId="answering">
-                      <Waiting key={attempt} confirming={challenge !== 'idle'} />
+                      <Waiting key={attempt} confirming={challenge !== 'idle'} phase={phase} />
                     </MessageScrollerItem>
                   )}
                 </MessageScrollerContent>
