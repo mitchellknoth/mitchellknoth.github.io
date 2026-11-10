@@ -138,7 +138,7 @@
   .agent-hint { display: none; }
 }
 
-/* The answer in flight. Answers are not streamed, so this stays put for 10 to 30 seconds and longer. */
+/* The answer in flight. The words change with the phase the Worker reports and then with the clock; answer text is never streamed. */
 .agent-waiting {
   display: flex;
   align-items: flex-start;
