@@ -100,7 +100,7 @@
    - Card: the CLI rounds with `--radius-4xl`, which this theme does not define, and adds a ring and a
      shadow. DESIGN.md: 6px panels, flat, "borders mark meaningful boundaries".
    - Badge: DESIGN.md tags are 3px, not pills.
-   - Alert and Table: borders default to currentColor; bound to the site's border tokens. Alert is 6px. (It always renders role="alert", which announces assertively; static callouts pass
+   - Alert and Table: borders default to currentColor and cells to nowrap; bound to the site's border tokens and wrapping. Alert is 6px. (It always renders role="alert", which announces assertively; static callouts pass
      role="note" at the call site.)
    - Button: a visible focus outline already comes from global.css; the 3px translucent halo is dropped so the
      two don't stack, and `transition-all` is narrowed so the outline appears at once.
@@ -124,6 +124,13 @@
 [data-slot="alert"] {
   border-color: var(--editorial-border);
   border-radius: 6px;
+}
+/* The CLI sets `whitespace-nowrap` on cells, so a two-column table scrolled sideways inside its container at
+   320px. DESIGN.md: reflow at 320 with no horizontal scrolling; cells wrap. */
+[data-slot="table-head"],
+[data-slot="table-cell"] {
+  white-space: normal;
+  vertical-align: top;
 }
 [data-slot="table-row"],
 [data-slot="table-footer"] {

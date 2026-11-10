@@ -25,6 +25,11 @@ for (const theme of ['dark', 'light'] as const) {
       await expect(page.locator('[data-fixture]')).toBeVisible();
     });
 
+    test('the table wraps instead of scrolling sideways', async ({ page }) => {
+      const overflow = await page.locator('[data-slot="table-container"]').evaluate((element) => element.scrollWidth - element.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
+
     test('hydrates and does not overflow', async ({ page }) => {
       // Astro drops the island's `ssr` attribute once React has taken it over.
       await expect(page.locator('astro-island')).not.toHaveAttribute('ssr', /.*/);
