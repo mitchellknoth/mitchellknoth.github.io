@@ -47,6 +47,9 @@
 		"INTENT_MODE": "enforce",
 		// The AI Gateway that carries the inference spend limit.
 		"AI_GATEWAY_ID": "mitchellknoth-com-agent",
+		// "true" adds a Server-Timing header (phase durations and model-round token counts, never content) to
+		// POST /agent/ask answers, for measurement windows (#16). Every question logs the same figures regardless.
+		"TIMING_HEADER": "false",
 		"MAX_PROMPT_CHARS": "1000",
 		"MAX_MESSAGES_PER_SESSION": "20",
 		"DAILY_AGENT_REQUESTS": "500",

@@ -7,6 +7,7 @@ import { createAI } from 'agents/models/pi-ai';
 import { corpus } from './corpus';
 import { classifyIntent, intentMode, type IntentAi } from './intent';
 import { INSTRUCTIONS, refusal, screenQuestion, shapeReply, type AgentReply } from './reply';
+import { createTimer, summarizeRounds, type AskTiming, type PhaseTimer } from './timing';
 import { SITE_TOOLS } from './tools';
 
 // One object per visitor session (#13), named by the server. Pi Durable keeps the conversation in this object's
@@ -17,13 +18,17 @@ import { SITE_TOOLS } from './tools';
 // the object's whole storage: the conversation, Pi's tables, the job queue and these counters. Questions that arrive
 // after expiry are refused without reaching the model. See docs/runbooks/agent-retention.md.
 
-export type AskLimits = { maxMessages: number; ttlSeconds: number };
+/** `timing` asks `ask` to return its phase timings with the result (the Worker's Server-Timing header). */
+export type AskLimits = { maxMessages: number; ttlSeconds: number; timing?: boolean };
 
 export type AskResult =
   | AgentReply
   | { status: 'limit'; reason: 'session_message_limit' }
   | { status: 'budget'; reason: 'inference_budget' }
   | { status: 'expired' };
+
+/** What `ask` returns: the result, plus its phase timings when `limits.timing` is set. */
+export type TimedAskResult = AskResult & { timing?: AskTiming };
 
 /** The Lifecycle host job that deletes an expired session. */
 export const PURGE_JOB = { id: 'session-ttl', fn: 'purge' } as const;
@@ -98,20 +103,30 @@ export class VisitorSession extends DurableObject<Env> {
   /** Set once the purge starts; the object is reset when it ends, so this never needs clearing. */
   private purging = false;
 
-  async ask(question: string, limits: AskLimits): Promise<AskResult> {
+  async ask(question: string, limits: AskLimits): Promise<TimedAskResult> {
     // The purge awaits non-storage work, so a question can arrive while it runs. It must not touch storage.
     if (this.purging) return { status: 'expired' };
     this.inFlight += 1;
+    const timer = createTimer();
     try {
-      return await this.answer(question, limits);
+      const result = await this.answer(question, limits, timer);
+      // Durations and token counts only (worker/timing.ts); a logging failure never fails the question.
+      const timing = timer.finish(result, { model: this.env.AGENT_MODEL, effort: reasoningLevel(this.env.AGENT_REASONING) });
+      try {
+        console.log(JSON.stringify({ event: 'ask_timing', ...timing }));
+      } catch {}
+      return limits.timing ? { ...result, timing } : result;
     } finally {
       this.inFlight -= 1;
     }
   }
 
-  private async answer(question: string, limits: AskLimits): Promise<AskResult> {
-    await this.lifecycle.start();
-    if (await this.expired(limits.ttlSeconds)) return { status: 'expired' };
+  private async answer(question: string, limits: AskLimits, timer: PhaseTimer): Promise<AskResult> {
+    const expired = await timer.time('start', async () => {
+      await this.lifecycle.start();
+      return this.expired(limits.ttlSeconds);
+    });
+    if (expired) return { status: 'expired' };
 
     const asked = this.ctx.storage.sql
       .exec<{ value: number }>(
@@ -125,16 +140,26 @@ export class VisitorSession extends DurableObject<Env> {
     const screened = screenQuestion(question);
     if (screened) return refusal(screened);
 
-    const intent = await this.checkIntent(question);
+    const intent = await timer.time('intent', () => this.checkIntent(question));
     if (intent) return intent;
 
-    const result = await this.harness.prompt(question);
+    const result = await timer.time('agent', () => this.harness.prompt(question));
+    timer.rounds = this.modelRounds(result.messages);
     if (result.status === 'done') return shapeReply(result.text ?? '', corpus);
 
     if (result.reason === 'model_error' && isBudgetRefusal(await this.lastFailureDetail())) {
       return { status: 'budget', reason: 'inference_budget' };
     }
     return { status: 'unanswered', reason: result.reason ?? 'unknown' };
+  }
+
+  /** The latest question's model rounds, from the transcript the run returned. Never throws: measuring must not break answering. */
+  private modelRounds(messages: Parameters<typeof summarizeRounds>[0]) {
+    try {
+      return summarizeRounds(messages);
+    } catch {
+      return [];
+    }
   }
 
   /**
