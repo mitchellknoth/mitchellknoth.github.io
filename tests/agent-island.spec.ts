@@ -656,12 +656,13 @@ test('the island is the only homepage script that talks to the agent, and only o
 });
 
 test('the production bundle hydrates and answers', async ({ page }) => {
-  // The other island tests run against the dev server; this one runs the built site (astro preview),
-  // so the minified bundle and client:idle hydration are exercised too.
+  // The other island tests run against the dev server; this one runs a production build with the agent
+  // switched on (npm run build:agent-on, served by astro preview on 4323; see playwright.config.ts), so the minified bundle and client:idle
+  // hydration are exercised too. The regular dist/ follows wrangler.jsonc, where the agent is off.
   test.skip(test.info().project.name !== 'desktop', 'One viewport is enough to prove the production bundle.');
   const errors = watchErrors(page);
   await mockAgent(page, {});
-  await page.goto('http://127.0.0.1:4322/');
+  await page.goto('http://127.0.0.1:4323/');
   await expect(island(page)).toHaveAttribute('data-state', 'online');
   await ask(page);
   await expect(island(page).getByRole('log', { name: 'Conversation' }).getByText('Any engineer or agent tool can search it.')).toBeVisible();

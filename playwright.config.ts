@@ -20,7 +20,9 @@ export default defineConfig({
       url: 'http://127.0.0.1:4321',
       // Cloudflare's published always-pass Turnstile site key, so the island's widget flow runs in tests
       // (the script itself is mocked in tests/agent-island.spec.ts). The production key lives in the source.
-      env: { PUBLIC_TURNSTILE_SITE_KEY: '1x00000000000000000000AA' },
+      // PUBLIC_AGENT_ENABLED makes the island treat the agent as switched on, whatever wrangler.jsonc says, so
+      // its live states can be exercised against mocked responses (the production build follows wrangler.jsonc).
+      env: { PUBLIC_TURNSTILE_SITE_KEY: '1x00000000000000000000AA', PUBLIC_AGENT_ENABLED: 'true' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
@@ -28,6 +30,17 @@ export default defineConfig({
       // Serves the built dist/ for the egress contract (tests/egress.spec.ts); run `npm run build` first.
       command: 'npm run preview -- --host 127.0.0.1 --port 4322',
       url: 'http://127.0.0.1:4322',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      // The same site built with the agent switched on (PUBLIC_AGENT_ENABLED), for the test that proves the
+      // production bundle hydrates and answers. dist/ follows wrangler.jsonc, where the agent is off, so it
+      // can't show that. Run `npm run build:agent-on` first (npm run quality does); it builds into its own
+      // folder, and nothing there is deployed. It is built before the run, not by this server, because a build
+      // during the run makes the dev server reload mid-test.
+      command: 'npm run preview -- --outDir dist-agent-on --host 127.0.0.1 --port 4323',
+      url: 'http://127.0.0.1:4323',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

@@ -5,6 +5,7 @@ import MetricCard from '../components/MetricCard.astro';
 import { site } from '../config';
 import AgentChat from '../components/agent/AgentChat';
 import { TURNSTILE_SITE_KEY } from '../components/agent/turnstile';
+import { agentEnabled } from '../lib/agent/enabled';
 import FeaturedPost from '../components/writing/FeaturedPost.astro';
 import { getProjects, getPublishedPosts, splitFeaturedPost } from '../lib/content';
 
@@ -46,7 +47,7 @@ const featuredMetrics = (await getProjects())
       stands alone; on a host with no agent at all (a static host, or a 404 from /agent/health) the island removes itself the same way.
     */}
     <noscript><style is:inline>[data-agent-island] { display: none !important; } .home-hero { grid-template-columns: minmax(0, 1fr) !important; }</style></noscript>
-    <AgentChat client:idle turnstileSiteKey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY} />
+    <AgentChat client:idle enabled={agentEnabled()} turnstileSiteKey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY} />
   </section>
 
   <SectionLabel label="Selected work" href="/work/" />
