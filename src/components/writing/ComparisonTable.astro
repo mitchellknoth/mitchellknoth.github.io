@@ -1,30 +1,42 @@
 ---
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+
 interface Props { caption: string; headings: string[]; rows: string[][]; }
 const { caption, headings, rows } = Astro.props;
 ---
-<table class="comparison-table editorial-reading">
-  <caption>{caption}</caption>
-  <thead><tr>{headings.map((heading) => <th scope="col">{heading}</th>)}</tr></thead>
-  <tbody>{rows.map((row) => <tr>{row.map((cell, index) => index === 0 ?
-    <th scope="row">{cell}</th> :
-    <td><span class="cell-label" aria-hidden="true">{headings[index]}</span>{cell}</td>)}</tr>)}</tbody>
-</table>
-<style>
+<Table className="comparison-table editorial-reading">
+  <TableCaption>{caption}</TableCaption>
+  <TableHeader>
+    <TableRow className="border-0">{headings.map((heading) => <TableHead scope="col">{heading}</TableHead>)}</TableRow>
+  </TableHeader>
+  <TableBody>
+    {rows.map((row) => (
+      <TableRow className="border-0">
+        {row.map((cell, index) => index === 0 ?
+          <TableHead scope="row">{cell}</TableHead> :
+          <TableCell><span class="cell-label" aria-hidden="true">{headings[index]}</span>{cell}</TableCell>)}
+      </TableRow>
+    ))}
+  </TableBody>
+</Table>
+<style is:global>
+  /* shadcn's Table renders the elements, so these rules are global and keyed on the table's class. */
   .comparison-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; margin: 2rem 0; font-size: 0.9rem; line-height: 1.65; }
-  caption { text-align: left; margin-bottom: 1rem; font-family: var(--font-serif); font-size: 1.4rem; color: var(--fg); }
-  th, td { text-align: left; vertical-align: top; padding: 0.8rem; overflow-wrap: anywhere; }
-  th { color: var(--fg); font-weight: 500; }
-  td { color: var(--fg-muted); }
-  tbody tr:nth-child(odd) { background: var(--bg-elevated); }
-  .cell-label { display: none; }
+  .comparison-table caption { caption-side: top; text-align: left; margin: 0 0 1rem; font-family: var(--font-serif); font-size: 1.4rem; color: var(--fg); }
+  .comparison-table th, .comparison-table td { text-align: left; vertical-align: top; padding: 0.8rem; overflow-wrap: anywhere; height: auto; }
+  .comparison-table th { color: var(--fg); font-weight: 500; }
+  .comparison-table td { color: var(--fg-muted); }
+  .comparison-table tbody tr:nth-child(odd) { background: var(--bg-elevated); }
+  .comparison-table tbody tr:hover { background: var(--bg-elevated); }
+  .comparison-table .cell-label { display: none; }
   @media (max-width: 767px) {
-    .comparison-table, tbody, tr, td, tbody th { display: block; width: 100%; }
-    caption { display: block; width: 100%; }
-    thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); }
-    tbody tr { padding: 1rem; margin: 0 0 1.25rem; border-radius: 6px; background: var(--bg-elevated); }
-    th, td { padding: 0; }
-    tbody th { margin-bottom: 0.75rem; font-size: 1.05rem; }
-    td + td { margin-top: 0.85rem; }
-    .cell-label { display: block; color: var(--fg); font-weight: 500; }
+    .comparison-table, .comparison-table tbody, .comparison-table tr, .comparison-table td, .comparison-table tbody th { display: block; width: 100%; }
+    .comparison-table caption { display: block; width: 100%; }
+    .comparison-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+    .comparison-table tbody tr { padding: 1rem; margin: 0 0 1.25rem; border-radius: 6px; background: var(--bg-elevated); }
+    .comparison-table th, .comparison-table td { padding: 0; }
+    .comparison-table tbody th { margin-bottom: 0.75rem; font-size: 1.05rem; }
+    .comparison-table td + td { margin-top: 0.85rem; }
+    .comparison-table .cell-label { display: block; color: var(--fg); font-weight: 500; }
   }
 </style>

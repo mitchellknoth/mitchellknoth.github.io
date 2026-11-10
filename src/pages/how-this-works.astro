@@ -7,6 +7,7 @@
 import Base from '../layouts/Base.astro';
 import EvalScorecard from '../components/how/EvalScorecard.astro';
 import RequestPath from '../components/how/RequestPath.astro';
+import { Alert, AlertDescription } from '../components/ui/alert';
 
 const repo = 'https://github.com/mitchellknoth/mitchellknoth.github.io';
 
@@ -45,9 +46,9 @@ const questionKinds = [
       </p>
     </header>
 
-    <aside class="rule-callout how-status" aria-label="Where it stands">
-      <p>
-        <strong>Where it stands.</strong> The agent is switched off in production. This site runs on Cloudflare
+    <Alert role="complementary" className="how-status" aria-label="Where it stands">
+      <AlertDescription>
+        <p><strong>Where it stands.</strong> The agent is switched off in production. This site runs on Cloudflare
         Workers, and the homepage shows a notice where the agent will appear. Built so far are the Worker, the
         guard, per-visitor sessions, the two corpus tools, refusals, the evaluation harness and every homepage
         state, the last tested against simulated responses. I have also run the agent on the live Worker behind the
@@ -55,9 +56,9 @@ const questionKinds = [
         pause lifting by itself, a session being deleted on schedule, and the off switch. The question set is
         written and approved, but I haven’t scored the agent against it, so nothing has been scored. The agent
         stays off until its evaluation runs are published below and I’ve reviewed the answers. It hasn’t been load
-        tested, so I make no claims about scale.
-      </p>
-    </aside>
+        tested, so I make no claims about scale.</p>
+      </AlertDescription>
+    </Alert>
 
     <h2 id="request-path">The request path</h2>
     <p>
@@ -178,10 +179,11 @@ const questionKinds = [
     color: var(--fg-muted);
     font-size: 1.125rem;
   }
-  .how-page .how-status {
+  /* The Alert is a React component, so Astro's scope attribute is not on it: these two are global. */
+  :global(.how-page .how-status) {
     max-width: 68ch;
   }
-  .how-page .how-status strong {
+  :global(.how-page .how-status strong) {
     color: var(--fg);
   }
   /* Inside the reading measure, two columns is the most the labels and sentences can take. */

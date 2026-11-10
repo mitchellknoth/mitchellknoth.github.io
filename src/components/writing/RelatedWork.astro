@@ -1,5 +1,6 @@
 ---
-import { titleLinkClass } from '../../lib/site-ui';
+import { Card, CardContent, CardHeader } from '../ui/card';
+import { cardLinkClass, stretchedLinkClass } from '../../lib/site-ui';
 
 interface Props {
   href: string;
@@ -10,17 +11,17 @@ interface Props {
 const { href, title, description } = Astro.props;
 ---
 
-<aside class="editorial-reading related-work" aria-labelledby="related-work-title" data-corpus-ignore>
-  <div class="mono-meta">Related work</div>
-  <h2 id="related-work-title"><a class={titleLinkClass} href={href}>{title}</a></h2>
-  <p>{description}</p>
-</aside>
+<Card className={`editorial-reading related-work ${cardLinkClass}`} role="complementary" aria-labelledby="related-work-title" data-corpus-ignore>
+  <CardHeader>
+    <div class="mono-meta">Related work</div>
+    <h2 id="related-work-title"><a href={href} data-slot="button" data-site="link" class={stretchedLinkClass}>{title}</a></h2>
+  </CardHeader>
+  <CardContent><p>{description}</p></CardContent>
+</Card>
 
-<style>
+<style is:global>
   .related-work {
-    border-top: 1px solid var(--editorial-border);
     margin-top: 2.5rem;
-    padding-top: 1.25rem;
   }
 
   .related-work h2 {
@@ -28,10 +29,11 @@ const { href, title, description } = Astro.props;
     font-size: 1.55rem;
     font-weight: 400;
     line-height: 1.2;
-    margin: 0.4rem 0;
+    margin: 0.4rem 0 0;
   }
 
   .related-work h2 a {
+    border-bottom: 0;
     color: var(--accent);
   }
 

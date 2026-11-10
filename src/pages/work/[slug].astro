@@ -2,7 +2,8 @@
 import { render, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { getProjects } from '../../lib/content';
-import { linkClass } from '../../lib/site-ui';
+import { linkClass, tagClass } from '../../lib/site-ui';
+import { Badge } from '../../components/ui/badge';
 
 export async function getStaticPaths() {
   const projects = await getProjects();
@@ -33,12 +34,7 @@ const { Content } = await render(project);
         project.data.stack.length > 0 && (
           <div class="mt-6 flex flex-wrap gap-2" data-corpus-items>
             {project.data.stack.map((item) => (
-              <span
-                class="rounded-[3px] border px-[6px] py-[2px] text-[11px]"
-                style="border-color: var(--border-strong); color: var(--fg-dim); font-family: var(--font-mono);"
-              >
-                {item}
-              </span>
+              <Badge variant="outline" className={tagClass}>{item}</Badge>
             ))}
           </div>
         )
