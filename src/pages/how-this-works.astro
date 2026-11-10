@@ -1,9 +1,9 @@
 ---
 // How the homepage agent works (#18): architecture, guardrails, failure states and the evaluation
 // method. Claims stay inside the agreed plan in #13 and the code on main: what exists is stated in the
-// present tense; what isn't done yet (the question set, scored runs, hosting) is labelled as such.
+// present tense; what isn't done yet (scored runs, switching the agent on) is labelled as such.
 // Numbers appear only once a committed eval run supplies them. Update the "Where it stands" aside and
-// the in-progress labels as the question set, the first runs and the Workers cutover land.
+// the in-progress labels as the first scored runs land and the agent is switched on.
 import Base from '../layouts/Base.astro';
 import EvalScorecard from '../components/how/EvalScorecard.astro';
 import RequestPath from '../components/how/RequestPath.astro';
@@ -48,11 +48,14 @@ const questionKinds = [
     <aside class="rule-callout how-status" aria-label="Where it stands">
       <p>
         <strong>Where it stands.</strong> The agent is switched off in production. This site runs on Cloudflare
-        Workers, and the homepage shows a notice where the agent will appear. Built and tested so far are the Worker,
-        the guard, per-visitor sessions, the two corpus tools, refusals, the evaluation harness and every homepage
-        state, the last against simulated responses. The question set isn’t written yet, so nothing has been scored.
-        The agent stays off until its evaluation runs are published below and I’ve reviewed the answers. It hasn’t
-        been load tested, so I make no claims about scale.
+        Workers, and the homepage shows a notice where the agent will appear. Built so far are the Worker, the
+        guard, per-visitor sessions, the two corpus tools, refusals, the evaluation harness and every homepage
+        state, the last tested against simulated responses. I have also run the agent on the live Worker behind the
+        human check and the rate limit: answers that cite the pages they used, the spending cap pausing it and the
+        pause lifting by itself, a session being deleted on schedule, and the off switch. The question set is
+        written and approved, but I haven’t scored the agent against it, so nothing has been scored. The agent
+        stays off until its evaluation runs are published below and I’ve reviewed the answers. It hasn’t been load
+        tested, so I make no claims about scale.
       </p>
     </aside>
 
@@ -68,8 +71,8 @@ const questionKinds = [
     <p>
       Every question passes one shared guard before it reaches a session. Each visitor gets a session of their own:
       the server picks its name and keeps it in a cookie that page scripts can’t read. The session runs the agent on
-      the Pi harness, stores its conversation itself, and deletes it 24 hours after the first question. Every model call goes through AI Gateway, where the spend
-      limit will be set; confirming it holds is one of the checks before launch.
+      the Pi harness, stores its conversation itself, and deletes it 24 hours after the first question. Every model call goes through AI Gateway, which holds the
+      spend limit. I tested the limit on the live Worker: it paused the agent, and the pause lifted at midnight UTC.
     </p>
 
     <h2 id="what-it-can-reach">What it can reach</h2>
@@ -96,6 +99,7 @@ const questionKinds = [
       <li><strong>A daily ceiling.</strong> Agent requests across all visitors are counted, and the count resets at midnight UTC.</li>
       <li><strong>A spending cap.</strong> When AI Gateway’s spend limit stops a call, the guard pauses the agent until midnight UTC, and the homepage says so.</li>
       <li><strong>An expiring blocklist.</strong> The guard refuses an address on its blocklist until the entry expires, so a shared or VPN address recovers. Only the agent is refused; nothing adds entries automatically yet.</li>
+      <li><strong>An intent check.</strong> Before a question reaches the agent, a small Cloudflare model that can only return a probability, never text, checks whether it tries to steer the agent or asks for personal details. If it does, the question gets a short refusal. If the check fails or times out, the question carries on to the agent, whose own rules still apply.</li>
       <li><strong>Human checks and a rate limit.</strong> A Cloudflare challenge rule on <code>/agent/</code>, cleared by Turnstile in your browser, confirms a person is asking, and a per-address rate limit slows bursts. The check is invisible unless Cloudflare needs you to act.</li>
     </ul>
 
@@ -121,8 +125,9 @@ const questionKinds = [
 
     <h2 id="evaluation">How I check its answers</h2>
     <p>
-      I’ll score the agent against a fixed question set that I write and approve. The harness that runs and grades
-      it is built; the questions aren’t written yet. The set will cover five kinds of question:
+      I’ll score the agent against a fixed question set that I reviewed and approved before any scoring. The harness
+      that runs and grades it is built and the questions are written; I haven’t run them against the agent yet. The
+      set covers five kinds of question:
     </p>
     <dl class="fact-grid how-kinds">
       {

@@ -32,7 +32,9 @@
 	},
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Guard", "VisitorSession"] }],
 	"vars": {
-		// Kill switch. The agent answers only when this is "true"; the static site never depends on it.
+		// Kill switch. The agent answers only when this is "true"; the static site never depends on it. The homepage
+		// island reads this same value at build time (src/lib/agent/enabled.ts): while it is "false" the island shows
+		// its switched-off notice and makes no /agent request, so visitors never meet the edge's human check for it.
 		"AGENT_ENABLED": "false",
 		// The answering model (System Two). GPT-6 Luna runs through the AI binding and the gateway below. The Clef
 		// intent check (#30) is the separate System One gate in front of it. The eval scorecard (#17) can change this.

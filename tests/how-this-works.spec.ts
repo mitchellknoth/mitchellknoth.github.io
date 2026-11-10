@@ -13,6 +13,7 @@ test('explains the agent in the sections the plan calls for', async ({ page }) =
   // The page must not present the agent as live, or unscored work as scored.
   await expect(status).toContainText('The agent is switched off in production');
   await expect(status).toContainText('nothing has been scored');
+  await expect(status).toContainText('The question set is written and approved');
   await expect(page.getByRole('figure', { name: /One origin, two lanes/ })).toBeVisible();
 });
 

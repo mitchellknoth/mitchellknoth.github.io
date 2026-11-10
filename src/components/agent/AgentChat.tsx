@@ -228,8 +228,13 @@ function usePrefersReducedMotion() {
 /** `idle`, `running` (Cloudflare is checking quietly) or `interactive` (it needs the visitor to act). */
 type Challenge = 'idle' | 'running' | 'interactive';
 
-export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?: string }) {
-  const [view, setView] = React.useState<View>({ kind: 'loading' });
+/**
+ * `enabled` says whether the Worker's agent is switched on (src/lib/agent/enabled.ts, read at build time).
+ * When it isn't, the island starts in the switched-off state and makes no request and runs no human check, so
+ * a visitor sees the notice at once instead of the edge's challenge for a feature that is off.
+ */
+export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { enabled?: boolean; turnstileSiteKey?: string }) {
+  const [view, setView] = React.useState<View>(enabled ? { kind: 'loading' } : { kind: 'offline' });
   const [challenge, setChallenge] = React.useState<Challenge>('idle');
   const turnstileHost = React.useRef<HTMLDivElement>(null);
   const verifyRef = React.useRef<HTMLDivElement>(null);
@@ -268,6 +273,8 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
   }, [turnstileSiteKey]);
 
   React.useEffect(() => {
+    // Switched off at build time: nothing to ask and nobody to verify.
+    if (!enabled) return;
     let cancelled = false;
     (async () => {
       let health = await checkHealth();
@@ -282,7 +289,7 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
       // starts clean instead of joining one whose widget nobody can see.
       cancelHumanClearance(host);
     };
-  }, [clearHumanCheck]);
+  }, [clearHumanCheck, enabled]);
 
   // When Cloudflare needs the visitor, bring the check to them: a keyboard or screen reader user is otherwise
   // left on a disabled form with no sign that a control has appeared.
