@@ -43,9 +43,28 @@ async function requestUrls(file) {
   return [];
 }
 
-test('the third-party allowlist starts empty', () => {
-  // Turnstile (challenges.cloudflare.com) is the only planned addition, in M4 (#13).
-  assert.deepEqual(THIRD_PARTY_ALLOWLIST, []);
+test('the third-party allowlist is Turnstile alone', () => {
+  // Turnstile (challenges.cloudflare.com) was the one addition planned for M4 (#13). Anything else needs its own review.
+  assert.deepEqual(THIRD_PARTY_ALLOWLIST.map(({ host }) => host), ['challenges.cloudflare.com']);
+});
+
+test('no page requests Turnstile on load', async () => {
+  // The script is created on demand by the island, so no HTML file links or preloads it.
+  const files = (await listFiles(distDir)).filter((file) => file.endsWith('.html'));
+  for (const file of files) {
+    const content = await readFile(file, 'utf8');
+    const requested = htmlRequestUrls(content).filter(({ url }) => url.includes('challenges.cloudflare.com'));
+    assert.deepEqual(requested, [], path.relative(distDir, file));
+  }
+});
+
+test('reviewed script references are exact strings, not hosts', () => {
+  // A namespace URI or an error-message link is not a request, but nothing else on those hosts is allowed.
+  assert.deepEqual(scriptUrls('const ns = "http://www.w3.org/2000/svg"; const e = "https://react.dev/errors/" + code;'), []);
+  assert.deepEqual(scriptUrls('fetch("http://www.w3.org/2000/svg/extra"); fetch("https://react.dev/learn")'), [
+    'http://www.w3.org/2000/svg/extra',
+    'https://react.dev/learn',
+  ]);
 });
 
 test('the scanner detects third-party requests', () => {

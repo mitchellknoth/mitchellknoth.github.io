@@ -177,6 +177,9 @@ for (const theme of ['dark', 'light']) {
     }, theme);
     await page.goto('/');
     await page.addStyleTag({ content: 'astro-dev-toolbar { display: none !important; }' });
+    // Let the homepage agent island settle first: on a host with no agent it removes itself (and its
+    // links) after the health check, which would detach controls collected before that.
+    await page.waitForFunction(() => !document.querySelector('[data-agent-island][data-state="loading"]'));
     const controls = page.locator('.site-brand, .nav-link, #theme-toggle, .footer-link, .standalone-link');
     for (const control of await controls.all()) {
       const bounds = await control.boundingBox();

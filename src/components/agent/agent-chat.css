@@ -1,0 +1,221 @@
+/* Layout of the homepage agent island. Colours come from site tokens (global.css) and the shadcn
+   token map (src/styles/agent-theme.css); this file only composes the island. Width class: the
+   island sits in the hero's second column, so it never stretches across the shell on its own. */
+.agent-island {
+  /* A strong ease-out: UI motion starts fast so it reads as a response to the visitor's action. */
+  --agent-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--fg);
+  font-size: 17px;
+  line-height: 1.7;
+}
+@media (min-width: 768px) {
+  .agent-island { padding: 1.5rem 1.75rem; }
+}
+
+.agent-header h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 2.2vw, 2rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+.agent-lede {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--fg-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.agent-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 1rem;
+}
+.agent-header-row h2 { margin-bottom: 0.25rem; }
+.agent-how,
+.agent-notice a,
+.agent-reply a:not(.agent-source) {
+  color: var(--accent);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.agent-notice p {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 60ch;
+}
+.agent-notice {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border-left: 2px solid var(--editorial-border);
+  outline-offset: 3px;
+}
+.agent-notice p:first-child { color: var(--fg); }
+.agent-routes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  font-size: 14px;
+}
+.agent-routes a { text-decoration: underline; text-underline-offset: 4px; }
+
+.agent-suggestions {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.agent-suggestion {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0.55rem 0.85rem;
+  /* The border is what marks a suggestion as a control, so it meets 3:1. */
+  border: 1px solid var(--editorial-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 160ms var(--agent-ease-out);
+}
+/* Touch devices fire :hover on tap, so the hover treatment is for pointers that can really hover. */
+@media (hover: hover) and (pointer: fine) {
+  .agent-suggestion:hover:not(:disabled) { border-color: var(--accent); background: var(--muted); }
+}
+.agent-suggestion:active:not(:disabled) { transform: scale(0.98); }
+.agent-suggestion:disabled { cursor: default; color: var(--fg-muted); }
+
+
+.agent-reply p { margin: 0; text-wrap: pretty; max-width: 68ch; }
+.agent-source { display: flex; text-decoration: none; }
+.agent-source:hover [data-slot="trace-title"] { text-decoration: underline; text-underline-offset: 3px; }
+
+/* The field's boundary is essential, so it uses the 3:1 editorial border rather than a tint. */
+.agent-field {
+  border-color: var(--input);
+  background: var(--bg);
+}
+/* shadcn's textarea sizes itself to its content (field-sizing), which grows the field sideways, and with it
+   the page, around a long unbroken string such as a pasted URL. The width stays the field's own; only the
+   height follows the text. */
+.agent-field textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.agent-hint {
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+@media (max-width: 479px) {
+  .agent-hint { display: none; }
+}
+
+/* The answer in flight. Answers are not streamed, so this stays put for 10 to 30 seconds and longer. */
+.agent-waiting {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.agent-waiting-text { display: grid; gap: 0.25rem; min-width: 0; }
+.agent-wait-note {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.agent-elapsed {
+  flex: none;
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The Turnstile widget stays out of sight unless Cloudflare needs the visitor to act. */
+.agent-verify {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-left: 2px solid var(--editorial-border);
+}
+/* Until Cloudflare asks for the visitor the block is laid out but taken out of sight (and, by `inert`, out of
+   the tab order and the accessibility tree). It is not display:none: a hidden container can stop the widget. */
+.agent-verify:not([data-active]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.agent-verify p { margin: 0; color: var(--fg); font-size: 15px; line-height: 1.6; max-width: 60ch; }
+.agent-verify [data-turnstile-slot] { min-height: 65px; }
+
+.agent-count {
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+/* Over the limit is said in words for assistive tech; sighted visitors get the stronger foreground. */
+.agent-count[data-over] { color: var(--fg); font-weight: 600; }
+
+/* One quiet entrance for each turn, so a new message arrives rather than appearing. It fades and de-blurs
+   instead of sliding: a transform would extend the thread's scrollable area for a moment, and the
+   scroll-to-end button would flash while the thread believed it was not at the end. */
+@keyframes agent-enter {
+  from { opacity: 0; filter: blur(3px); }
+  to { opacity: 1; filter: none; }
+}
+.agent-enter { animation: agent-enter 220ms var(--agent-ease-out) both; }
+
+.agent-field button[type="submit"] { transition: transform 160ms var(--agent-ease-out), opacity 150ms ease; }
+.agent-field button[type="submit"]:active:not(:disabled) { transform: scale(0.95); }
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-suggestion,
+  .agent-field button[type="submit"] { transition: none; }
+  .agent-suggestion:active:not(:disabled),
+  .agent-field button[type="submit"]:active:not(:disabled) { transform: none; }
+  /* Fade only: no blur. */
+  .agent-enter { animation-name: agent-fade; animation-duration: 150ms; }
+}
+@keyframes agent-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

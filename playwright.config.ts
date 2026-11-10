@@ -18,6 +18,9 @@ export default defineConfig({
     {
       command: 'npm run dev -- --host 127.0.0.1',
       url: 'http://127.0.0.1:4321',
+      // Cloudflare's published always-pass Turnstile site key, so the island's widget flow runs in tests
+      // (the script itself is mocked in tests/agent-island.spec.ts). The production key lives in the source.
+      env: { PUBLIC_TURNSTILE_SITE_KEY: '1x00000000000000000000AA' },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

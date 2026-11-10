@@ -1,0 +1,108 @@
+---
+// The agent's request path (#18, how-this-works page). An HTML diagram, not a bitmap: every label is
+// real text. Two lanes show the boundary that matters most: pages never reach the Worker.
+---
+
+<figure class="editorial-diagram request-path" aria-labelledby="request-path-caption">
+  <div class="request-path__lanes">
+    <div class="request-path__lane">
+      <p class="request-path__lane-label">Every page</p>
+      <p class="request-path__route"><code>/</code>, <code>/work/</code>, <code>/writing/</code> …</p>
+      <p>Served as files straight from the build. No code of mine runs, so reading the site never touches the agent.</p>
+    </div>
+    <div class="request-path__lane request-path__lane--agent">
+      <p class="request-path__lane-label">Agent requests only</p>
+      <p class="request-path__route"><code>/agent/*</code>, same origin as the pages</p>
+      <ol class="request-path__steps">
+        <li><span class="request-path__step-name">Guard</span> One shared object every question passes: blocklist, daily count, paused-until.</li>
+        <li><span class="request-path__step-name">Your session</span> One per visitor, named by the server, with its own conversation storage.</li>
+        <li><span class="request-path__step-name">Two read-only tools</span> Search the corpus and read one source from it.</li>
+        <li><span class="request-path__step-name">Model</span> Workers AI, called through AI Gateway, which holds the spend limit.</li>
+      </ol>
+    </div>
+  </div>
+  <figcaption id="request-path-caption">
+    One origin, two lanes. Pages are files; only <code>/agent/*</code> reaches the Worker, and each agent request passes
+    the guard before it reaches a session or the model.
+  </figcaption>
+</figure>
+
+<style>
+  .request-path {
+    margin: 2rem 0 2.25rem;
+  }
+  .request-path__lanes {
+    display: grid;
+    gap: 1rem;
+  }
+  @media (min-width: 768px) {
+    .request-path__lanes {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      align-items: start;
+    }
+  }
+  .request-path__lane {
+    border: 1px solid var(--editorial-border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    background: var(--bg-elevated);
+  }
+  .request-path__lane--agent {
+    border-color: var(--accent);
+  }
+  .request-path__lane p {
+    margin: 0 0 0.6rem;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--fg-muted);
+  }
+  .request-path .request-path__lane-label {
+    margin-bottom: 0.25rem;
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .request-path .request-path__route {
+    color: var(--fg-dim);
+    font-size: 14px;
+  }
+  .request-path__steps {
+    counter-reset: request-step;
+    display: grid;
+    gap: 0.6rem;
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+  }
+  .request-path__steps li {
+    counter-increment: request-step;
+    position: relative;
+    padding-left: 2.25rem;
+    color: var(--fg-muted);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  /* The number carries order and sits on the item's first line. */
+  .request-path__steps li::before {
+    content: counter(request-step, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 0.2rem;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .request-path__step-name {
+    display: block;
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .request-path figcaption {
+    margin-top: 0.75rem;
+    color: var(--fg-muted);
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 68ch;
+  }
+</style>

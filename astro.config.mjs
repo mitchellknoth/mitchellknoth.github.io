@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig, fontProviders } from 'astro/config';
 import mdx from '@astrojs/mdx';
+import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import remarkSmartypants from 'remark-smartypants';
@@ -93,9 +94,42 @@ export default defineConfig({
       'monospace',
     ]),
   ],
-  integrations: [mdx(), sitemap(), agentCorpus()],
+  // React renders one island: the homepage agent chat (src/components/agent). No other page ships it.
+  integrations: [mdx(), sitemap(), agentCorpus(), react({ include: ['**/components/agent/**', '**/components/ui/**'] })],
   vite: {
     plugins: [tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          // Astro names a page's extracted stylesheet like `index@_@astro.<hash>.css`. Workers static assets
+          // answer a path with an `@` by redirecting (307) to its percent-encoded form, so the request costs a
+          // round trip and tests/workers-parity.spec.ts fails. Keep emitted asset names to URL-safe characters.
+          assetFileNames: (/** @type {{ names?: string[], name?: string }} */ asset) => {
+            const name = (asset.names?.[0] ?? asset.name ?? 'asset').replace(/\.[^./]+$/, '').replace(/[^\w.-]+/g, '-');
+            return `_astro/${name}.[hash][extname]`;
+          },
+        },
+      },
+    },
+    // Pre-bundle at dev-server start what Vite would otherwise discover mid-load (the agent island's
+    // dependencies and Astro's view-transition modules). Discovered late, they make Vite reload the
+    // page while the island's module is loading, which fails Playwright runs against a cold server.
+    optimizeDeps: {
+      include: [
+        'astro/virtual-modules/transitions-router.js',
+        'astro/virtual-modules/transitions-types.js',
+        'astro/virtual-modules/transitions-events.js',
+        'astro/virtual-modules/transitions-swap-functions.js',
+        '@base-ui/react/button',
+        '@base-ui/react/collapsible',
+        '@base-ui/react/merge-props',
+        '@base-ui/react/use-render',
+        '@shadcn/react/message-scroller',
+        'class-variance-authority',
+        'cn',
+        'lucide-react',
+      ],
+    },
   },
   markdown: {
     // remark-smartypants ships unified types that don't line up with Astro's stricter

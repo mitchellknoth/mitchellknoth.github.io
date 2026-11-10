@@ -3,6 +3,8 @@ import Base from '../layouts/Base.astro';
 import SectionLabel from '../components/SectionLabel.astro';
 import MetricCard from '../components/MetricCard.astro';
 import { site } from '../config';
+import AgentChat from '../components/agent/AgentChat';
+import { TURNSTILE_SITE_KEY } from '../components/agent/turnstile';
 import FeaturedPost from '../components/writing/FeaturedPost.astro';
 import { getProjects, getPublishedPosts, splitFeaturedPost } from '../lib/content';
 
@@ -14,27 +16,37 @@ const featuredMetrics = (await getProjects())
 ---
 
 <Base>
-  <section>
-    <h1
-      class="prose-serif mb-6 text-[34px] leading-[1.1] sm:text-[44px]"
-      style="color: var(--fg);"
-    >
-      Not whether agents can write code, <em style="color: var(--accent);">but whether teams can ship it.</em>
-    </h1>
+  <section class="home-hero">
+    <div class="hero-intro">
+      <h1
+        class="prose-serif mb-6 text-[34px] leading-[1.1] sm:text-[44px]"
+        style="color: var(--fg);"
+      >
+        Not whether agents can write code, <em style="color: var(--accent);">but whether teams can ship it.</em>
+      </h1>
 
-    <div class="hero-detail">
-      <div class="hero-copy">
-        <p class="max-w-[60ch] text-[16.5px] leading-[1.7] text-pretty" style="color: var(--fg-muted);">
-          I’m Mitch, a Cloud Software Engineer at John Deere whose sole focus is DevAI and making Frontier
-          Teams move faster without lowering the bar.
-        </p>
-        <p class="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-[14px]" style="color: var(--accent);">
-          <a href="/work/" class="standalone-link underline underline-offset-4">Explore my work →</a>
-          <a href="/resume/" class="standalone-link underline underline-offset-4">Résumé →</a>
-          <a href={`mailto:${site.email}`} class="standalone-link underline underline-offset-4">Contact →</a>
-        </p>
+      <div class="hero-detail">
+        <div class="hero-copy">
+          <p class="max-w-[60ch] text-[16.5px] leading-[1.7] text-pretty" style="color: var(--fg-muted);">
+            I’m Mitch, a Cloud Software Engineer at John Deere whose sole focus is DevAI and making Frontier
+            Teams move faster without lowering the bar.
+          </p>
+          <p class="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-[14px]" style="color: var(--accent);">
+            <a href="/work/" class="standalone-link underline underline-offset-4">Explore my work →</a>
+            <a href="/resume/" class="standalone-link underline underline-offset-4">Résumé →</a>
+            <a href={`mailto:${site.email}`} class="standalone-link underline underline-offset-4">Contact →</a>
+          </p>
+        </div>
       </div>
     </div>
+    {/*
+      The agent island (#18). The intro above is the page; the island is an addition to it.
+      client:idle keeps React off the critical path. The server-rendered "loading" shell reserves
+      its space. Without JavaScript it is hidden and the hero is one column, so the static intro
+      stands alone; on a host with no agent at all (a static host, or a 404 from /agent/health) the island removes itself the same way.
+    */}
+    <noscript><style is:inline>[data-agent-island] { display: none !important; } .home-hero { grid-template-columns: minmax(0, 1fr) !important; }</style></noscript>
+    <AgentChat client:idle turnstileSiteKey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY} />
   </section>
 
   <SectionLabel label="Selected work" href="/work/" />
@@ -138,4 +150,18 @@ const featuredMetrics = (await getProjects())
     .decision-note { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 2rem; }
   }
   .hero-copy { font-size: 16.5px; }
+  .home-hero {
+    display: grid;
+    gap: 2.5rem;
+  }
+  @media (min-width: 1024px) {
+    /* The readable lead beside the agent. The agent gets the wider column because the agreed plan
+       (#13) makes it the page's primary experience; DESIGN.md's Home recipe specifies this 5/7 split.
+       Both columns hold content. */
+    .home-hero:has([data-agent-island]) {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      align-items: start;
+      gap: 3rem;
+    }
+  }
 </style>
