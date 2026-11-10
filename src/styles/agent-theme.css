@@ -90,3 +90,52 @@
 .agent-ui [data-slot="input-group"] textarea:focus-visible {
   outline: none;
 }
+
+/* =============================================================
+   Site components (shadcn port, phase 0)
+   -------------------------------------------------------------
+   Card, Badge, Alert, Separator and Table now serve the whole site, not only the island. Their CLI defaults
+   conflict with DESIGN.md in a few places, so each is brought back to the contract here, by `data-slot`,
+   without editing src/components/ui/*:
+   - Card: the CLI rounds with `--radius-4xl`, which this theme does not define, and adds a ring and a
+     shadow. DESIGN.md: 6px panels, flat, "borders mark meaningful boundaries".
+   - Badge: DESIGN.md tags are 3px, not pills.
+   - Alert and Table: borders default to currentColor; bound to the site's border tokens. Alert is 6px. (It always renders role="alert", which announces assertively; static callouts pass
+     role="note" at the call site.)
+   - Button: a visible focus outline already comes from global.css; the 3px translucent halo is dropped so the
+     two don't stack, and `transition-all` is narrowed so the outline appears at once.
+   Button's 44px target is a call-site decision (`min-h-11 min-w-11`): inside the island it is intentionally
+   compact.
+   ------------------------------------------------------------- */
+[data-slot="card"] {
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: none;
+}
+[data-slot="card-header"] {
+  border-radius: 0;
+}
+[data-slot="badge"] {
+  border-radius: 3px;
+}
+/* The CLI's bare `border` resolves to currentColor, which draws white (dark) or black (light) hairlines.
+   An alert is a real boundary, so it takes the 3:1 editorial border; table rules are quiet structure, with a
+   stronger rule under the header. */
+[data-slot="alert"] {
+  border-color: var(--editorial-border);
+  border-radius: 6px;
+}
+[data-slot="table-row"],
+[data-slot="table-footer"] {
+  border-color: var(--border-strong);
+}
+[data-slot="table-header"] [data-slot="table-row"] {
+  border-color: var(--editorial-border);
+}
+[data-slot="button"] {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity,
+    transform, translate, scale;
+}
+[data-slot="button"]:focus-visible {
+  box-shadow: none;
+}

@@ -1,0 +1,15 @@
+---
+import Base from '../../layouts/Base.astro';
+import { UiFixture } from '../../components/dev/UiFixture';
+
+// Dev server only: the production build emits no page here (an empty path list), so the fixture is never
+// deployed, listed in the sitemap, or read into the agent's corpus.
+export function getStaticPaths() {
+  return import.meta.env.DEV ? [{ params: { fixture: 'ui' } }] : [];
+}
+---
+
+<Base title="UI fixture">
+  <h1 class="prose-serif mb-8 text-[2.5rem] leading-[1.1]">UI fixture</h1>
+  <UiFixture client:idle />
+</Base>
