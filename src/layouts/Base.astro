@@ -2,7 +2,8 @@
 import { Font } from 'astro:assets';
 import { ClientRouter } from 'astro:transitions';
 import { site, nav } from '../config';
-import ThemeToggle from '../components/ThemeToggle.astro';
+import ThemeToggle from '../components/site/ThemeToggle';
+import { brandClass, footerLinkProps, navProps } from '../lib/site-ui';
 import '../styles/global.css';
 
 interface Props {
@@ -54,6 +55,15 @@ const socialImageUrl = new URL('/social-card.png', Astro.site).toString();
     <Font cssVariable="--font-jetbrains-mono" />
 
     <script is:inline>
+      // The visitor's theme crosses a client-side navigation: the incoming document starts as the default.
+      document.addEventListener('astro:before-swap', function (event) {
+        var theme = document.documentElement.dataset.theme || 'dark';
+        event.newDocument.documentElement.dataset.theme = theme;
+        var meta = event.newDocument.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', theme === 'light' ? '#fbf8f1' : '#0c0a08');
+      });
+    </script>
+    <script is:inline>
       (function () {
         try {
           const stored = localStorage.getItem('theme');
@@ -76,32 +86,23 @@ const socialImageUrl = new URL('/social-card.png', Astro.site).toString();
         class="site-header flex items-center justify-between border-b py-4 sm:py-5"
         style="border-color: var(--border);"
       >
-        <a
-          href="/"
-          class="site-brand prose-serif shrink-0 text-[17px] tracking-tight"
-          style="color: var(--fg);"
-          aria-label="Home"
-        >
+        <a href="/" data-slot="button" data-site="brand" class={`${brandClass} shrink-0`} aria-label="Home">
           {site.name}
         </a>
         <div class="site-header__actions flex items-center gap-3 sm:gap-4">
-          <nav aria-label="Primary" class="flex items-center gap-3 text-[13.5px] sm:gap-6">
+          <nav aria-label="Primary" class="flex items-center sm:gap-1">
             {
               nav.map((item) => {
                 const active = currentPath === item.href || currentPath.startsWith(item.href);
                 return (
-                  <a
-                    href={item.href}
-                    class="nav-link"
-                    aria-current={active ? 'page' : undefined}
-                  >
+                  <a href={item.href} {...navProps} aria-current={active ? 'page' : undefined}>
                     {item.label}
                   </a>
                 );
               })
             }
           </nav>
-          <ThemeToggle />
+          <ThemeToggle client:load />
         </div>
       </header>
 
@@ -114,11 +115,11 @@ const socialImageUrl = new URL('/social-card.png', Astro.site).toString();
         style="border-color: var(--border); color: var(--fg-dim); font-family: var(--font-mono);"
       >
         <span>{site.location}</span>
-        <span class="footer-links flex flex-wrap">
-          <a href={site.github} target="_blank" rel="noreferrer" class="footer-link">github</a>
-          <a href={site.linkedin} target="_blank" rel="noreferrer" class="footer-link">linkedin</a>
-          <a href={`mailto:${site.email}`} class="footer-link">email</a>
-          <a href="/rss.xml" class="footer-link">rss</a>
+        <span class="-mx-3 flex flex-wrap">
+          <a href={site.github} target="_blank" rel="noreferrer" {...footerLinkProps}>github</a>
+          <a href={site.linkedin} target="_blank" rel="noreferrer" {...footerLinkProps}>linkedin</a>
+          <a href={`mailto:${site.email}`} {...footerLinkProps}>email</a>
+          <a href="/rss.xml" {...footerLinkProps}>rss</a>
         </span>
       </footer>
     </div>

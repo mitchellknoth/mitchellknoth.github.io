@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import { linkProps } from '../lib/site-ui';
 
 const routes = [
   { href: '/work/', label: 'Work' },
@@ -18,10 +19,10 @@ const routes = [
       Check the URL, or start from one of these.
     </p>
     <nav aria-label="Where to go" class="mt-4 flex flex-wrap gap-x-6 text-[14px]" style="color: var(--accent);">
-      <a href="/" class="standalone-link underline underline-offset-4">Home →</a>
+      <a href="/" {...linkProps}>Home →</a>
       {
         routes.map((route) => (
-          <a href={route.href} class="standalone-link underline underline-offset-4">{route.label} →</a>
+          <a href={route.href} {...linkProps}>{route.label} →</a>
         ))
       }
     </nav>

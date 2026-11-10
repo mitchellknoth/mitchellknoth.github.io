@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { linkProps, titleLinkClass } from '../lib/site-ui';
 
 interface Props {
   project: CollectionEntry<'projects'>;
@@ -23,7 +24,7 @@ const accent = p.data.metric?.value ?? p.data.roleTag;
         class={`prose-serif leading-tight ${lead ? 'text-[28px]' : 'text-[22px]'}`}
         style="color: var(--fg);"
       >
-        <a href={`/work/${p.id}/`} class="standalone-link">{p.data.title}</a>
+        <a href={`/work/${p.id}/`} class={titleLinkClass}>{p.data.title}</a>
       </h3>
       {
         !lead && accent && (
@@ -56,7 +57,7 @@ const accent = p.data.metric?.value ?? p.data.roleTag;
       )
     }
     <p class="mt-4 text-[12px]" style="font-family: var(--font-mono);">
-      <a href={`/work/${p.id}/`} style="color: var(--accent);" class="standalone-link">Read case study →</a>
+      <a href={`/work/${p.id}/`} {...linkProps}>Read case study →</a>
     </p>
   </div>
 </article>

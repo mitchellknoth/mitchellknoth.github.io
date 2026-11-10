@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import SectionLabel from '../components/SectionLabel.astro';
 import MetricCard from '../components/MetricCard.astro';
 import { site } from '../config';
+import { linkProps } from '../lib/site-ui';
 import AgentChat from '../components/agent/AgentChat';
 import { TURNSTILE_SITE_KEY } from '../components/agent/turnstile';
 import { agentEnabled } from '../lib/agent/enabled';
@@ -33,9 +34,9 @@ const featuredMetrics = (await getProjects())
             Teams move faster without lowering the bar.
           </p>
           <p class="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-[14px]" style="color: var(--accent);">
-            <a href="/work/" class="standalone-link underline underline-offset-4">Explore my work →</a>
-            <a href="/resume/" class="standalone-link underline underline-offset-4">Résumé →</a>
-            <a href={`mailto:${site.email}`} class="standalone-link underline underline-offset-4">Contact →</a>
+            <a href="/work/" {...linkProps}>Explore my work →</a>
+            <a href="/resume/" {...linkProps}>Résumé →</a>
+            <a href={`mailto:${site.email}`} {...linkProps}>Contact →</a>
           </p>
         </div>
       </div>
@@ -83,7 +84,7 @@ const featuredMetrics = (await getProjects())
         written down once, kept current with help from agents, and searchable by any engineer
         or agent tool.</p>
       <p class="decision-evidence">In use by my team. Adoption and productivity effects are still being measured.</p>
-      <a class="standalone-link" href="/work/team-brain/">Read the case study →</a>
+      <a {...linkProps} href="/work/team-brain/">Read the case study →</a>
     </div>
   </section>
 

@@ -1,4 +1,7 @@
 ---
+import { Separator } from '../components/ui/separator';
+import { linkClass } from '../lib/site-ui';
+
 interface Props {
   label: string;
   href?: string;
@@ -10,14 +13,10 @@ const { label, href, linkText = 'View all →' } = Astro.props;
 
 <div class="mb-6 mt-14 flex items-center gap-4">
   <h2 class="section-label__heading prose-serif shrink-0">{label}</h2>
-  <div class="h-px flex-1" style="background: var(--border);"></div>
+  <Separator className="flex-1" />
   {
     href && (
-      <a
-        href={href}
-        aria-label={`View all ${label.toLowerCase()}`}
-        class="standalone-link section-label__link shrink-0"
-      >
+      <a href={href} aria-label={`View all ${label.toLowerCase()}`} data-slot="button" data-site="link" class={`${linkClass} shrink-0`}>
         {linkText}
       </a>
     )
@@ -25,12 +24,6 @@ const { label, href, linkText = 'View all →' } = Astro.props;
 </div>
 
 <style>
-  .section-label__link {
-    color: var(--accent);
-    font-size: 14px;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
   .section-label__heading {
     color: var(--fg);
     font-size: clamp(1.35rem, 3vw, 1.55rem);

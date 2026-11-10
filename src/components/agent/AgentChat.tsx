@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/message-scroller';
 import { TraceIcon, TraceLine, TraceTitle } from '@/components/ui/trace';
 import { askQuestion, checkHealth } from '@/lib/agent/client';
+import { linkClass } from '@/lib/site-ui';
 import type { StoppedState } from '@/lib/agent/contract';
 import { replyToMessage, sourcesOf, textOf, userMessage, type AgentUIMessage } from '@/lib/agent/messages';
 import { AgentSources } from './AgentSources';
@@ -78,10 +79,10 @@ function Until({ until }: { until?: string }) {
 function WorkRoutes() {
   return (
     <p className="agent-routes">
-      <a href="/work/" className="standalone-link">
+      <a href="/work/" data-slot="button" data-site="link" className={linkClass}>
         Browse the work →
       </a>
-      <a href="/writing/" className="standalone-link">
+      <a href="/writing/" data-slot="button" data-site="link" className={linkClass}>
         Read the writing →
       </a>
     </p>
@@ -406,7 +407,7 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
       <header className="agent-header">
         <div className="agent-header-row">
           <h2 id="agent-title">Ask about my work</h2>
-          <a href="/how-this-works/" className="standalone-link agent-how">
+          <a href="/how-this-works/" data-slot="button" data-site="link" className={`${linkClass} agent-how`}>
             How it works →
           </a>
         </div>

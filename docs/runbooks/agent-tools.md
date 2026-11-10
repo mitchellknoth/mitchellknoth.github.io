@@ -33,6 +33,18 @@ Exactly two, in `worker/tools.ts`. Both are read-only, take no URL, and are `rep
 differ from `EXPECTED_TOOLS`, if a tool isn't replay-safe or takes a URL-like argument, or if `read_source`'s enum
 differs from the generated corpus IDs.
 
+## Search before the model
+
+`worker/retrieval.ts` runs the same corpus search the tool uses on the visitor's question and puts the best passages
+(up to 4, about 6,000 characters) in the first prompt, so most questions need one model call instead of a search round
+and an answer round (#16: 2.75 model calls per question measured, about 3 s of fixed cost each). The tools stay for
+questions the passages do not cover.
+
+Pi takes a prompt only as one user message, so the visitor's words sit between two marker lines that carry a fresh
+random id, `[[` and `]]` are defanged inside them, and the instructions say only the text outside the marker lines is
+corpus. The prompt also lists question words that appear in none of the passages (a hint for refusing). Every citation
+marker in the passages is a real corpus id, so `shapeReply` still accepts only real sources.
+
 ## The streamed form of `POST /agent/ask`
 
 A client that sends `Accept: application/x-ndjson` gets the same answer as newline-delimited JSON
@@ -57,6 +69,7 @@ body, unchanged, so tests, evals and older clients are not affected.
   accepts them); it never says what the answer is. The answer is checked after the run (`worker/reply.ts`) and appears
   only in `final`.
 - With `TIMING_HEADER=true`, `final` also carries a `serverTiming` string (a header cannot follow the first byte).
+
 
 ## From model output to `POST /agent/ask`
 
@@ -98,5 +111,5 @@ These need the real AI binding, so the offline tests can't cover them:
 
 - the chosen model calls the tools and cites with `[[id]]` markers in the expected form;
 - refusals come back as `REFUSE: <category>` lines, and personal questions are refused even when the résumé has the fact;
-- `maxTurns: 4` leaves room for a search, a read and the answer;
+- `maxTurns: 4` leaves room for a search, a read and the answer when the passages fall short;
 - the eval harness (#17, stream B) runs the question set against the deployed agent.
