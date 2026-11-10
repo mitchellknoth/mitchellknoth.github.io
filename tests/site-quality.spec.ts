@@ -10,7 +10,7 @@ for (const theme of ['dark', 'light']) {
 
       const geometry = await page.evaluate(() => {
         const box = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
-        const brand = box('.site-brand');
+        const brand = box('[data-site="brand"]');
         const nav = box('.site-header nav');
         const viewport = document.documentElement.clientWidth;
         const shell = box('.site-shell');
@@ -180,7 +180,7 @@ for (const theme of ['dark', 'light']) {
     // Let the homepage agent island settle first: on a host with no agent it removes itself (and its
     // links) after the health check, which would detach controls collected before that.
     await page.waitForFunction(() => !document.querySelector('[data-agent-island][data-state="loading"]'));
-    const controls = page.locator('.site-brand, .nav-link, #theme-toggle, .footer-link, .standalone-link');
+    const controls = page.locator('[data-site="brand"], [data-site="nav"], #theme-toggle, [data-site="footer"], [data-site="link"]');
     for (const control of await controls.all()) {
       const bounds = await control.boundingBox();
       expect(bounds?.height).toBeGreaterThanOrEqual(44);
@@ -202,10 +202,10 @@ for (const theme of ['dark', 'light']) {
       const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
       return (values[0] + 0.05) / (values[1] + 0.05);
     }, focus);
-    for (const selector of ['.site-brand', '.nav-link', ...Array.from({ length: 4 }, (_, index) => `.footer-link:nth-child(${index + 1})`)]) {
+    for (const selector of ['[data-site="brand"]', '[data-site="nav"]', ...Array.from({ length: 4 }, (_, index) => `[data-site="footer"]:nth-child(${index + 1})`)]) {
       // The primary-nav selector identifies its first link; footer states are checked individually.
       const link = page.locator(selector).first();
-      const uniqueSelector = selector === '.nav-link' ? '.nav-link:first-child' : selector;
+      const uniqueSelector = selector === '[data-site="nav"]' ? '[data-site="nav"]:first-child' : selector;
       expect(await contrast(uniqueSelector)).toBeGreaterThanOrEqual(4.5);
       await link.hover();
       expect(await contrast(uniqueSelector)).toBeGreaterThanOrEqual(4.5);
@@ -251,7 +251,7 @@ for (const theme of ['dark', 'light']) {
         const measurements = await reader.evaluate(() => ({
           overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           coarse: matchMedia('(pointer: coarse)').matches,
-          smallTargets: [...document.querySelectorAll('.nav-link, #theme-toggle, .footer-link, .standalone-link')].filter((element) => {
+          smallTargets: [...document.querySelectorAll('[data-site="nav"], #theme-toggle, [data-site="footer"], [data-site="link"]')].filter((element) => {
             const bounds = element.getBoundingClientRect();
             return bounds.width < 44 || bounds.height < 44;
           }).map((element) => element.textContent?.trim()),
