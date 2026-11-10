@@ -6,6 +6,7 @@ import { Lifecycle, type LifecycleJobContext, type LifecycleJobOutcome } from 'a
 import { createAI } from 'agents/models/pi-ai';
 import { corpus } from './corpus';
 import { classifyIntent, intentMode, type IntentAi } from './intent';
+import { promptWithPassages } from './retrieval';
 import { INSTRUCTIONS, refusal, screenQuestion, shapeReply, type AgentReply } from './reply';
 import { createTimer, summarizeRounds, type AskTiming, type PhaseTimer } from './timing';
 import { SITE_TOOLS } from './tools';
@@ -143,7 +144,8 @@ export class VisitorSession extends DurableObject<Env> {
     const intent = await timer.time('intent', () => this.checkIntent(question));
     if (intent) return intent;
 
-    const result = await timer.time('agent', () => this.harness.prompt(question));
+    // The best-matching passages go in the first prompt (worker/retrieval.ts), so most questions need one model call.
+    const result = await timer.time('agent', () => this.harness.prompt(promptWithPassages(question, corpus)));
     timer.rounds = this.modelRounds(result.messages);
     if (result.status === 'done') return shapeReply(result.text ?? '', corpus);
 
