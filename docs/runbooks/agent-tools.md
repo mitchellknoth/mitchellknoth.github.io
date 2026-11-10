@@ -33,6 +33,32 @@ Exactly two, in `worker/tools.ts`. Both are read-only, take no URL, and are `rep
 differ from `EXPECTED_TOOLS`, if a tool isn't replay-safe or takes a URL-like argument, or if `read_source`'s enum
 differs from the generated corpus IDs.
 
+## The streamed form of `POST /agent/ask`
+
+A client that sends `Accept: application/x-ndjson` gets the same answer as newline-delimited JSON
+(`worker/ask-response.ts`; the island's reader is `src/lib/agent/stream.ts`). Any other `Accept` gets the single JSON
+body, unchanged, so tests, evals and older clients are not affected.
+
+```
+{"type":"status","phase":"checking"}        at once, when the stream opens
+{"type":"ping"}                             every 10 s while waiting; keeps the connection from sitting idle
+{"type":"final","status":200,"body":{...}}  the HTTP status and JSON body the plain response would have had
+```
+
+- Everything before the run (no cookie 401, bad JSON 400, too long 413, blocked 403, paused 503, the daily cap) is still
+  a plain JSON error with its own status. Once the stream has started, every outcome of the run arrives as `final`
+  with the status and body the plain response would have had: an answer, a refusal, an unanswered run, the session
+  message limit 429, an expired session 401, or a spent budget 503 (the pause is still written to the Guard).
+- A run that throws is `final` with status 502 and `{"state":"error"}`. A stream that ends without `final`, or goes
+  quiet for 30 s, is a failed request in the island.
+- A client that disconnects stops the lines but not the work: the session, the Guard and the logs see the same as for
+  a plain request.
+- The `status` event only says the work has begun (`searching` and `writing` are reserved for later and the island
+  accepts them); it never says what the answer is. The answer is checked after the run (`worker/reply.ts`) and appears
+  only in `final`.
+- With `TIMING_HEADER=true`, `final` also carries a `serverTiming` string (a header cannot follow the first byte).
+
+
 ## From model output to `POST /agent/ask`
 
 `worker/reply.ts` holds the instructions and the parser, so the two can't drift apart.
