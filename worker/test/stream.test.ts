@@ -32,6 +32,8 @@ describe('wantsStream', () => {
     const request = (accept?: string) => new Request(`${ORIGIN}/agent/ask`, { method: 'POST', headers: accept ? { accept } : {} });
     expect(wantsStream(request(NDJSON))).toBe(true);
     expect(wantsStream(request(`${NDJSON}, application/json;q=0.5`))).toBe(true);
+    expect(wantsStream(request(`${NDJSON};q=0`))).toBe(false);
+    expect(wantsStream(request(`${NDJSON};q=0.5`))).toBe(true);
     expect(wantsStream(request('application/json'))).toBe(false);
     expect(wantsStream(request('*/*'))).toBe(false);
     expect(wantsStream(request())).toBe(false);
@@ -106,45 +108,48 @@ describe('POST /agent/ask as a stream', () => {
 });
 
 describe('streamResponse', () => {
-  const encoder = new TextEncoder();
-  const line = (event: unknown) => encoder.encode(`${JSON.stringify(event)}\n`);
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  it('pings while the session is still working, then ends with the settled final event', async () => {
-    const upstream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        controller.enqueue(line({ type: 'status', phase: 'searching' }));
-        await new Promise((resolve) => setTimeout(resolve, 130));
-        controller.enqueue(line({ type: 'result', result: { status: 'answered', text: 'ok', sources: [] } }));
-        controller.close();
-      },
-    });
-    const response = streamResponse(upstream, async (result) => ({ status: 200, body: result }), 25);
+  it('says checking at once, pings while the work runs, then ends with the settled final event', async () => {
+    const response = streamResponse(async () => {
+      await sleep(130);
+      return { status: 200, body: { status: 'answered', text: 'ok', sources: [] } };
+    }, 25);
     const list = await events(response);
-    expect(list[0]).toEqual({ type: 'status', phase: 'searching' });
+    expect(list[0]).toEqual({ type: 'status', phase: 'checking' });
     expect(list.filter((event) => event.type === 'ping').length).toBeGreaterThanOrEqual(2);
     expect(list.at(-1)).toEqual({ type: 'final', status: 200, body: { status: 'answered', text: 'ok', sources: [] } });
+    expect(list.filter((event) => event.type === 'final')).toHaveLength(1);
   });
 
-  it('reports a run that ended without a result as a failed run, with no stack trace', async () => {
-    const upstream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(line({ type: 'status', phase: 'checking' }));
-        controller.close();
-      },
-    });
-    const response = streamResponse(upstream, async (result) => (result ? { status: 200, body: result } : { status: 502, body: { state: 'error' } }), 1_000);
-    expect((await events(response)).at(-1)).toEqual({ type: 'final', status: 502, body: { state: 'error' } });
+  it('reports work that throws as a failed run, with no stack trace', async () => {
+    const response = streamResponse(async () => {
+      throw new Error('boom: secret detail');
+    }, 1_000);
+    const text = await response.text();
+    expect(JSON.parse(text.trim().split('\n').at(-1)!)).toEqual({ type: 'final', status: 502, body: { state: 'error' } });
+    expect(text).not.toContain('secret detail');
   });
 
-  it('only passes on the phases the contract names', async () => {
-    const upstream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(line({ type: 'status', phase: 'daydreaming' }));
-        controller.enqueue(line({ type: 'result', result: { status: 'expired' } }));
-        controller.close();
-      },
-    });
-    const list = await events(streamResponse(upstream, async () => ({ status: 401, body: { error: 'no_session' } }), 1_000));
-    expect(list.filter((event) => event.type === 'status')).toEqual([]);
+  it('lets the work finish, and logs no error, when the client disconnects before the answer', async () => {
+    const errors: unknown[][] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => void errors.push(args);
+    try {
+      let finished = false;
+      const response = streamResponse(async () => {
+        await sleep(80);
+        finished = true;
+        return { status: 200, body: {} };
+      }, 20);
+      const reader = response.body!.getReader();
+      await reader.read(); // the first line, then the client goes away
+      await reader.cancel();
+      await sleep(250);
+      expect(finished).toBe(true);
+      expect(errors).toEqual([]);
+    } finally {
+      console.error = original;
+    }
   });
 });

@@ -1,11 +1,11 @@
 import { nextUtcMidnight } from './guard';
-import type { AskResult, TimedAskResult } from './session';
+import type { AskResult } from './session';
 
 // The two shapes of a `POST /agent/ask` answer (#16, option A). The plain one is a single JSON body. A client that
 // sends `Accept: application/x-ndjson` gets the same answer as a stream of lines, so it sees where the work is while
 // it waits and the connection never sits idle:
 //
-//   {"type":"status","phase":"checking" | "searching" | "writing"}
+//   {"type":"status","phase":"checking"}              at once; `searching` and `writing` are reserved
 //   {"type":"ping"}                                    every PING_MS while waiting
 //   {"type":"final","status":<http status>,"body":<the plain JSON body>}
 //
@@ -18,14 +18,16 @@ export const NDJSON = 'application/x-ndjson';
 /** How often a `ping` line is sent while the answer is not ready; it keeps the connection from sitting idle. */
 export const PING_MS = 10_000;
 
-const PHASES = ['checking', 'searching', 'writing'];
-
 /** True when the client asked for the streamed form. */
 export function wantsStream(request: Request): boolean {
   return (request.headers.get('accept') ?? '')
     .toLowerCase()
     .split(',')
-    .some((part) => part.split(';')[0]?.trim() === NDJSON);
+    .some((part) => {
+      const [type, ...params] = part.split(';').map((piece) => piece.trim());
+      // `q=0` means "not acceptable".
+      return type === NDJSON && !params.some((param) => /^q=0(?:\.0*)?$/.test(param));
+    });
 }
 
 /** The HTTP status and JSON body a session result stands for, shared by the plain and streamed forms. */
@@ -41,63 +43,51 @@ export function describeResult(result: AskResult, now: number): { status: number
   return { status: 200, body: result };
 }
 
-/** What the Worker settles on once the session's run has ended. `result` is null when the run did not report one. */
-export type Settle = (result: TimedAskResult | null) => Promise<{ status: number; body: unknown; serverTiming?: string }>;
+/** What the Worker settles on once the session's run has ended: the HTTP status and JSON body of the plain response. */
+export type Settled = { status: number; body: unknown; serverTiming?: string };
 
 /**
- * Turns the session object's event stream (status lines, then one `result` line) into the client stream: status
- * lines pass through, pings fill the waits, and the result becomes the `final` line after `settle` has applied it.
+ * The streamed form of an answer. `work` is everything that produces the plain response; while it runs the client
+ * gets a `checking` line at once and a `ping` every `pingMs`, then one `final` line with what `work` settled on. A
+ * client that disconnects stops the lines but not `work`, so the session, the guard and the logs see the same
+ * thing as for a plain request.
  */
-export function streamResponse(upstream: ReadableStream<Uint8Array>, settle: Settle, pingMs: number = PING_MS): Response {
+export function streamResponse(work: () => Promise<Settled>, pingMs: number = PING_MS): Response {
   const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const reader = upstream.getReader();
+  let cancelled = false;
   let ping: ReturnType<typeof setInterval> | undefined;
 
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (event: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
-      let result: TimedAskResult | null = null;
-      ping = setInterval(() => {
+      const send = (event: unknown) => {
+        if (cancelled) return;
         try {
-          send({ type: 'ping' });
+          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
         } catch {
-          // The client has gone; `cancel` below stops the work.
+          cancelled = true;
         }
-      }, pingMs);
+      };
+      send({ type: 'status', phase: 'checking' });
+      ping = setInterval(() => send({ type: 'ping' }), pingMs);
       try {
-        let buffer = '';
-        for (;;) {
-          const chunk = await reader.read();
-          buffer += decoder.decode(chunk.value, { stream: !chunk.done });
-          const lines = buffer.split('\n');
-          buffer = chunk.done ? '' : (lines.pop() ?? '');
-          for (const line of lines) {
-            if (line.trim() === '') continue;
-            const event = JSON.parse(line) as { type?: string; phase?: string; result?: TimedAskResult };
-            if (event.type === 'status' && event.phase && PHASES.includes(event.phase)) send({ type: 'status', phase: event.phase });
-            if (event.type === 'result' && event.result) result = event.result;
-          }
-          if (chunk.done) break;
-        }
+        send({ type: 'final', ...(await work()) });
       } catch (error) {
-        console.error('agent stream failed', error);
-        result = null;
-      }
-      try {
-        const settled = await settle(result);
-        send({ type: 'final', ...settled });
-      } catch (error) {
-        console.error('agent stream could not settle', error);
+        console.error('agent stream failed', error instanceof Error ? error.message : String(error));
         send({ type: 'final', status: 502, body: { state: 'error' } });
       } finally {
         clearInterval(ping);
-        controller.close();
+        if (!cancelled) {
+          try {
+            controller.close();
+          } catch {
+            // Already closed by a cancel that arrived meanwhile.
+          }
+        }
       }
     },
-    cancel(reason) {
+    cancel() {
+      cancelled = true;
       clearInterval(ping);
-      return reader.cancel(reason);
     },
   });
 

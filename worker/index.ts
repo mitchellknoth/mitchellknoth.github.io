@@ -1,4 +1,4 @@
-import { describeResult, streamResponse, wantsStream } from './ask-response';
+import { describeResult, streamResponse, wantsStream, type Settled } from './ask-response';
 import { GUARD_NAME } from './guard';
 import { SESSION_COOKIE } from './session-cookie';
 import { serverTimingHeader } from './timing';
@@ -103,57 +103,37 @@ async function handleAgent(request: Request, env: Env, path: string): Promise<Re
     };
     const sessionStart = Date.now();
 
-    // The streamed form (worker/ask-response.ts): the same answer as lines, with the work's progress and pings.
-    if (wantsStream(request)) {
-      let upstream: ReadableStream<Uint8Array>;
+    // Everything that turns the question into the plain response's status and body. The plain form returns it as
+    // JSON; the streamed form (worker/ask-response.ts) sends it as the `final` line after progress and pings.
+    const run = async (): Promise<Settled> => {
+      let result: Awaited<ReturnType<typeof session.ask>>;
       try {
-        upstream = await session.askStream(question, limits);
+        result = await session.ask(question, limits);
       } catch (error) {
+        // Log the cause for the operator; the visitor gets a plain state, never a stack trace.
         console.error('agent session failed', error);
         console.log(JSON.stringify({ event: 'agent_request', outcome: 'error', admit: admitMs, session: Date.now() - sessionStart, total: Date.now() - requestStart }));
-        return refused('error', 502);
+        return { status: 502, body: { state: 'error' } };
       }
-      return streamResponse(upstream, async (result) => {
-        const worker = () => ({ admit: admitMs, session: Date.now() - sessionStart, total: Date.now() - requestStart });
-        if (!result) {
-          console.log(JSON.stringify({ event: 'agent_request', outcome: 'error', ...worker() }));
-          return { status: 502, body: { state: 'error' } };
-        }
-        const { timing, ...rest } = result;
-        const described = describeResult(rest, Date.now());
-        if (described.pauseUntil) await guard.pause(described.pauseUntil, 'inference_budget');
-        const figures = worker();
-        console.log(JSON.stringify({ event: 'agent_request', outcome: rest.status, ...figures }));
-        return {
-          status: described.status,
-          body: described.body,
-          ...(wantTiming ? { serverTiming: serverTimingHeader(figures, timing) } : {}),
-        };
-      });
-    }
-
-    let result: Awaited<ReturnType<typeof session.ask>>;
-    try {
-      result = await session.ask(question, limits);
-    } catch (error) {
-      // Log the cause for the operator; the visitor gets a plain state, never a stack trace.
-      console.error('agent session failed', error);
-      console.log(JSON.stringify({ event: 'agent_request', outcome: 'error', admit: admitMs, session: Date.now() - sessionStart, total: Date.now() - requestStart }));
-      return refused('error', 502);
-    }
-    const sessionMs = Date.now() - sessionStart;
-    const { timing, ...body } = result;
-    // Called as each response is returned, so `total` includes any guard write that came before it.
-    const timed = (response: Response): Response => {
-      const worker = { admit: admitMs, session: sessionMs, total: Date.now() - requestStart };
-      console.log(JSON.stringify({ event: 'agent_request', outcome: body.status, ...worker }));
-      if (wantTiming) response.headers.set('server-timing', serverTimingHeader(worker, timing));
-      return response;
+      const sessionMs = Date.now() - sessionStart;
+      const { timing, ...body } = result;
+      const described = describeResult(body, Date.now());
+      if (described.pauseUntil) await guard.pause(described.pauseUntil, 'inference_budget');
+      const figures = { admit: admitMs, session: sessionMs, total: Date.now() - requestStart };
+      console.log(JSON.stringify({ event: 'agent_request', outcome: body.status, ...figures }));
+      return {
+        status: described.status,
+        body: described.body,
+        ...(wantTiming ? { serverTiming: serverTimingHeader(figures, timing) } : {}),
+      };
     };
 
-    const described = describeResult(body, Date.now());
-    if (described.pauseUntil) await guard.pause(described.pauseUntil, 'inference_budget');
-    return timed(json(described.body, described.status));
+    if (wantsStream(request)) return streamResponse(run);
+    const settled = await run();
+    const response = json(settled.body, settled.status);
+    // Headers cannot follow the first byte of a stream, so the streamed form carries this in its `final` line.
+    if (settled.serverTiming) response.headers.set('server-timing', settled.serverTiming);
+    return response;
   }
 
   return json({ error: 'not_found' }, 404);

@@ -9,7 +9,7 @@ import {
   type Received,
   type SessionOutcome,
 } from './contract';
-import { readAskStream, type AskPhase } from './stream';
+import { readAskStream } from './stream';
 
 const HEALTH_TIMEOUT_MS = 8_000;
 // An answer waits on the model and its tool calls. The Worker streams progress and a ping every 10 seconds while
@@ -23,7 +23,7 @@ async function receive(
   path: string,
   init: RequestInit,
   timeoutMs: number,
-  options: { stream?: boolean; onPhase?: (phase: AskPhase) => void } = {},
+  options: { stream?: boolean } = {},
 ): Promise<Received> {
   try {
     const response = await fetch(path, {
@@ -36,7 +36,7 @@ async function receive(
     // The streamed form (a 200 from the Worker); every other answer, and a host that ignores the Accept header,
     // is the plain JSON below.
     if (options.stream && response.status === 200 && response.body && (response.headers.get('content-type') ?? '').includes('application/x-ndjson')) {
-      return await readAskStream(response.body, { onPhase: options.onPhase });
+      return await readAskStream(response.body, {});
     }
     const text = await response.text();
     let body: unknown = text;
@@ -59,20 +59,20 @@ export async function startSession(): Promise<SessionOutcome> {
   return interpretSession(await receive('/agent/session', { method: 'POST' }, HEALTH_TIMEOUT_MS));
 }
 
-const post = async (question: string, onPhase?: (phase: AskPhase) => void) =>
-  interpretAsk(await receive('/agent/ask', { method: 'POST', body: JSON.stringify({ question }) }, ASK_TIMEOUT_MS, { stream: true, onPhase }));
+const post = async (question: string) =>
+  interpretAsk(await receive('/agent/ask', { method: 'POST', body: JSON.stringify({ question }) }, ASK_TIMEOUT_MS, { stream: true }));
 
 /**
  * Asks one question. Sessions are created lazily: a visitor who never asks never gets a cookie.
  * When the session cookie is missing or has expired, start a new session and ask once more.
  */
-export async function askQuestion(question: string, onPhase?: (phase: AskPhase) => void): Promise<AskOutcome> {
-  const first = await post(question, onPhase);
+export async function askQuestion(question: string): Promise<AskOutcome> {
+  const first = await post(question);
   if (first.type !== 'no-session') return first;
   const session = await startSession();
   if (session.type === 'state') return session;
   if (session.type === 'throttled') return session;
   if (session.type === 'error') return { type: 'error' };
-  const second = await post(question, onPhase);
+  const second = await post(question);
   return second.type === 'no-session' ? { type: 'error' } : second;
 }

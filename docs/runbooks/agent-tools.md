@@ -40,21 +40,22 @@ A client that sends `Accept: application/x-ndjson` gets the same answer as newli
 body, unchanged, so tests, evals and older clients are not affected.
 
 ```
-{"type":"status","phase":"checking"}        the question is being checked (admission passed)
-{"type":"status","phase":"searching"}       the agent run started
+{"type":"status","phase":"checking"}        at once, when the stream opens
 {"type":"ping"}                             every 10 s while waiting; keeps the connection from sitting idle
 {"type":"final","status":200,"body":{...}}  the HTTP status and JSON body the plain response would have had
 ```
 
 - Everything before the run (no cookie 401, bad JSON 400, too long 413, blocked 403, paused 503, the daily cap) is still
-  a plain JSON error with its own status; the stream starts only for a question that will be answered.
-- Outcomes decided after the run (the session message limit 429, an expired session 401, a spent budget 503 with the
-  pause written to the Guard) arrive as `final` with that status and body, so the island reads them with the same
-  interpreter as the plain response.
-- A stream that ends without `final`, or goes quiet for 30 s, is a failed request in the island. The Worker reports a run
-  that did not finish as `final` with status 502 and `{"state":"error"}`.
-- Status events say where the work is, never what the answer says: the answer is checked after the run
-  (`worker/reply.ts`) and appears only in `final`. `writing` is part of the format but not sent yet.
+  a plain JSON error with its own status. Once the stream has started, every outcome of the run arrives as `final`
+  with the status and body the plain response would have had: an answer, a refusal, an unanswered run, the session
+  message limit 429, an expired session 401, or a spent budget 503 (the pause is still written to the Guard).
+- A run that throws is `final` with status 502 and `{"state":"error"}`. A stream that ends without `final`, or goes
+  quiet for 30 s, is a failed request in the island.
+- A client that disconnects stops the lines but not the work: the session, the Guard and the logs see the same as for
+  a plain request.
+- The `status` event only says the work has begun (`searching` and `writing` are reserved for later and the island
+  accepts them); it never says what the answer is. The answer is checked after the run (`worker/reply.ts`) and appears
+  only in `final`.
 - With `TIMING_HEADER=true`, `final` also carries a `serverTiming` string (a header cannot follow the first byte).
 
 ## From model output to `POST /agent/ask`

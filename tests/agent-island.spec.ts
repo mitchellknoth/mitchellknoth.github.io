@@ -403,7 +403,7 @@ for (const theme of ['dark', 'light']) {
     }
     const push = (page: Page, event: unknown) => page.evaluate((e) => (window as unknown as { __push: (e: unknown) => void }).__push(e), event);
 
-    test('asks for the stream, shows where the work is, and answers on the final event', async ({ page }) => {
+    test('asks for the stream, keeps waiting through pings, and answers on the final event', async ({ page }) => {
       await streamedAsks(page);
       await open(page, theme, { health: ONLINE });
       await expect(island(page)).toHaveAttribute('data-state', 'online');
@@ -412,9 +412,7 @@ for (const theme of ['dark', 'light']) {
       await expect(wait).toContainText('Searching the site and reading what it finds');
       await push(page, { type: 'status', phase: 'checking' });
       await push(page, { type: 'ping' });
-      await expect(wait).toContainText('Searching the site and reading what it finds');
-      await push(page, { type: 'status', phase: 'writing' });
-      await expect(wait).toContainText('Writing the answer');
+      await expect(wait).toBeVisible();
       await push(page, { type: 'final', status: 200, body: ANSWER.body });
       await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
       await expect(wait).toHaveCount(0);
