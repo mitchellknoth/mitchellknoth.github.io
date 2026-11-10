@@ -28,7 +28,12 @@ describe('interpretHealth', () => {
 
   it('treats the edge rate limit page as an agent that exists, not as an absent one', () => {
     // Cloudflare's Error 1015 is a 429 with an HTML body. The visitor is going too fast; the agent is there.
-    expect(interpretHealth(json(429, '<!doctype html><title>Error 1015</title>'))).toEqual({ kind: 'online' });
+    expect(interpretHealth(json(429, '<!doctype html><title>Error 1015</title>', { 'cf-ray': '9a1b2c3d4e5f-ORD' }))).toEqual({ kind: 'online' });
+  });
+
+  it('does not take another host’s 429 for the agent', () => {
+    // A static host or proxy that is not Cloudflare has no agent, however busy it is.
+    expect(interpretHealth(json(429, '<!doctype html><title>Too Many Requests</title>'))).toEqual({ kind: 'absent' });
   });
 });
 

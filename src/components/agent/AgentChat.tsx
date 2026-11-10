@@ -21,8 +21,9 @@ import { askQuestion, checkHealth } from '@/lib/agent/client';
 import type { StoppedState } from '@/lib/agent/contract';
 import { replyToMessage, sourcesOf, textOf, userMessage, type AgentUIMessage } from '@/lib/agent/messages';
 import { AgentSources } from './AgentSources';
-import { ensureHumanClearance } from './turnstile';
+import { cancelHumanClearance, ensureHumanClearance } from './turnstile';
 
+// The Worker's MAX_PROMPT_CHARS (wrangler.jsonc). If that changes, change this; a 413 from the Worker is the backstop.
 const MAX_QUESTION_CHARS = 1000;
 // Show the count only when the visitor is getting close, so a short question carries no counter.
 const COUNT_FROM = 800;
@@ -171,6 +172,13 @@ const WAIT_NOTES = [
   { from: 80, title: 'Still working, and slower than usual', note: 'If there is no answer after two minutes, your question comes back to the field.' },
 ] as const;
 
+function waitPhrase(seconds: number | undefined) {
+  if (!seconds) return 'a few seconds';
+  if (seconds < 60) return `about ${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
+  const minutes = Math.round(seconds / 60);
+  return `about ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+}
+
 function formatElapsed(seconds: number) {
   return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
@@ -224,6 +232,10 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
   const [view, setView] = React.useState<View>({ kind: 'loading' });
   const [challenge, setChallenge] = React.useState<Challenge>('idle');
   const turnstileHost = React.useRef<HTMLDivElement>(null);
+  const verifyRef = React.useRef<HTMLDivElement>(null);
+  const focusWasInVerify = React.useRef(false);
+  /** Which ask is in flight, so the wait indicator starts again for the retry after a clearance. */
+  const [attempt, setAttempt] = React.useState(0);
   const [messages, setMessages] = React.useState<AgentUIMessage[]>([]);
   const [draft, setDraft] = React.useState('');
   const nextId = React.useRef(0);
@@ -247,6 +259,11 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
       onInteractive: (interactive) => setChallenge(interactive ? 'interactive' : 'running'),
     });
     setChallenge('idle');
+    // The check's own frame is gone, so a visitor who was in it would otherwise be left on the page body.
+    if (focusWasInVerify.current) {
+      focusWasInVerify.current = false;
+      focusAfterUpdate.current = 'field';
+    }
     return result === 'cleared';
   }, [turnstileSiteKey]);
 
@@ -258,10 +275,20 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
       if (health.kind === 'unverified' && !cancelled && (await clearHumanCheck())) health = await checkHealth();
       if (!cancelled) setView(health.kind === 'online' ? { kind: 'online' } : health);
     })();
+    const host = turnstileHost.current;
     return () => {
       cancelled = true;
+      // The island is going away (a page change, or a development re-run): end its check so the next island's
+      // starts clean instead of joining one whose widget nobody can see.
+      cancelHumanClearance(host);
     };
   }, [clearHumanCheck]);
+
+  // When Cloudflare needs the visitor, bring the check to them: a keyboard or screen reader user is otherwise
+  // left on a disabled form with no sign that a control has appeared.
+  React.useEffect(() => {
+    if (challenge === 'interactive') verifyRef.current?.focus();
+  }, [challenge]);
 
   React.useEffect(() => {
     const target = focusAfterUpdate.current;
@@ -286,8 +313,12 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
     setView({ kind: 'answering' });
 
     let outcome = await askQuestion(question);
-    // Clearance lasts a while, not forever: if the edge challenges this question, clear the check and ask once more.
-    if (outcome.type === 'state' && outcome.state.kind === 'unverified' && (await clearHumanCheck())) outcome = await askQuestion(question);
+    // Clearance lasts a while, not forever: if the edge challenges this question, clear the check and ask once
+    // more, with the wait indicator starting over. Only once: a second challenge is shown as it is.
+    if (outcome.type === 'state' && outcome.state.kind === 'unverified' && (await clearHumanCheck())) {
+      setAttempt((current) => current + 1);
+      outcome = await askQuestion(question);
+    }
 
     // Move focus only if the visitor left it in the form, or it was in the form when they sent and the
     // send button, disabled while answering, dropped it to the body. An answer can take a while; if
@@ -345,8 +376,8 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
     ) : view.kind === 'throttled' ? (
       <div className="agent-notice" role="alert" id={alertId}>
         <p>
-          That was too many questions too quickly, so none was sent. Wait{' '}
-          {view.retryAfterSeconds ? `about ${view.retryAfterSeconds} seconds` : 'a few seconds'}, then send it again; it’s back in the field.
+          That was too many questions too quickly, so none was sent. Wait {waitPhrase(view.retryAfterSeconds)}, then send it
+          again; it’s back in the field.
         </p>
       </div>
     ) : view.kind === 'too-long' ? (
@@ -376,7 +407,7 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
             {/* Grows with the conversation up to a cap, then scrolls; no empty box under a short answer. */}
             <MessageScroller className="h-auto w-full">
               <MessageScrollerViewport className="h-auto max-h-[min(30rem,62vh)] w-full">
-                <MessageScrollerContent role="log" aria-label="Conversation" aria-busy={busy} className="gap-6 py-2">
+                <MessageScrollerContent role="log" aria-label="Conversation" className="gap-6 py-2">
                   {messages.map((message) =>
                     message.role === 'user' ? (
                       <MessageScrollerItem key={message.id} messageId={message.id} className="agent-enter">
@@ -396,7 +427,7 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
                   )}
                   {busy && (
                     <MessageScrollerItem messageId="answering">
-                      <Waiting confirming={challenge !== 'idle'} />
+                      <Waiting key={attempt} confirming={challenge !== 'idle'} />
                     </MessageScrollerItem>
                   )}
                 </MessageScrollerContent>
@@ -412,8 +443,8 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
       ) : (
         <>
           {/* The loading message lives in the field's placeholder, so nothing shifts when it clears. */}
-          <p className="sr-only" role="status">
-            {view.kind === 'loading' ? 'Checking whether the agent is available…' : ''}
+          <p className="sr-only" role="status" data-agent-announce>
+            {view.kind === 'loading' ? 'Checking whether the agent is available…' : busy ? 'Waiting for the agent’s answer.' : ''}
           </p>
           {/* Rendered (disabled) while loading too, so the server-rendered shell reserves their space. */}
           {messages.length === 0 && (
@@ -430,7 +461,19 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
           {alert}
           <form ref={formRef} onSubmit={onSubmit} className="agent-form">
             {/* The Turnstile widget renders here (./turnstile.ts); it is invisible unless Cloudflare needs the visitor. */}
-            <div className="agent-verify" hidden={challenge !== 'interactive'}>
+            <div
+              ref={verifyRef}
+              className="agent-verify"
+              role="group"
+              aria-label="Confirm you are a person"
+              tabIndex={-1}
+              data-active={challenge === 'interactive' || undefined}
+              // Laid out but out of sight and out of the tab order until Cloudflare asks for the visitor (a
+              // display:none container can stop the widget from running at all).
+              inert={challenge !== 'interactive'}
+              onFocus={() => (focusWasInVerify.current = true)}
+              onBlur={() => (focusWasInVerify.current = false)}
+            >
               <p>Cloudflare needs to confirm a person is asking before the agent answers.</p>
               <div data-turnstile-slot ref={turnstileHost} />
             </div>
@@ -451,7 +494,7 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
                 placeholder={view.kind === 'loading' ? (challenge === 'idle' ? 'Checking whether the agent is available…' : 'Confirming you’re a person…') : 'Ask about a project, an essay or my experience'}
                 aria-label="Ask about my work"
                 aria-invalid={view.kind === 'too-long' || tooLong || undefined}
-                aria-describedby={alert ? alertId : undefined}
+                aria-describedby={[alert ? alertId : '', draft.length >= COUNT_FROM ? 'agent-count' : ''].filter(Boolean).join(' ') || undefined}
                 disabled={view.kind === 'loading'}
                 rows={2}
                 className="max-h-48 min-h-14 overflow-y-auto px-3 text-base md:text-base"
@@ -459,7 +502,7 @@ export default function AgentChat({ turnstileSiteKey = '' }: { turnstileSiteKey?
               <InputGroupAddon align="block-end">
                 <span className="agent-hint">Enter to send · Shift+Enter for a new line</span>
                 {draft.length >= COUNT_FROM && (
-                  <span className="agent-count" data-over={tooLong || undefined}>
+                  <span id="agent-count" className="agent-count" data-over={tooLong || undefined}>
                     {draft.length.toLocaleString('en-US')} / {MAX_QUESTION_CHARS.toLocaleString('en-US')}
                     {tooLong && <span className="sr-only"> Too long to send.</span>}
                   </span>

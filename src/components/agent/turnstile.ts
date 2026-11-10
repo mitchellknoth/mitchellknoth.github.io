@@ -58,80 +58,120 @@ let script: Promise<TurnstileApi | null> | null = null;
 function loadScript(): Promise<TurnstileApi | null> {
   if (window.turnstile) return Promise.resolve(window.turnstile);
   script ??= new Promise<TurnstileApi | null>((resolve) => {
-    const element = document.createElement('script');
+    // A script that was slow rather than dead may still arrive after a timeout. Wait on that same element on the
+    // next try instead of adding a second one, which Cloudflare warns about.
+    const element = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_URL}"]`) ?? document.createElement('script');
     const finish = (api: TurnstileApi | null) => {
       window.clearTimeout(timer);
       // A failed load is not cached: a later question may try again (for instance after the network returns).
-      if (!api) {
-        element.remove();
-        script = null;
-      }
+      if (!api) script = null;
       resolve(api);
     };
     const timer = window.setTimeout(() => finish(null), SCRIPT_TIMEOUT_MS);
-    element.src = SCRIPT_URL;
-    element.async = true;
-    element.onload = () => finish(window.turnstile ?? null);
-    element.onerror = () => finish(null);
-    document.head.append(element);
+    element.addEventListener('load', () => finish(window.turnstile ?? null), { once: true });
+    element.addEventListener(
+      'error',
+      () => {
+        element.remove();
+        finish(null);
+      },
+      { once: true },
+    );
+    if (!element.isConnected) {
+      element.src = SCRIPT_URL;
+      element.async = true;
+      document.head.append(element);
+    }
   });
   return script;
 }
 
-let solving: Promise<Clearance> | null = null;
+interface Run {
+  host: HTMLElement;
+  promise: Promise<Clearance>;
+  /** Ends the run as `failed` and removes its widget. */
+  cancel(): void;
+}
+
+let current: Run | null = null;
 
 /**
  * Runs the pre-clearance widget inside `host` and resolves when it finishes. `onInteractive` is told when
  * Cloudflare needs the visitor to act (so the island can make room for the widget) and when that is over.
- * Concurrent calls share one run.
+ * Calls for the same `host` share one run. A call for a different host means the earlier island is gone (the
+ * site swaps pages with view transitions), so that run is cancelled rather than joined: its widget would be
+ * in a detached node that nobody can see or click.
  */
 export function ensureHumanClearance(options: {
   siteKey: string;
   host: HTMLElement;
   onInteractive?: (interactive: boolean) => void;
 }): Promise<Clearance> {
-  solving ??= run(options).finally(() => {
-    solving = null;
+  if (current?.host === options.host) return current.promise;
+  current?.cancel();
+  const run = start(options);
+  current = run;
+  void run.promise.then(() => {
+    if (current === run) current = null;
   });
-  return solving;
+  return run.promise;
 }
 
-async function run({ siteKey, host, onInteractive }: Parameters<typeof ensureHumanClearance>[0]): Promise<Clearance> {
-  const api = await loadScript();
-  if (!api) return 'failed';
-  return new Promise<Clearance>((resolve) => {
+/** Stops a run in `host`, if any: for when the island that started it goes away. */
+export function cancelHumanClearance(host: HTMLElement | null) {
+  if (host && current?.host === host) current.cancel();
+}
+
+function start({ siteKey, host, onInteractive }: Parameters<typeof ensureHumanClearance>[0]): Run {
+  let finish: (result: Clearance) => void = () => undefined;
+  const promise = new Promise<Clearance>((resolve) => {
+    let done = false;
     let widget: string | undefined;
-    const finish = (result: Clearance) => {
+    let api: TurnstileApi | null = null;
+    const timer = window.setTimeout(() => finish('failed'), SOLVE_TIMEOUT_MS);
+    // Safe to call from any callback, in any order, and more than once: only the first call counts.
+    finish = (result) => {
+      if (done) return;
+      done = true;
       window.clearTimeout(timer);
       onInteractive?.(false);
-      if (widget !== undefined) api.remove(widget);
+      if (api && widget !== undefined) api.remove(widget);
       host.replaceChildren();
       resolve(result);
     };
-    const timer = window.setTimeout(() => finish('failed'), SOLVE_TIMEOUT_MS);
-    try {
-      widget = api.render(host, {
-        sitekey: siteKey,
-        action: 'agent',
-        theme: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark',
-        appearance: 'interaction-only',
-        // The normal widget is 300px wide, more than a 320px phone leaves inside the island.
-        size: window.matchMedia('(max-width: 399px)').matches ? 'compact' : 'normal',
-        retry: 'never',
-        callback: () => finish('cleared'),
-        'error-callback': () => {
-          finish('failed');
-          // Returning true tells Turnstile the error is handled, so it does not log its own.
-          return true;
-        },
-        'timeout-callback': () => finish('failed'),
-        'expired-callback': () => finish('failed'),
-        'unsupported-callback': () => finish('failed'),
-        'before-interactive-callback': () => onInteractive?.(true),
-        'after-interactive-callback': () => onInteractive?.(false),
-      });
-    } catch {
-      finish('failed');
-    }
+    void loadScript().then((loaded) => {
+      if (done) return;
+      if (!loaded) return finish('failed');
+      api = loaded;
+      try {
+        widget = api.render(host, {
+          sitekey: siteKey,
+          action: 'agent',
+          theme: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark',
+          appearance: 'interaction-only',
+          // The normal widget is 300px wide, more than a 320px phone leaves inside the island.
+          size: window.matchMedia('(max-width: 399px)').matches ? 'compact' : 'normal',
+          retry: 'never',
+          callback: () => finish('cleared'),
+          'error-callback': () => {
+            finish('failed');
+            // Returning true tells Turnstile the error is handled, so it does not log its own.
+            return true;
+          },
+          'timeout-callback': () => finish('failed'),
+          'expired-callback': () => finish('failed'),
+          'unsupported-callback': () => finish('failed'),
+          'before-interactive-callback': () => onInteractive?.(true),
+          'after-interactive-callback': () => onInteractive?.(false),
+        });
+      } catch {
+        return finish('failed');
+      }
+      // render() returns undefined, and fires no callback, for a bad site key or a missing container.
+      if (widget === undefined) return finish('failed');
+      // A callback that fired inside render() ended the run before the widget id was known.
+      if (done) api.remove(widget);
+    });
   });
+  return { host, promise, cancel: () => finish('failed') };
 }

@@ -169,7 +169,19 @@
   padding: 0.9rem 1rem;
   border-left: 2px solid var(--editorial-border);
 }
-.agent-verify[hidden] { display: none; }
+/* Until Cloudflare asks for the visitor the block is laid out but taken out of sight (and, by `inert`, out of
+   the tab order and the accessibility tree). It is not display:none: a hidden container can stop the widget. */
+.agent-verify:not([data-active]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .agent-verify p { margin: 0; color: var(--fg); font-size: 15px; line-height: 1.6; max-width: 60ch; }
 .agent-verify [data-turnstile-slot] { min-height: 65px; }
 

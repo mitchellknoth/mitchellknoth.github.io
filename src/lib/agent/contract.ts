@@ -116,8 +116,9 @@ export function interpretHealth(received: Received): HealthState {
   if (!received) return { kind: 'absent' };
   if (received.status === 403 && challenged(received)) return { kind: 'unverified' };
   // Cloudflare's per-IP rate limit answers with its own 429 page. The agent exists; this visitor is just
-  // going too fast, which the island says if they ask (see `throttled` in interpretAsk).
-  if (received.status === 429 && !isRecord(received.body)) return { kind: 'online' };
+  // going too fast, which the island says if they ask (see `throttled` in interpretAsk). Only Cloudflare's own
+  // response counts: a 429 from a host that is not behind it says nothing about an agent.
+  if (received.status === 429 && !isRecord(received.body) && received.headers.has('cf-ray')) return { kind: 'online' };
   if (!isRecord(received.body)) return { kind: 'absent' };
   if (received.status === 200 && received.body.state === 'online') return { kind: 'online' };
   if (received.status === 200 && received.body.state === 'paused') return { kind: 'paused' };
