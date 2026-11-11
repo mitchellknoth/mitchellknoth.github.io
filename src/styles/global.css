@@ -564,12 +564,12 @@ button:focus-visible,
   }
 }
 
-/* About facts and capabilities group by content, without ruled rows. */
+/* About facts and capabilities group by content, without ruled rows. Fact grids live inside the reading column
+   (`.content`), so two columns is the most their labels and sentences can take; a third would cramp them. */
 .fact-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem 2rem;
-  max-width: 72rem;
   margin: 1.6rem 0 2.5rem;
 }
 .skills-cat { color: var(--fg-dim); font: 0.75rem/1.5 var(--font-mono); margin-bottom: 0.4rem; }
@@ -579,7 +579,6 @@ button:focus-visible,
 @media (min-width: 768px) {
   .fact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (min-width: 1200px) { .fact-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* =============================================================
    Motion — respect reduced-motion
