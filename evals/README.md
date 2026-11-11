@@ -288,3 +288,53 @@ Both repositories were checked on 2026-11-05. Neither fits, so this is a small N
 Harbor could run this, with a custom HTTP agent, a host-side verifier and an empty environment,
 but then it would only be a job runner around the same checks. The Node runner borrows Harbor's
 result idea instead: one graded record per question, combined into one run file.
+
+## Benchmark history
+
+A scorecard is the full record of one run, answers included. The history is a compact, append-only
+sequence of records, one per run, so a change in pass rate or latency can be traced to a commit, a model
+or a setting. It is separate from the scorecards and does not replace them.
+
+A record holds: the commit (and `dirty` if the checkout had uncommitted changes), the config that decides
+behaviour (`model`, `effort`, `maxTurns`, `modelTimeoutMs`, `intentMode`, read from the checkout), the
+question-set, corpus and grader identities, `coverage` (how many of the set's questions it ran), a summary,
+and one row per question: its outcome for each repeat, the checks that failed, and the latencies. It holds no
+question text, answer text, IP address, session name or target address.
+
+Each record stores the hash of the one before it (`prev`) and its own `hash`, so editing or reordering an
+earlier record is detectable. Files are named `NNNN-<date>-<commit>.json`, are written whole or not at all,
+and are never replaced. Free text from a scorecard is reduced to a fixed vocabulary before it is stored: a
+stopped run keeps only its HTTP status, and a failed check is one of the grader's own names or `other`.
+
+```bash
+npm run evals:history -- export --scorecard evals/results/<date>/<model>.json   # from `npm run evals`
+npm run evals:history -- export --harbor experiments/harbor/jobs/<job> --model <model id>   # from a Harbor job
+npm run evals:history -- verify --base origin/main     # hash chain, and only additions since the merge base with main
+npm run evals:history -- list
+npm run evals:history -- compare 3 4                   # pass rate, per-question changes, latency, config
+```
+
+- **Export from the checkout the run used.** The config (`effort`, `maxTurns`, timeout, intent mode) is read
+  from this checkout, so a scorecard export is refused when the checkout is at a different commit than the
+  scorecard's. A Harbor job records no commit, corpus or question set, so those come from this checkout too:
+  export right after the run. The corpus is `generated/corpus.json` as built now, so run `npm run build`
+  first. Export also refuses uncommitted changes to the code under test (the scorecard and history
+  directories do not count) unless you pass `--allow-dirty`, which marks the record `dirty`.
+- A Harbor job must have finished and have as many trial directories as it says; a trial that crashed, threw,
+  has no verifier reward, or whose reward and grade disagree is an `error`, never a pass.
+- A Harbor job can run a subset of the set. Its record lists only the questions it ran and states `coverage`.
+  A scorecard that stopped early keeps its unrun questions as `not_run` but counts only the questions that ran
+  in `coverage`.
+- `compare` says when two records are not like for like (a different question set, corpus, grader, repeat
+  count, set of questions, or a stopped or partly unrun record), because a score difference then may not be
+  the agent.
+- `verify --base <ref>` is the append-only gate. It compares the history directory with the point where this
+  branch left `<ref>`: any history file that was modified, deleted, renamed or type-changed is reported. The
+  hash chain alone cannot catch a rewrite that re-hashes every later record, or the removal of the newest
+  record, so a gate that matters needs `--base`. The ref must be fetched (`git fetch origin main`; a shallow
+  clone without it fails). Pass the same `--dir` every time, because a `--base` check covers only that
+  directory.
+- Where records are committed (a protected branch, or bot pull requests) and what runs the export on a
+  schedule or after a deploy are not decided yet; nothing here runs on its own. Two pull requests that
+  each add the next record would merge cleanly in git but leave a broken chain, which `verify` reports and
+  which blocks further appends, so whatever commits records must serialise them (one writer at a time).
