@@ -12,12 +12,3 @@ const NBSP = ' ';
 export function bindDash(text: string): string {
   return text.replaceAll(' – ', `${NBSP}– `);
 }
-
-/**
- * Binds every space in a short label (an employer, a date range) so it wraps as one unit and never splits mid-name
- * ("John / Deere"). Keep it to labels that fit a narrow line; the no-break space is read as an ordinary space by
- * search, copy-and-paste and the agent corpus extractor.
- */
-export function keepTogether(text: string): string {
-  return text.replaceAll(' ', NBSP);
-}

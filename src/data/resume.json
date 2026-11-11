@@ -13,6 +13,8 @@
   "experience": [
     {
       "title": "AI-assisted delivery and developer platforms",
+      "role": "Cloud Software Engineer",
+      "team": "SDLC-Next",
       "period": "2026 – present",
       "href": "/work/agentic-engineering/",
       "points": [
@@ -26,6 +28,8 @@
     },
     {
       "title": "Developer Experience",
+      "role": "Cloud Software Engineer",
+      "team": "R2D2 – PR to Production",
       "period": "Late 2025 – early 2026",
       "href": "/work/pr-to-production/",
       "points": [
@@ -35,6 +39,8 @@
     },
     {
       "title": "Enterprise cloud foundations",
+      "role": "Cloud Software Engineer",
+      "team": "Landing Zone",
       "period": "2023 – 2025",
       "href": "/work/onecloud-network/",
       "points": [
@@ -44,6 +50,8 @@
     },
     {
       "title": "Digital equipment licensing",
+      "role": "Software Engineer II",
+      "team": "License Management",
       "period": "2021 – 2023",
       "href": "/work/license-management/",
       "points": [
@@ -52,6 +60,8 @@
     },
     {
       "title": "External API platform",
+      "role": "Software Engineer I",
+      "team": "Global Gateway",
       "period": "2019 – 2021",
       "href": "/work/global-gateway/",
       "points": [
