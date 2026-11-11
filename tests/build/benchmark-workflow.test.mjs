@@ -32,13 +32,37 @@ function step(jobId, name) {
 /** Every `run: |` block body in a file. @param {string} text */
 const runBlocks = (text) => [...text.matchAll(/\n\s+run: \|\n((?:(?: {10,}.*)?\n)+)/g)].map((m) => m[1]);
 
-test('the workflow runs only when someone dispatches it, and only from main', () => {
+test('the workflow runs only when dispatched or called, and only from main', () => {
   const triggers = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\npermissions:'));
   assert.match(triggers, /workflow_dispatch:/);
+  assert.match(triggers, /workflow_call:/);
   for (const other of ['schedule', 'push', 'pull_request', 'pull_request_target', 'workflow_run', 'issue_comment']) {
-    assert.ok(!new RegExp(`^  ${other}:`, 'm').test(triggers), `no ${other} trigger: a live run costs money and uses the token`);
+    assert.ok(!new RegExp(`^  ${other}:`, 'm').test(triggers), `no ${other} trigger here: a live run costs money and uses the token`);
   }
-  for (const id of ['evaluate', 'propose']) assert.match(job(id), /if: github\.ref == 'refs\/heads\/main'/, `${id} does not run from another ref`);
+  for (const id of ['guard', 'evaluate', 'propose']) assert.match(job(id), /if: github\.ref == 'refs\/heads\/main'/, `${id} does not run from another ref`);
+  assert.match(job('evaluate'), /needs: guard/);
+  assert.match(job('evaluate'), /needs\.guard\.outputs\.proceed == 'true'/);
+  assert.match(job('propose'), /needs: evaluate/);
+  for (const id of ['evaluate', 'propose']) assert.match(step(id, 'Checkout'), /ref: main/, `${id} evaluates the tip of main, so a queued run sees every merged record`);
+});
+
+test('the push caller is off until opted in, narrow, and cannot start itself from a merged record', () => {
+  const caller = read('.github/workflows/benchmark-on-main.yml');
+  const triggers = caller.slice(caller.indexOf('\non:'), caller.indexOf('\npermissions:'));
+  assert.match(triggers, /^  push:/m);
+  assert.match(triggers, /branches:\s*\n\s+- main/);
+  for (const other of ['schedule', 'pull_request', 'pull_request_target', 'workflow_run', 'issue_comment', 'workflow_dispatch']) {
+    assert.ok(!new RegExp(`^  ${other}:`, 'm').test(triggers), `no ${other} trigger in the caller`);
+  }
+  assert.match(triggers, /paths:/, 'pushes that cannot change an answer do not run it');
+  assert.doesNotMatch(triggers, /- (evals\/history|evals\/results|evals\/\*\*|docs\/|tests\/|\.github)/, 'a merged record, test, doc or workflow change never starts a run');
+  assert.match(caller, /if: vars\.BENCHMARK_ON_PUSH == 'true'/);
+  assert.match(caller, /uses: \.\/\.github\/workflows\/benchmark\.yml\s*$/m, 'the reusable workflow is called by a local path, so it is the version on main');
+  assert.doesNotMatch(caller, /secrets:|\$\{\{\s*secrets/, 'no secret passes through the caller: the called workflow reads its own environment');
+  assert.doesNotMatch(caller, /^\s+group:/m, 'the called workflow owns the concurrency group; a caller using it would deadlock');
+  assert.match(caller, /permissions:\s*\n\s+contents: write\s*\n\s+pull-requests: write/);
+  const top = caller.slice(caller.indexOf('\npermissions:'), caller.indexOf('\njobs:'));
+  assert.doesNotMatch(top, /: write/, 'write is granted to the one calling job only');
 });
 
 test('the eval token is held by the read-only job, in a protected environment, in one step', () => {
@@ -76,9 +100,12 @@ test('no expression is expanded inside a shell script, and the dispatch input on
 
 test('runs are serialised and a second benchmark PR cannot be opened while one is waiting', () => {
   assert.match(workflow, /\nconcurrency:\s*\n\s+group: benchmark-history\s*\n\s+cancel-in-progress: false/);
-  const guard = step('evaluate', 'Refuse while a benchmark record is waiting to merge');
+  const guard = step('guard', 'Refuse while a benchmark record is waiting to merge');
   assert.match(guard, /gh pr list .*--label benchmark-record .*--state open/);
-  assert.match(guard, /exit 1/);
+  assert.match(guard, /exit 1/, 'a dispatched run is told');
+  assert.match(guard, /GITHUB_EVENT_NAME" = "push"[\s\S]*proceed=false/, 'a push to main skips quietly instead of turning the checks red');
+  assert.match(job('guard'), /permissions:\s*\n\s+pull-requests: read/);
+  assert.doesNotMatch(job('guard'), /checkout|environment:|secrets\./);
 });
 
 test('the agent log stays outside the checkout, so the export sees a clean tree', () => {

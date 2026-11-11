@@ -8,8 +8,10 @@ name: Benchmark
 #   propose   can push a branch and open a pull request, and never sees the Cloudflare token.
 # Neither stores the checkout token in .git/config, so a dependency's install script cannot push with it.
 #
-# Manual only: a live run spends model money and uses the eval token. Add a trigger (for example after a deploy, or
-# weekly) only once a baseline exists and the eval gateway's spend limit is confirmed.
+# This is a reusable workflow. It runs when someone dispatches it (Actions -> Benchmark -> Run workflow) and when
+# benchmark-on-main.yml calls it after a push to main. A live run spends model money and uses the eval token, so it
+# has no other trigger. It always evaluates the tip of main, so a queued run never writes a record against a stale
+# history.
 #
 # Before the first run, in the repository settings:
 #   - create the environment `cloudflare-evals`, restrict it to the `main` branch, and add the secret
@@ -25,6 +27,12 @@ on:
         description: Model under test. Empty means the production model (AGENT_MODEL in wrangler.jsonc).
         required: false
         type: string
+  workflow_call:
+    inputs:
+      model:
+        description: Model under test. Empty means the production model (AGENT_MODEL in wrangler.jsonc).
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -33,15 +41,46 @@ defaults:
   run:
     shell: bash
 
-# One writer at a time: two runs would each claim the next sequence number.
+# One writer at a time: two runs would each claim the next sequence number. Defined here, not in a caller: a caller
+# using the same group name would deadlock against this one. While one run waits, GitHub keeps only the newest
+# pending run, so a burst of merges costs one run, not one each.
 concurrency:
   group: benchmark-history
   cancel-in-progress: false
 
 jobs:
-  evaluate:
-    # The environment's branch rule is the real gate; this keeps a dispatch from another ref from running at all.
+  # A pull request that adds the next record and is not merged yet would collide with this run's record: both would
+  # be sequence N. A person who dispatches the run is told (the run fails); a push to main just skips, because
+  # every merge would otherwise turn the checks red while a record waits for review.
+  guard:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      proceed: ${{ steps.open.outputs.proceed }}
+    steps:
+      - name: Refuse while a benchmark record is waiting to merge
+        id: open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          open=$(gh pr list --repo "$GITHUB_REPOSITORY" --label benchmark-record --state open --json number --jq 'length')
+          if [ "$open" = "0" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            echo "::notice::Skipped: a benchmark record pull request is still open. Merge or close it; the next merge to main runs the benchmark."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::A benchmark pull request is still open. Merge or close it, then run this again."
+            exit 1
+          fi
+
+  evaluate:
+    needs: guard
+    # The environment's branch rule is the real gate; this keeps a dispatch from another ref from running at all.
+    if: github.ref == 'refs/heads/main' && needs.guard.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: cloudflare-evals
@@ -52,6 +91,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          # The tip of main, not the pushed commit: a run that waited in the queue must still see every record
+          # merged since, or its record would reuse a sequence number.
+          ref: main
           fetch-depth: 0
           persist-credentials: false
 
@@ -63,18 +105,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      # A pull request that adds the next record and is not merged yet would collide with this run's record: both
-      # would be sequence N. Merge or close it first.
-      - name: Refuse while a benchmark record is waiting to merge
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          open=$(gh pr list --repo "$GITHUB_REPOSITORY" --label benchmark-record --state open --json number --jq 'length')
-          if [ "$open" != "0" ]; then
-            echo "::error::A benchmark pull request is still open. Merge or close it, then run this again."
-            exit 1
-          fi
 
       - name: Check the history chain is intact
         run: npm run evals:history -- verify
@@ -167,6 +197,7 @@ jobs:
           if-no-files-found: error
 
   propose:
+    # Skipped with `evaluate` when the guard stood the run down.
     needs: evaluate
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -179,6 +210,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          # The tip of main, not the pushed commit: a run that waited in the queue must still see every record
+          # merged since, or its record would reuse a sequence number.
+          ref: main
           fetch-depth: 0
           persist-credentials: false
 

@@ -338,8 +338,18 @@ npm run evals:history -- compare 3 4                   # pass rate, per-question
   runs the question set once against a local copy of the Worker on the runner, exports a record from the
   scorecard, and opens a pull request that adds that one file. Merging it is how a record becomes history;
   nothing is pushed to `main`.
-  - It runs only when dispatched manually, and only from `main`. Add an event trigger (after a deploy, weekly)
-    once a baseline exists and the eval gateway's spend limit is confirmed.
+  - `benchmark.yml` is a reusable workflow. It runs when dispatched by hand (Actions → Benchmark → Run
+    workflow, optionally with a model) and when `benchmark-on-main.yml` calls it after a merge to `main`. It
+    runs only from `main` and always evaluates the tip of `main`, so a queued run still sees every merged
+    record.
+  - **Push trigger.** `benchmark-on-main.yml` fires on a push to `main` that touches the inputs of an answer
+    (`worker/`, `wrangler.jsonc`, `src/`, `public/`, the corpus and eval scripts, the question set and
+    config, `package.json`, the lockfile). A merge that changes only docs, tests, workflows or `evals/history/`
+    does not run it, which also keeps a merged record from starting another run. It is off until the
+    repository variable `BENCHMARK_ON_PUSH` is `true`; set it after the setup below and one dispatched run
+    have worked. A run costs about 3 cents, and the eval gateway's spend limit caps a bad day.
+  - While a `benchmark-record` pull request is open, a dispatched run fails with a message and a push to
+    `main` skips quietly (a notice, not a red check). A burst of merges queues at most one pending run.
   - Two jobs, so no step holds both credentials. `evaluate` holds the eval token and can only read the
     repository. `propose` can push a branch and open the pull request and never sees the token. Neither
     leaves the checkout token in `.git/config`, and `propose` installs dependencies with scripts off.
