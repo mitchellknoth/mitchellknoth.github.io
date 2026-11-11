@@ -1,4 +1,7 @@
-<aside class="editorial-reading framework-panel" aria-labelledby="framework-panel-title">
+---
+import { Card } from '../ui/card';
+---
+<Card className="editorial-reading framework-panel" role="complementary" aria-labelledby="framework-panel-title">
   <div class="mono-meta">Practical lens</div>
   <h2 id="framework-panel-title">
     <span>Agent</span>
@@ -10,14 +13,13 @@
     <span>Harness</span>
   </h2>
   <p>Capability meets context, controls, feedback, and durable learning.</p>
-</aside>
+</Card>
 
-<style>
+<style is:global>
   .framework-panel {
-    border: 1px solid var(--editorial-border);
-    border-radius: 6px;
+    border-color: var(--editorial-border);
     margin: 2.25rem 0;
-    padding: 1.15rem 1.25rem 1.35rem;
+    padding-inline: 1.25rem;
     text-align: center;
   }
 
@@ -39,7 +41,7 @@
     margin: 1rem 0 0.5rem;
   }
 
-  .operator {
+  .framework-panel .operator {
     color: var(--accent);
     font-family: var(--font-mono);
     font-size: 0.65em;
