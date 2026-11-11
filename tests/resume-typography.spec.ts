@@ -115,7 +115,7 @@ test('the Résumé ranges dates and credentials with en dashes, as Work and Abou
 const experienceLines: Record<string, string> = {
   'AI-assisted delivery and developer platforms': 'Cloud Software Engineer · John Deere · SDLC-Next · 2026 – present',
   'Developer Experience': 'Cloud Software Engineer · John Deere · R2D2 – PR to Production · Late 2025 – early 2026',
-  'Enterprise cloud foundations': 'Cloud Software Engineer · John Deere · Landing Zone · 2023 – 2025',
+  'Enterprise cloud foundations': 'Cloud Software Engineer · John Deere · OneCloud · 2023 – 2025',
   'Digital equipment licensing': 'Software Engineer II · John Deere · License Management · 2021 – 2023',
   'External API platform': 'Software Engineer I · John Deere · Global Gateway · 2019 – 2021',
 };
@@ -145,6 +145,6 @@ test('the merged Résumé meta line wraps only at its separators, never inside t
   expect(rows.length).toBeGreaterThanOrEqual(5);
   // Every rendered line opens on the start of a unit (role, employer, team or period), never on the tail of one:
   // "Deere", "II", "Production", "early" or "present" would mean a unit split, and a dash or dot would open a line badly.
-  const unitStart = /^(Cloud|Software|JohnDeere|SDLC|R2D2|Landing|License|Global|Late|\d{4})/;
+  const unitStart = /^(Cloud|Software|JohnDeere|SDLC|R2D2|OneCloud|License|Global|Late|\d{4})/;
   expect(rows.filter(({ opens }) => !unitStart.test(opens)).map(({ text, opens }) => `${opens} (in "${text}")`)).toEqual([]);
 });
