@@ -13,9 +13,9 @@ interface Props {
 const { title, groups, headingId = 'harness-readiness-title' } = Astro.props;
 ---
 
-<aside class="editorial-diagram harness-readiness" aria-labelledby={headingId}>
+<aside class="editorial-diagram editorial-headed harness-readiness" aria-labelledby={headingId}>
   <h2 id={headingId}>{title}</h2>
-  <div class="harness-readiness__matrix">
+  <div class="harness-readiness__matrix editorial-wide">
     {groups.map((group) => (
       <section>
         <h3>{group.label}</h3>

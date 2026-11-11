@@ -2,7 +2,7 @@
 import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { formatPostDate, getPublishedPosts } from '../../lib/content';
-import { linkProps } from '../../lib/site-ui';
+import { linkClass } from '../../lib/site-ui';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -16,12 +16,22 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 
 const dateLabel = formatPostDate(post.data.date);
+// The kicker may wrap on a phone. Each part keeps the separator that follows it, so a line never opens with "·".
+// The text content is unchanged (same words, same spaces), only grouped.
+const eyebrowParts = (post.data.eyebrow ?? 'Essay').split(' · ');
 ---
 
 <Base title={post.data.title} description={post.data.summary} ogType="article">
   <article class="article-layout content mx-auto">
     <header class="article-header mb-10">
-      <div class="article-eyebrow mono-meta mb-5">{post.data.eyebrow ?? 'Essay'}</div>
+      <div class="article-eyebrow mono-meta mb-5">
+        {eyebrowParts.map((part, index) => (
+          <Fragment>
+            <span class="article-eyebrow__part">{index < eyebrowParts.length - 1 ? `${part} ·` : part}</span>
+            {index < eyebrowParts.length - 1 && ' '}
+          </Fragment>
+        ))}
+      </div>
       <h1 class="prose-serif" style="color: var(--fg);">
         {post.data.title}
       </h1>
@@ -37,8 +47,8 @@ const dateLabel = formatPostDate(post.data.date);
     <Content />
 
     <hr />
-    <p class="text-[14px]" data-corpus-ignore style="color: var(--fg-dim); font-family: var(--font-mono);">
-      <a {...linkProps} href="/writing/">← all writing</a>
+    <p data-corpus-ignore>
+      <a href="/writing/" data-slot="button" data-site="link" class={`${linkClass} eyebrow-link`}>← all writing</a>
     </p>
   </article>
 </Base>

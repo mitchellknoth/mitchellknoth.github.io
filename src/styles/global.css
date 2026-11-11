@@ -216,6 +216,10 @@ body {
   letter-spacing: -0.015em;
   text-wrap: balance;
 }
+.content .article-eyebrow__part {
+  display: inline-block;
+  max-width: 100%;
+}
 
 .mono-meta {
   font-family: var(--font-mono);
@@ -457,10 +461,13 @@ button:focus-visible,
   width: 100%;
 }
 
-/* Width is an explicit component responsibility. Reading panels stay in prose. */
+/* Width is an explicit component responsibility. Reading panels stay in prose. A block with its own H2 and
+   caption is `.editorial-headed`: the heading stays in the reading column and only its `.editorial-wide`
+   diagram takes the wider measure. */
 .content .editorial-reading { max-width: 100%; }
 @media (min-width: 64rem) {
-  .content.article-layout > :is(.editorial-diagram, .article-figure) {
+  .content.article-layout > :is(.editorial-diagram:not(.editorial-headed), .article-figure),
+  .content.article-layout > .editorial-headed .editorial-wide {
     margin-left: 50%;
     margin-right: 0;
     max-width: none;
@@ -485,12 +492,17 @@ button:focus-visible,
   margin: 0;
 }
 
+/* The kicker is a tag, not a status pill (DESIGN.md: 3px tags). It may be long, so it wraps inside the column
+   with balanced lines instead of overflowing or stretching a capsule. */
 .content .article-eyebrow {
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: 3px;
   color: var(--fg-muted);
   display: inline-block;
-  padding: 0.32rem 0.7rem;
+  line-height: 1.5;
+  max-width: 100%;
+  padding: 0.3rem 0.6rem;
+  text-wrap: balance;
 }
 
 .content :is(h2, h3)[id] {
