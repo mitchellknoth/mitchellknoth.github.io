@@ -67,5 +67,22 @@
 	// The custom domain is attached once in the Cloudflare dashboard (docs/runbooks/workers-cutover.md),
 	// so the CI deploy token needs no zone or DNS permissions and this file declares no routes.
 	"workers_dev": true,
-	"preview_urls": false
+	"preview_urls": false,
+	// Workers Logs (#16): stores the Worker's own console lines so the latency figures (`ask_timing`, `agent_request`,
+	// `intent`) can be queried in the dashboard instead of read from a live tail. Those lines hold durations, token
+	// counts and labels only. Invocation logs stay off, because they record each request's URL and headers, and traces
+	// stay off: neither is needed to answer a latency question. Every line is kept (traffic is low).
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1,
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"invocation_logs": false,
+			"persist": true
+		},
+		"traces": {
+			"enabled": false
+		}
+	}
 }
