@@ -130,6 +130,12 @@
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+/* ...and the stretched link inside draws nothing, so the card carries the only ring. The utility
+   `focus-visible:outline-none` on the link cannot do this: global.css's unlayered `a:focus-visible` beats every
+   layered Tailwind utility, so both outlines rendered, a tight box round the title inside the card's ring. */
+[data-slot="card"].card-link a:focus-visible {
+  outline: none;
+}
 [data-slot="badge"] {
   border-radius: 3px;
 }
@@ -158,6 +164,13 @@
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity,
     transform, translate, scale;
 }
+/* Focus is the one 2px outline above. The CLI also tints the button's own border with the ring colour
+   (`focus-visible:border-ring`), which drew a thin line just inside the outline: a double ring. The border goes
+   back to what it is at rest: transparent, or the quiet rule on the outline variant (the theme switch). */
 [data-slot="button"]:focus-visible {
   box-shadow: none;
+  border-color: transparent;
+}
+[data-slot="button"].border-border:focus-visible {
+  border-color: var(--border);
 }
