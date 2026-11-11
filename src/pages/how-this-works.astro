@@ -58,11 +58,16 @@ const questionKinds = [
             ? ' The agent is switched on in production. It went live on 10 November 2026, before any scoring, so I could measure how long real answers take. On the homepage, Cloudflare’s human check runs first and stays out of the way unless it needs a click, and then a question box appears.'
             : ' The agent is switched off in production. The homepage shows a notice where the agent would appear and makes no request to it.'
         }
+        </p>
+        <p>
         This site runs on Cloudflare Workers. Built so far are the Worker, the guard, per-visitor sessions, the two
         corpus tools, refusals, the intent check, the evaluation harness and every homepage state, the last tested
         against simulated responses. I have also run the agent on the live Worker behind the human check and the
         rate limit: answers that cite the pages they used, the spending cap pausing it and the pause lifting by
-        itself, a session being deleted on schedule, and the off switch. The question set is written and approved,
+        itself, a session being deleted on schedule, and the off switch.
+        </p>
+        <p>
+        The question set is written and approved,
         but I haven’t scored the agent against it, so nothing has been scored.
         {
           on
@@ -107,7 +112,7 @@ const questionKinds = [
     </p>
 
     <h2 id="guardrails">Guardrails</h2>
-    <ul>
+    <ul class="how-guardrails">
       <li><strong>Same origin only.</strong> Starting a conversation or asking a question from another site’s page is rejected.</li>
       <li><strong>Limits per conversation.</strong> A conversation has a message limit, and a question has a length limit.</li>
       <li><strong>A daily ceiling.</strong> Agent requests across all visitors are counted, and the count resets at midnight UTC.</li>
@@ -192,12 +197,31 @@ const questionKinds = [
     color: var(--fg-muted);
     font-size: 1.125rem;
   }
-  /* The Alert is a React component, so Astro's scope attribute is not on it: these two are global. */
+  /* The Alert is a React component, so Astro's scope attribute is not on it: these are global. It is a
+     reading-width component (DESIGN.md width classes): it fills the same column as the prose around it
+     instead of a narrower 68ch box, its text is supporting copy at 15px/1.6, and the last paragraph drops
+     the prose margin so the padding under it matches the padding above. */
   :global(.how-page .how-status) {
-    max-width: 68ch;
+    padding: 1rem 1.25rem;
+  }
+  :global(.how-page .how-status [data-slot='alert-description']) {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  :global(.how-page .how-status [data-slot='alert-description'] p) {
+    text-wrap: pretty;
+  }
+  :global(.how-page .how-status [data-slot='alert-description'] p:last-child) {
+    margin-bottom: 0;
   }
   :global(.how-page .how-status strong) {
     color: var(--fg);
+  }
+  /* Seven rules in one column at the reading width. Two columns left the seventh card alone on its row and
+     stretched the shorter card in each pair to its neighbour's height; one column lets every card be as tall
+     as its own text. */
+  .how-page .how-guardrails {
+    grid-template-columns: minmax(0, 1fr);
   }
   /* Inside the reading measure, two columns is the most the labels and sentences can take. */
   .how-page .fact-grid {
