@@ -67,3 +67,60 @@ test('the homepage island links to this page', async ({ page }) => {
   await page.locator('[data-agent-island]').getByRole('link', { name: 'How it works' }).click();
   await expect(page).toHaveURL(/\/how-this-works\/$/);
 });
+
+// Geometry (headed review, defects 4b and 5). Runs in every viewport project (320, 768, 1440, 3440).
+test('"Where it stands" is a reading-width component with supporting-text type', async ({ page }) => {
+  await page.goto('/how-this-works/');
+  const m = await page.evaluate(() => {
+    const alert = document.querySelector('[data-slot="alert"]') as HTMLElement;
+    const prose = document.querySelector('#request-path + p') as HTMLElement;
+    const paras = [...alert.querySelectorAll('[data-slot="alert-description"] p')] as HTMLElement[];
+    const cs = getComputedStyle(paras[0]);
+    const last = getComputedStyle(paras[paras.length - 1]);
+    return {
+      alertWidth: alert.getBoundingClientRect().width,
+      proseWidth: prose.getBoundingClientRect().width,
+      fontSize: parseFloat(cs.fontSize),
+      lineHeight: parseFloat(cs.lineHeight),
+      lastMarginBottom: parseFloat(last.marginBottom),
+      paddingTop: parseFloat(getComputedStyle(alert).paddingTop),
+      paddingBottom: parseFloat(getComputedStyle(alert).paddingBottom),
+      paragraphs: paras.length,
+    };
+  });
+  // The same column as the prose around it, not a narrower box.
+  expect(Math.abs(m.alertWidth - m.proseWidth)).toBeLessThanOrEqual(3);
+  // DESIGN.md: supporting text is at least 14px at 1.6.
+  expect(m.fontSize).toBeGreaterThanOrEqual(14);
+  expect(m.lineHeight / m.fontSize).toBeGreaterThanOrEqual(1.55);
+  // Broken into paragraphs, not one wall; no prose margin stacked on the padding under the last line.
+  expect(m.paragraphs).toBeGreaterThanOrEqual(3);
+  expect(m.lastMarginBottom).toBe(0);
+  expect(Math.abs(m.paddingBottom - m.paddingTop)).toBeLessThanOrEqual(2);
+});
+
+test('Guardrails has no orphan cell and no card stretched past its text', async ({ page }) => {
+  await page.goto('/how-this-works/');
+  const cells = await page.evaluate(() => {
+    const list = document.querySelector('#guardrails + ul') as HTMLElement;
+    const listWidth = list.getBoundingClientRect().width;
+    return [...list.children].map((li) => {
+      const box = li.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(li);
+      return { top: Math.round(box.top), width: box.width, height: box.height, textHeight: range.getBoundingClientRect().height, listWidth };
+    });
+  });
+  expect(cells).toHaveLength(7);
+  // Rows are groups of cards that share a top edge. A row either fills every column or is one card spanning the list.
+  const rows = new Map<number, typeof cells>();
+  for (const c of cells) rows.set(c.top, [...(rows.get(c.top) ?? []), c]);
+  const columns = Math.max(...[...rows.values()].map((r) => r.length));
+  for (const row of rows.values()) {
+    const fullWidth = row.length === 1 && row[0].width >= row[0].listWidth - 2;
+    expect(row.length === columns || fullWidth, `row at ${row[0].top} has ${row.length} of ${columns} cells`).toBe(true);
+  }
+  // A card is as tall as its own text plus padding. The list's baseline slack is under 40px; a card stretched to
+  // its neighbour in the row showed 90–140px of empty space under the text.
+  for (const c of cells) expect(c.height - c.textHeight, `card at ${c.top}`).toBeLessThanOrEqual(48);
+});
