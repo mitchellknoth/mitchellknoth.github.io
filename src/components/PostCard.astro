@@ -9,11 +9,12 @@ interface Props {
   title: string;
   summary: string;
   readingTime?: string;
+  className?: string;
 }
-const { href, date, title, summary, readingTime } = Astro.props;
+const { href, date, title, summary, readingTime, className = '' } = Astro.props;
 ---
 
-<Card className={cardLinkClass}>
+<Card className={`${cardLinkClass} ${className}`}>
   <CardHeader>
     <div class="mono-meta">
       <time datetime={date.toISOString()}>{formatPostDate(date)}</time>
