@@ -223,15 +223,6 @@ const questionKinds = [
   .how-page .how-guardrails {
     grid-template-columns: minmax(0, 1fr);
   }
-  /* Inside the reading measure, two columns is the most the labels and sentences can take. */
-  .how-page .fact-grid {
-    max-width: 100%;
-  }
-  @media (min-width: 1200px) {
-    .how-page .fact-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
   .how-page :global(.eval-scorecard) {
     margin-top: 3.5rem;
   }
