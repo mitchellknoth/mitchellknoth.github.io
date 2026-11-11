@@ -12,7 +12,7 @@ const { href, value, label } = Astro.props;
 
 <Card className={cardLinkClass}>
   <CardHeader>
-    <h3 class="prose-serif text-[25px] leading-tight">
+    <h3 class="type-h3">
       <a href={href} data-slot="button" data-site="link" class={`${stretchedLinkClass} text-primary`}>{value}<span aria-hidden="true" class="ml-1.5 font-sans text-[0.65em]">→</span></a>
     </h3>
   </CardHeader>

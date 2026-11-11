@@ -14,7 +14,7 @@ const { label, href, linkText = 'View all →', id } = Astro.props;
 ---
 
 <div class="mb-6 mt-14 flex items-center gap-4">
-  <h2 id={id} class="section-label__heading prose-serif shrink-0">{label}</h2>
+  <h2 id={id} class="section-label__heading type-h2 shrink-0">{label}</h2>
   <Separator className="flex-1" />
   {
     href && (
@@ -28,8 +28,6 @@ const { label, href, linkText = 'View all →', id } = Astro.props;
 <style>
   .section-label__heading {
     color: var(--fg);
-    font-size: clamp(1.35rem, 3vw, 1.55rem);
-    line-height: 1.1;
     margin: 0;
   }
 </style>

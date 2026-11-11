@@ -19,7 +19,7 @@ const { href, date, title, summary, readingTime } = Astro.props;
       <time datetime={date.toISOString()}>{formatPostDate(date)}</time>
       {readingTime && <span> · {readingTime}</span>}
     </div>
-    <h3 class="prose-serif text-[1.6rem] leading-[1.2] text-balance xl:min-h-[2.4em]">
+    <h3 class="type-h3 xl:min-h-[2.7em]">
       <a href={href} data-slot="button" data-site="link" class={stretchedLinkClass}>{title}</a>
     </h3>
   </CardHeader>
