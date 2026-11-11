@@ -1,0 +1,227 @@
+name: Benchmark
+
+# Runs the agent eval question set against a local copy of the Worker (the AI binding is the only remote part) and
+# opens a pull request that adds one record to evals/history/. See evals/README.md, "Benchmark history".
+#
+# Two jobs, so no step holds both credentials:
+#   evaluate  holds the Cloudflare eval token (environment cloudflare-evals) and can only read the repository.
+#   propose   can push a branch and open a pull request, and never sees the Cloudflare token.
+# Neither stores the checkout token in .git/config, so a dependency's install script cannot push with it.
+#
+# Manual only: a live run spends model money and uses the eval token. Add a trigger (for example after a deploy, or
+# weekly) only once a baseline exists and the eval gateway's spend limit is confirmed.
+#
+# Before the first run, in the repository settings:
+#   - create the environment `cloudflare-evals`, restrict it to the `main` branch, and add the secret
+#     CLOUDFLARE_EVAL_API_TOKEN (Account -> Workers Scripts -> Edit, this account only; see evals/README.md
+#     "The eval token"). It has its own name so that a same-named repository secret can never stand in for it.
+#   - set the repository variable CLOUDFLARE_ACCOUNT_ID (already used by the deploy workflow)
+#   - allow GitHub Actions to create pull requests (Settings -> Actions -> General)
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model under test. Empty means the production model (AGENT_MODEL in wrangler.jsonc).
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+# One writer at a time: two runs would each claim the next sequence number.
+concurrency:
+  group: benchmark-history
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    # The environment's branch rule is the real gate; this keeps a dispatch from another ref from running at all.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: cloudflare-evals
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # A pull request that adds the next record and is not merged yet would collide with this run's record: both
+      # would be sequence N. Merge or close it first.
+      - name: Refuse while a benchmark record is waiting to merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          open=$(gh pr list --repo "$GITHUB_REPOSITORY" --label benchmark-record --state open --json number --jq 'length')
+          if [ "$open" != "0" ]; then
+            echo "::error::A benchmark pull request is still open. Merge or close it, then run this again."
+            exit 1
+          fi
+
+      - name: Check the history chain is intact
+        run: npm run evals:history -- verify
+
+      - name: Build
+        run: npm run build
+
+      - name: Pick the model
+        id: model
+        env:
+          INPUT_MODEL: ${{ inputs.model }}
+        run: |
+          model="$INPUT_MODEL"
+          if [ -z "$model" ]; then
+            model=$(node -e "import('jsonc-parser').then(({ parse }) => console.log(parse(require('fs').readFileSync('wrangler.jsonc', 'utf8')).vars.AGENT_MODEL ?? ''))")
+          fi
+          if ! [[ "$model" =~ ^[A-Za-z0-9@/._:-]+$ ]]; then
+            echo "::error::The model name is empty or has characters a model id does not."
+            exit 1
+          fi
+          echo "model=$model" >> "$GITHUB_OUTPUT"
+
+      # The token is passed to this step only. The agent runs on the runner (loopback), so the visitor Guard and
+      # Durable Objects are never touched; evals:serve routes model calls through the separate eval gateway.
+      # The server log goes under RUNNER_TEMP, not the checkout, so the export sees a clean working tree.
+      - name: Serve the agent locally and run the evals
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_EVAL_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          EVAL_MODEL: ${{ steps.model.outputs.model }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npm run evals:serve > "$RUNNER_TEMP/serve.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          code=000
+          for _ in $(seq 1 60); do
+            kill -0 "$server" 2>/dev/null || break
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8787/ || true)
+            [ "$code" != "000" ] && break
+            sleep 2
+          done
+          if [ "$code" = "000" ]; then
+            echo "::error::The local agent did not start."
+            tail -n 40 "$RUNNER_TEMP/serve.log" | sed -E 's/(token|secret)[^ ]*/[redacted]/Ig'
+            exit 1
+          fi
+          npm run evals -- --base-url http://127.0.0.1:8787
+
+      # The scorecard holds the full answers, so it stays an artifact for a short time and is not committed.
+      # On a public repository an artifact can be downloaded by any signed-in GitHub user.
+      - name: Keep the scorecard
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: scorecard
+          path: evals/results
+          retention-days: 30
+
+      # A run that stopped early, or had any error or unrun question, would become permanent history.
+      - name: Refuse an incomplete run
+        run: |
+          # shellcheck disable=SC2012
+          scorecard=$(ls -t evals/results/*/*.json 2>/dev/null | head -n 1)
+          [ -n "$scorecard" ] || { echo "::error::no scorecard was written"; exit 1; }
+          echo "scorecard=$scorecard" >> "$GITHUB_ENV"
+          node -e "
+            const run = JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));
+            const { errors, notRun, passed, total } = run.summary;
+            console.log('scorecard: ' + passed + '/' + total + ' passed, ' + errors + ' errors, ' + notRun + ' not run');
+            if (run.stopped || errors > 0 || notRun > 0) {
+              console.error('::error::The run did not complete (stopped, errors or unrun questions), so it is not recorded. The scorecard artifact has the detail.');
+              process.exit(1);
+            }
+          " "$scorecard"
+
+      - name: Export the record
+        run: |
+          npm run evals:history -- export --scorecard "$scorecard"
+          mkdir -p "$RUNNER_TEMP/record"
+          # The record just written is the newest file in the history directory.
+          cp "$(printf '%s\n' evals/history/*.json | sort | tail -n 1)" "$RUNNER_TEMP/record/"
+
+      - name: Keep the record
+        uses: actions/upload-artifact@v7
+        with:
+          name: record
+          path: ${{ runner.temp }}/record
+          retention-days: 30
+          if-no-files-found: error
+
+  propose:
+    needs: evaluate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # No credential is stored in the checkout; the push below authenticates for that one command.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      # Install scripts are off: the history check needs only the parser package, and nothing here should run a
+      # dependency's code.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Fetch the record
+        uses: actions/download-artifact@v8
+        with:
+          name: record
+          path: evals/history
+
+      - name: Open a pull request with the record
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm run evals:history -- verify
+          summary=$(npm run --silent evals:history -- list | tail -n 1)
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="benchmark/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git checkout -b "$branch"
+          git add evals/history
+          git commit -m "Benchmark record (run ${GITHUB_RUN_ID})"
+          # Now the record is an added file, so this is a real append-only check against main.
+          npm run evals:history -- verify --base origin/main
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
+
+          gh label create benchmark-record --color 0e8a16 --description "A benchmark history record" || true
+          gh pr create --base main --head "$branch" --label benchmark-record \
+            --title "Benchmark record (run ${GITHUB_RUN_ID})" \
+            --body "Adds one record to evals/history/ from [this run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}).
+
+          \`${summary}\`
+
+          Before the push, the hash chain was verified and the history was checked as append-only against main. Pull requests opened with the workflow token do not start the usual checks, so \`Site quality\` will not run on this one (close and reopen it to run them, if main requires them); the record is data only. Compare it with the last with \`npm run evals:history -- compare <a> <b>\`. The full scorecard is the run's \`scorecard\` artifact (30 days). Merge or close this before the next run." \
+            || { echo "::error::The branch ${branch} is pushed but the pull request was not created. Check that Actions may create pull requests (Settings -> Actions -> General), then open one from that branch. The record is also the run's record artifact."; exit 1; }
