@@ -78,7 +78,11 @@ export class VisitorSession extends DurableObject<Env> {
     defaults: {
       model: visitorModel(this.ai, this.env.AGENT_MODEL, this.modelTimeout),
       thinkingLevel: reasoningLevel(this.env.AGENT_REASONING),
-      maxTurns: 4,
+      // The most model rounds one question may use (each tool round and the final answer are one). Raised from 4
+      // to 6 (#16): a long question that searches, reads two pages and searches again was cut off as `turn_limit`
+      // in 3 of 8 live runs of one approved question. Start generous and lower it once real visitors' `ask_timing`
+      // lines (Workers Logs) show how many rounds answers actually take.
+      maxTurns: 6,
     },
   });
 
