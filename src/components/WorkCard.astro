@@ -20,7 +20,7 @@ const href = `/work/${p.id}/`;
 const split = lead || wide;
 ---
 
-<Card className={`work-card h-full ${split ? 'work-card--split' : ''} ${cardLinkClass}`}>
+<Card className={`work-card ${split ? 'work-card--split' : ''} ${cardLinkClass}`}>
   <CardHeader className="work-card__head">
     <div class="flex min-h-6 flex-wrap items-center gap-x-3 gap-y-1">
       <span class="mono-meta">{bindDash(p.data.period)}</span>
@@ -33,7 +33,7 @@ const split = lead || wide;
   <CardContent className="work-card__body">
     <p class="text-[15px] leading-[1.65] text-muted-foreground">{p.data.summary}</p>
   </CardContent>
-  <CardFooter className="work-card__foot mt-auto flex flex-col items-start gap-3 border-0 bg-transparent">
+  <CardFooter className="work-card__foot flex flex-col items-start gap-3 border-0 bg-transparent">
     {p.data.stack.length > 0 && (
       <div class="flex flex-wrap gap-2">
         {p.data.stack.map((item) => <Badge variant="outline" className={tagClass}>{item}</Badge>)}
