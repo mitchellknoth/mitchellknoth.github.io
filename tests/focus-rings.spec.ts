@@ -124,9 +124,14 @@ const cardPages = [
 for (const theme of ['dark', 'light'] as const) {
   for (const motion of ['no-preference', 'reduce'] as const) {
     test.describe(`${theme} theme, ${motion} motion`, () => {
-      test.use({ reducedMotion: motion });
+      test.use({ contextOptions: { reducedMotion: motion } });
       test.beforeEach(async ({ page }) => {
         await page.addInitScript((value) => localStorage.setItem('theme', value), theme);
+      });
+
+      test('the emulated motion preference is the one this block names', async ({ page }) => {
+        await page.goto('/');
+        expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(motion === 'reduce');
       });
 
       for (const { name, path } of cardPages) {
