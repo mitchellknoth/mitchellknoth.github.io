@@ -6,6 +6,11 @@ stack: ["python", "skill-scanning", "sarif", "github-actions", "review-skills"]
 featured: false
 order: 0.3
 section: recent
+facts:
+  context: "Skill scanner output and the team’s review practice needed to reach CI and other repositories as reusable evidence."
+  contribution: "Built the versioned trust layer around the scanner and packaged the team’s review practice into a pre-PR gauntlet, branch-review skills, and feedback hooks."
+  result: "The same evidence is emitted as terminal output, JSON, Markdown, or SARIF. A failed scan is an error state rather than a clean result."
+  boundary: "Scanning and review expose evidence for a decision; they do not certify an artifact as safe. Semantic scans remain advisory."
 ---
 
 ## What shipped

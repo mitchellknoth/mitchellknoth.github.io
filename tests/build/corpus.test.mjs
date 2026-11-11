@@ -76,7 +76,13 @@ test('entry links point at built pages and anchors', () => {
 
 test('page chrome stays out of the corpus', () => {
   const text = corpus.entries.map((entry) => entry.text).join('\n');
-  for (const chrome of ['← all work', '← all writing', 'Skip to content', 'Visit project ↗']) {
+  for (const chrome of ['← all work', '← all writing', 'Skip to content', 'Visit project ↗', 'Previous case', 'Next case', 'Case at a glance']) {
     assert.ok(!text.includes(chrome), `corpus contains page chrome: ${chrome}`);
   }
+});
+
+test('the case-study facts block repeats the write-up, so it is not a second source for the agent', () => {
+  const text = corpus.entries.filter((entry) => entry.kind === 'project').map((entry) => entry.text).join('\n');
+  assert.ok(!text.includes('Evidence boundary'), 'a case study\'s facts label reached the corpus');
+  assert.ok(!/(^|\n)(Context|Contribution|Result)\n/.test(text), 'a case study\'s facts label reached the corpus');
 });

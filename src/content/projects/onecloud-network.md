@@ -6,6 +6,11 @@ stack: ["aws", "vpc", "transit-gateway", "route53", "terraform", "acm"]
 featured: false
 order: 2
 section: foundations
+facts:
+  context: "Network patterns repeated across many VPCs added cloud cost and recurring operational work."
+  contribution: "Led NAT Gateway consolidation, coordinated an enterprise DNS migration, and moved ACM certificates to automated DNS validation."
+  result: "Simplified recurring network operations and reduced cost and security exposure."
+  boundary: "Earlier platform work, separate from the current AI-era SDLC chapter."
 ---
 
 ## Scope

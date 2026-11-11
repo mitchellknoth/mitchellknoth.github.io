@@ -6,6 +6,11 @@ stack: ["hybrid-search", "knowledge-graph", "memory", "skills", "github-actions"
 featured: false
 order: 0.1
 section: recent
+facts:
+  context: "Research, product decisions, and operating knowledge held in one engineer’s prompt collection leave everyone else starting from scratch."
+  contribution: "Designed and stood up the shared knowledge repository; responsible for its architecture and its schema, retrieval, graph, memory, and quality tooling."
+  result: "A reviewed lesson can be contributed once and reached from another agent tool. The repository is built and maintained."
+  boundary: "Broader adoption and productivity effects have not been measured."
 ---
 
 ## The problem

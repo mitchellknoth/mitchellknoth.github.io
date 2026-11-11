@@ -6,6 +6,11 @@ stack: ["step-functions", "lambda", "event-driven", "python", "route53", "dev-co
 featured: false
 order: 3
 section: foundations
+facts:
+  context: "Account and VPC deletion were manual tasks with a wide blast radius."
+  contribution: "Owned AWS account automation; built an event-driven Step Functions and Lambda deletion workflow, DNS verification and cleanup, and Dev Containers."
+  result: "Repeated infrastructure tasks became automated workflows, and onboarding depended less on individual setup."
+  boundary: "Belongs to the earlier cloud-foundations chapter."
 ---
 
 ## Scope

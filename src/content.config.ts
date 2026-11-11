@@ -33,6 +33,16 @@ const projects = defineCollection({
     order: z.number().default(99),
     section: z.enum(['recent', 'foundations']),
     roleTag: z.string().optional(),
+    // The at-a-glance block under the lede. Every value restates what the case study's own text already says;
+    // `boundary` is omitted when the case states no evidence limit. It is shown, never added to the agent corpus.
+    facts: z
+      .object({
+        context: z.string(),
+        contribution: z.string(),
+        result: z.string(),
+        boundary: z.string().optional(),
+      })
+      .optional(),
   }),
 });
 
