@@ -13,7 +13,7 @@
   "experience": [
     {
       "title": "AI-assisted delivery and developer platforms",
-      "period": "2026 - present",
+      "period": "2026 – present",
       "href": "/work/agentic-engineering/",
       "points": [
         "Wrote product requirements and much of the design record; delivered live-data views and a personal work timeline for a team-owned engineering evidence product now in production.",
@@ -26,7 +26,7 @@
     },
     {
       "title": "Developer Experience",
-      "period": "Late 2025 - early 2026",
+      "period": "Late 2025 – early 2026",
       "href": "/work/pr-to-production/",
       "points": [
         "Hardened the separation-of-duties platform with Datadog monitors, dashboards, and synthetics; added automatic incidents for pipeline failures and consolidated a legacy processor.",
@@ -35,7 +35,7 @@
     },
     {
       "title": "Enterprise cloud foundations",
-      "period": "2023 - 2025",
+      "period": "2023 – 2025",
       "href": "/work/onecloud-network/",
       "points": [
         "Led NAT Gateway consolidation, orchestrated a DNS migration, and automated certificate validation and renewal paths.",
@@ -44,7 +44,7 @@
     },
     {
       "title": "Digital equipment licensing",
-      "period": "2021 - 2023",
+      "period": "2021 – 2023",
       "href": "/work/license-management/",
       "points": [
         "During a hackathon, built a secure license-data ingestion prototype that kept isolation and access controls intact; the prototype helped make the case for an enterprise Data Engineering team."
@@ -52,7 +52,7 @@
     },
     {
       "title": "External API platform",
-      "period": "2019 - 2021",
+      "period": "2019 – 2021",
       "href": "/work/global-gateway/",
       "points": [
         "Architected the platform\u2019s first external-facing dealer API with role-based authorization and audit logging; the design became a reusable pattern for external access."
@@ -62,14 +62,14 @@
   "skills": "TypeScript, Python, Java; AWS, Terraform, Step Functions, Lambda; Redis; GitHub Actions; Datadog; identity and credential boundaries; agent harness and context engineering.",
   "education": "B.S. Software Engineering, Iowa State University, 2020. Cum Laude; cyber security minor.",
   "credentials": [
-    "AWS Certified Solutions Architect - Professional (November 2026)",
-    "AWS Certified DevOps Engineer - Professional (May 2026)",
-    "AWS Certified Advanced Networking - Specialty (August 2025)",
-    "AWS Certified SysOps Administrator - Associate (February 2025)",
-    "AWS Certified Solutions Architect - Associate (March 2024)",
+    "AWS Certified Solutions Architect – Professional (November 2026)",
+    "AWS Certified DevOps Engineer – Professional (May 2026)",
+    "AWS Certified Advanced Networking – Specialty (August 2025)",
+    "AWS Certified SysOps Administrator – Associate (February 2025)",
+    "AWS Certified Solutions Architect – Associate (March 2024)",
     "AWS Certified Cloud Practitioner (November 2021)"
   ],
-  "employmentPeriod": "2019 - present",
+  "employmentPeriod": "2019 – present",
   "publicWork": {
     "title": "Bounded execution lab",
     "href": "/work/bounded-runner/",
