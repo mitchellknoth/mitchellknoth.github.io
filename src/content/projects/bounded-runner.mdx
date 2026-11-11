@@ -7,6 +7,11 @@ featured: false
 order: 0.25
 section: recent
 roleTag: "Public implementation"
+facts:
+  context: "An execution boundary turned into a small system you can inspect: a credential mediated outside the worker and a patch validated independently."
+  contribution: "An independent public implementation with source, tests, and recorded evidence you can download and run."
+  result: "Five local fixture runs: one accepted, three rejected, one timed out."
+  boundary: "Demonstrates an execution contract, not agent intelligence or production-grade containment. It uses no employer data, real credentials, or model API."
 ---
 
 import LabFigure from '../../components/work/LabFigure.astro';
@@ -35,6 +40,8 @@ The output directory must be new. `receipt.json` records the outcome, image iden
 ## The engineering decisions
 
 The gateway allows one GET route and uses a fixed loopback upstream. It does not forward client-supplied URLs or authorization headers. The upstream token lives in the gateway environment; the worker receives only the fixture task. Unknown routes and POST requests are denied.
+
+<LabFigure name="credential-boundary" alt="A token enters only the gateway environment. The worker accesses one permitted route; the protected fixture upstream is bound to gateway loopback." />
 
 The worker can write the temporary fixture, but cannot edit the original acceptance checks. Before validation, the host requires exactly the approved regular file and rejects symlinks. It computes a diff from original bytes rather than trusting a patch supplied by the worker. The worker has exited before the validator starts.
 

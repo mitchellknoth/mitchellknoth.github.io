@@ -9,6 +9,10 @@ metric:
 featured: true
 order: 1
 section: recent
+facts:
+  context: "The Developer Experience product responsible for the enterprise path from pull request to production, before the AI-era SDLC tiger team."
+  contribution: "Platform hardening, security maintenance, governance review, and introducing agent tooling into the team’s repositories."
+  result: "Pipeline failures create incidents automatically, the separation-of-duties platform has monitors, dashboards, and synthetic checks, and a legacy processor is consolidated onto it."
 ---
 
 ## Scope

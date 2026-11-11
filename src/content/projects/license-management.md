@@ -6,6 +6,11 @@ stack: ["java", "aws", "data-pipeline", "oauth"]
 featured: false
 order: 4
 section: foundations
+facts:
+  context: "The licensing product supported purchasing digital capabilities on equipment, and internal teams also needed its license data."
+  contribution: "During a hackathon, prototyped a data-ingestion pipeline that shared license data internally while preserving isolation and access controls."
+  result: "The prototype helped make the case for a dedicated enterprise Data Engineering team."
+  boundary: "A hackathon prototype."
 ---
 
 ## Scope

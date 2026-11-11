@@ -9,6 +9,11 @@ metric:
 featured: true
 order: 0.2
 section: recent
+facts:
+  context: "A coding tool needs repository access, but a credential in its environment is directly available to the execution process."
+  contribution: "Ran Codex and Claude Code in disposable cloud sandboxes, implemented repository-credential proxying and a separate keyless Codex pilot, and wrote the agent-team specification."
+  result: "Demonstrated: cloud execution with both tools, credential proxying, logs, and returned patches."
+  boundary: "The keyless pilot is merged but not live-verified, and the agent-team controls are specified only. The runs do not establish a production-ready autonomous platform."
 ---
 
 import ExecutionBoundary from '../../components/work/ExecutionBoundary.astro';

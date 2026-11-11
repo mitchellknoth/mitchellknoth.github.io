@@ -7,6 +7,11 @@ featured: false
 order: 5
 section: foundations
 roleTag: "First external API"
+facts:
+  context: "At John Deere Financial, an early API-gateway platform for governing and exposing APIs to internal consumers and dealer software."
+  contribution: "Architected the platform’s first external API, opening dealer access to sales-lead data with role-based authorization and audit logging."
+  result: "Established a reusable pattern for exposing business data to external partners; the platform later matured into a gateway for internal and external APIs."
+  boundary: "My part was the first external API, not the whole platform."
 ---
 
 ## Scope
