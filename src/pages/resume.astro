@@ -4,7 +4,7 @@ import resume from '../data/resume.json';
 ---
 <Base title="Experience & résumé" description={resume.summary}>
   <article class="content mx-auto">
-    <h1 class="prose-serif text-[40px] leading-tight" style="color: var(--fg);">Experience &amp; résumé</h1>
+    <h1 class="type-h1" style="color: var(--fg);">Experience &amp; résumé</h1>
     <p>{resume.summary}</p>
     <p><strong>Focus:</strong> {resume.focus}.<br />{resume.title}, {resume.employer} · {resume.employmentPeriod} · {resume.location}</p>
     <p><a href="/mitchell-knoth-resume.pdf" download>Download résumé (PDF)</a> · <a href={`mailto:${resume.email}`}>Email</a> · <a href={resume.linkedin}>LinkedIn</a></p>

@@ -24,9 +24,12 @@
   font-family: "Inter Fallback";
   src: local("Arial Bold"), local("Arial-BoldMT");
   font-weight: 600 700;
-  size-adjust: 107.1194%;
-  ascent-override: 90.4365%;
-  descent-override: 22.518%;
+  /* Arial Bold runs about 7% wider than Inter at 600, so this face is scaled on its own: with the 400 face's
+     number, a 22px card title wrapped differently before and after the swap. Ascent and descent keep the
+     real font's metrics (96.9% and 24.1% of the em) after the new scale. */
+  size-adjust: 100.2%;
+  ascent-override: 96.68%;
+  descent-override: 24.07%;
   line-gap-override: 0%;
   unicode-range: U+0000-00FF, U+2000-206F, U+2122;
 }
@@ -111,6 +114,15 @@
   --accent: var(--color-amber);
   --accent-dim: var(--color-amber-dim);
   --editorial-border: #706654;
+
+  /* The heading scale from DESIGN.md's Typography section. Headings take these through the `type-h*` classes
+     below, or, inside a component's scoped style, through the variables. Nothing else should set a heading size. */
+  --h1-size: clamp(2.5rem, 4vw, 3.5rem);
+  --h1-lh: 1.08;
+  --h2-size: clamp(1.6rem, 2.2vw, 2rem);
+  --h2-lh: 1.2;
+  --h3-size: 1.375rem;
+  --h3-lh: 1.35;
 }
 
 :root[data-theme="light"] {
@@ -252,30 +264,54 @@ button:focus-visible,
   font-size: 1.0625rem;
   max-width: 72ch;
 }
-.content h1, .content h2, .content h3 {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  color: var(--fg);
-  margin-bottom: 0.6em;
-  line-height: 1.2;
-}
-.content h1 {
-  font-size: 2.25rem;
-  margin-top: 2.2em;
-}
-.content h2 {
-  font-size: clamp(2.05rem, 4.8vw, 2.25rem);
-  margin-top: 3.5rem;
-}
-.content h3 {
-  font-size: clamp(1.6rem, 3.8vw, 1.75rem);
-  margin-top: 2.5rem;
-}
-.content p {
-  margin: 0 0 1.2em;
-  color: var(--fg);
-  text-wrap: pretty;
+/* Heading and paragraph defaults for prose live in the components layer, with `:where()` keeping the content
+   scope out of the specificity. Unlayered CSS beats every Tailwind utility whatever its specificity, so these
+   rules used to silently win over `text-[40px]` on the Résumé title and `mt-4` on article summaries. In the
+   layer, a utility or a `type-h*` class on the element wins, as it reads. */
+@layer components {
+  .type-h1,
+  .type-h2,
+  .type-h3,
+  :where(.content) :is(h1, h2, h3) {
+    color: var(--fg);
+    font-weight: 400;
+    text-wrap: balance;
+  }
+  .type-h1,
+  .type-h2,
+  :where(.content) :is(h1, h2) {
+    font-family: var(--font-serif);
+    letter-spacing: -0.015em;
+  }
+  .type-h1,
+  :where(.content) h1 {
+    font-size: var(--h1-size);
+    line-height: var(--h1-lh);
+  }
+  .type-h2,
+  :where(.content) h2 {
+    font-size: var(--h2-size);
+    line-height: var(--h2-lh);
+  }
+  .type-h3,
+  :where(.content) h3 {
+    font-family: var(--font-sans);
+    font-size: var(--h3-size);
+    font-weight: 600;
+    letter-spacing: normal;
+    line-height: var(--h3-lh);
+  }
+  :where(.content) :is(h1, h2, h3) {
+    margin-bottom: 0.6em;
+  }
+  :where(.content) h1 { margin-top: 0; }
+  :where(.content) h2 { margin-top: 3.5rem; }
+  :where(.content) h3 { margin-top: 2.5rem; }
+  :where(.content) p {
+    margin: 0 0 1.2em;
+    color: var(--fg);
+    text-wrap: pretty;
+  }
 }
 .content a {
   color: var(--accent);
@@ -432,21 +468,16 @@ button:focus-visible,
 /* =============================================================
    Long-form editorial patterns
    ------------------------------------------------------------- */
+/* Long titles may reach 3.45rem (DESIGN.md) and wrap naturally at 320px. */
 .content .article-header h1 {
   font-size: clamp(2.75rem, 9vw, 3.45rem);
-  line-height: 1.1;
+  line-height: var(--h1-lh);
   margin: 0;
-}
-
-/* The summary's `mt-4` utility loses to `.content p { margin: 0 0 1.2em }`, which left the title and
-   its summary touching. State the gap where the specificity can win. */
-.content header h1 + p {
-  margin-top: 1rem;
 }
 
 .content .work-title {
   font-size: clamp(2.75rem, 6.5vw, 3rem);
-  line-height: 1.1;
+  line-height: var(--h1-lh);
   margin: 0;
 }
 
@@ -522,7 +553,7 @@ button:focus-visible,
 .skills-cat { color: var(--fg-dim); font: 0.75rem/1.5 var(--font-mono); margin-bottom: 0.4rem; }
 .skills-list { color: var(--fg-muted); font-size: 1rem; line-height: 1.65; margin: 0; }
 .capability-groups { display: grid; gap: 1.5rem; }
-.content .capability-groups h3 { margin-top: 0.5rem; font: 1.375rem/1.35 var(--font-sans); font-weight: 600; }
+.content .capability-groups h3 { margin-top: 0.5rem; }
 @media (min-width: 768px) {
   .fact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
