@@ -2,7 +2,7 @@
 // island must ship in its switched-off state, so a visitor never meets the edge's human check for a feature that is
 // off; with it on, the island must start by checking the agent. Reads the built page, so run `npm run build` first.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { parse as parseJsonc } from 'jsonc-parser';
 
@@ -27,4 +27,14 @@ test('a switched-off island carries its notice and no human-check or loading tex
 
 test('a switched-on island starts by checking the agent', { skip: !enabled }, () => {
   assert.match(home, /Checking whether the agent is available/);
+});
+
+// The switched-on build (npm run build:agent-on) is the one whose island can ask for a human check, so it is the one to inspect.
+test('the server-rendered island carries no human-check text or widget script', () => {
+  const pages = [home, ...(existsSync('dist-agent-on/index.html') ? [readFileSync('dist-agent-on/index.html', 'utf8')] : [])];
+  for (const page of pages) {
+    assert.doesNotMatch(page, /Cloudflare needs to confirm/);
+    assert.doesNotMatch(page, /challenges\.cloudflare\.com/);
+    assert.doesNotMatch(page, /Verify you are human/i);
+  }
 });

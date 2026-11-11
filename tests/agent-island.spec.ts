@@ -460,12 +460,46 @@ for (const theme of ['dark', 'light']) {
       await expectSoundLayout(page);
     });
 
-    test('clears a first-visit challenge quietly, without showing the widget', async ({ page }) => {
+    test('a first visit gets a calm, ready panel: no widget, script or verification text until the visitor engages', async ({ page }) => {
+      const requests = await mockTurnstile(page, 'interactive');
+      const calls = await open(page, theme, { challenged: true });
+      // The edge challenged the health check, which says only that this visitor hasn't cleared it yet.
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await page.waitForLoadState('networkidle');
+      await expect(island(page).getByRole('textbox', { name: 'Ask about my work' })).toBeEnabled();
+      await expect(island(page).getByRole('button', { name: /What is Team Brain/ })).toBeEnabled();
+      expect(calls, 'one health check and nothing else on load').toEqual(['GET /agent/health']);
+      expect(requests, 'Cloudflare’s script is not requested on load').toEqual([]);
+      expect(await page.evaluate(() => 'turnstile' in window)).toBe(false);
+      await expect(page.locator('iframe')).toHaveCount(0);
+      await expect(island(page).locator('.agent-verify')).not.toHaveAttribute('data-active', 'true');
+      await expect(island(page).locator('.agent-verify p'), 'the explanation is not in the DOM until a challenge shows').toHaveCount(0);
+      await expect(island(page)).not.toContainText(/verify|cloudflare|confirm(ing)? (you|a person)/i);
+      await expectSoundLayout(page);
+    });
+
+    test('focusing the field fetches Cloudflare’s script but shows nothing', async ({ page }) => {
+      const requests = await mockTurnstile(page, 'interactive');
+      const calls = await open(page, theme, { challenged: true });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await island(page).getByRole('textbox', { name: 'Ask about my work' }).focus();
+      await expect.poll(() => requests.length).toBe(1);
+      await page.waitForLoadState('networkidle');
+      expect(calls).toEqual(['GET /agent/health']);
+      await expect(page.locator('iframe')).toHaveCount(0);
+      await expect(island(page).locator('.agent-verify')).not.toHaveAttribute('data-active', 'true');
+      await expect(island(page)).not.toContainText(/verify|cloudflare|confirm(ing)? (you|a person)/i);
+    });
+
+    test('clears a first-visit challenge quietly when the first question is sent', async ({ page }) => {
       const requests = await mockTurnstile(page, 'pass');
       const calls = await open(page, theme, { challenged: true });
       await expect(island(page)).toHaveAttribute('data-state', 'online');
+      expect(requests).toEqual([]);
+      await ask(page);
+      await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
       expect(requests, 'Cloudflare’s script is requested once').toHaveLength(1);
-      expect(calls).toEqual(['GET /agent/health', 'GET /agent/health']);
+      expect(calls).toEqual(['GET /agent/health', 'POST /agent/ask', 'POST /agent/ask']);
       // Quiet mode: the widget's own explanation never appears.
       await expect(island(page).locator('.agent-verify')).not.toHaveAttribute('data-active', 'true');
       await expect(island(page).locator('.agent-verify')).toHaveAttribute('inert', '');
@@ -479,22 +513,28 @@ for (const theme of ['dark', 'light']) {
     test('makes room for the widget only when Cloudflare needs the visitor', async ({ page }) => {
       await mockTurnstile(page, 'interactive');
       await open(page, theme, { challenged: true });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
       const verify = island(page).locator('.agent-verify');
+      await ask(page);
       await expect(verify).toHaveAttribute('data-active', 'true');
       await expect(verify).toBeVisible();
       await expect(verify).toContainText('Cloudflare needs to confirm a person is asking');
       await expect(verify.getByTitle('Cloudflare security challenge')).toBeVisible();
-      await expect(island(page)).toHaveAttribute('data-state', 'loading');
+      await expect(island(page)).toHaveAttribute('data-state', 'answering');
+      await expect(island(page).getByText('Confirming you’re a person')).toBeVisible();
       await expectSoundLayout(page);
       await page.evaluate(() => (window as unknown as { __solve: () => void }).__solve());
-      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
       await expect(verify).not.toHaveAttribute('data-active', 'true');
+      await expect(verify.locator('p')).toHaveCount(0);
       await expectSoundLayout(page);
     });
 
     test('says so when the check cannot be cleared', async ({ page }) => {
       await mockTurnstile(page, 'fail');
       await open(page, theme, { challenged: true });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await ask(page);
       await expect(island(page)).toHaveAttribute('data-state', 'unverified');
       await expect(island(page).getByRole('status')).toContainText('couldn’t confirm');
       await expectRoutesToWork(page);
@@ -517,16 +557,20 @@ for (const theme of ['dark', 'light']) {
     test('fails at once, not after a minute, when the widget cannot render', async ({ page }) => {
       await mockTurnstile(page, 'broken');
       await open(page, theme, { challenged: true });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await ask(page);
       await expect(island(page)).toHaveAttribute('data-state', 'unverified', { timeout: 5_000 });
     });
 
     test('moves focus to the check when Cloudflare needs the visitor, and back to the field after', async ({ page }) => {
       await mockTurnstile(page, 'interactive');
       await open(page, theme, { challenged: true });
+      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await ask(page);
       const verify = island(page).getByRole('group', { name: 'Confirm you are a person' });
       await expect(verify).toBeFocused();
       await page.evaluate(() => (window as unknown as { __solve: () => void }).__solve());
-      await expect(island(page)).toHaveAttribute('data-state', 'online');
+      await expect(island(page).getByText('Any engineer or agent tool can search it.')).toBeVisible();
       await expect(island(page).getByRole('textbox', { name: 'Ask about my work' })).toBeFocused();
     });
 
