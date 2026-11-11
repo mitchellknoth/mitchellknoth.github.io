@@ -3,6 +3,7 @@ import type { CollectionEntry } from 'astro:content';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { cardLinkClass, stretchedLinkClass, tagClass } from '../lib/site-ui';
+import { bindDash } from '../lib/typography';
 
 interface Props {
   project: CollectionEntry<'projects'>;
@@ -22,11 +23,11 @@ const split = lead || wide;
 <Card className={`work-card h-full ${split ? 'work-card--split' : ''} ${cardLinkClass}`}>
   <CardHeader className="work-card__head">
     <div class="flex min-h-6 flex-wrap items-center gap-x-3 gap-y-1">
-      <span class="mono-meta">{p.data.period}</span>
+      <span class="mono-meta">{bindDash(p.data.period)}</span>
       {status && <Badge variant="outline" className={tagClass}>{status}</Badge>}
     </div>
     <h3 class="type-h3">
-      <a href={href} data-slot="button" data-site="link" class={stretchedLinkClass}>{p.data.title}</a>
+      <a href={href} data-slot="button" data-site="link" class={stretchedLinkClass}>{bindDash(p.data.title)}</a>
     </h3>
   </CardHeader>
   <CardContent className="work-card__body">

@@ -3,6 +3,7 @@ import { render, type CollectionEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { getProjects } from '../../lib/content';
 import { linkClass, tagClass } from '../../lib/site-ui';
+import { bindDash } from '../../lib/typography';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent } from '../../components/ui/card';
 import { cardLinkClass, stretchedLinkClass } from '../../lib/site-ui';
@@ -44,9 +45,9 @@ const neighbours = [
     <a href="/work/" data-slot="button" data-site="link" class={`${linkClass} eyebrow-link`} data-corpus-ignore>← all work</a>
 
     <header class="mb-10 mt-5">
-      <div class="mono-meta mb-4">{project.data.period}</div>
+      <div class="mono-meta mb-4">{bindDash(project.data.period)}</div>
       <h1 class="work-title prose-serif" style="color: var(--fg);">
-        {project.data.title}
+        {bindDash(project.data.title)}
       </h1>
       <p class="mt-4 text-[17px] leading-[1.7]" style="color: var(--fg-muted);">
         {project.data.summary}
@@ -98,9 +99,9 @@ const neighbours = [
           {neighbours.map(({ label, project: other }) => (
             <Card size="sm" className={`case-neighbour ${cardLinkClass}`} data-direction={label === 'Next case' ? 'next' : 'previous'}>
               <CardContent className="case-neighbour__body">
-                <span class="mono-meta">{label} · {other.data.period}</span>
+                <span class="mono-meta">{label} · {bindDash(other.data.period)}</span>
                 <span class="prose-serif case-neighbour__title">
-                  <a href={`/work/${other.id}/`} data-slot="button" data-site="link" class={stretchedLinkClass}>{other.data.title}</a>
+                  <a href={`/work/${other.id}/`} data-slot="button" data-site="link" class={stretchedLinkClass}>{bindDash(other.data.title)}</a>
                 </span>
               </CardContent>
             </Card>

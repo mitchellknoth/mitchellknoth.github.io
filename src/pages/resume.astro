@@ -1,19 +1,20 @@
 ---
 import Base from '../layouts/Base.astro';
 import resume from '../data/resume.json';
+import { bindDash } from '../lib/typography';
 ---
 <Base title="Experience & résumé" description={resume.summary}>
   <article class="content mx-auto">
     <h1 class="type-h1" style="color: var(--fg);">Experience &amp; résumé</h1>
     <p>{resume.summary}</p>
-    <p><strong>Focus:</strong> {resume.focus}.<br />{resume.title}, {resume.employer} · {resume.employmentPeriod} · {resume.location}</p>
-    <p><a href="/mitchell-knoth-resume.pdf" download>Download résumé (PDF)</a> · <a href={`mailto:${resume.email}`}>Email</a> · <a href={resume.linkedin}>LinkedIn</a></p>
+    <p><strong>Focus:</strong> {resume.focus}.<br />{resume.title}, {resume.employer}&nbsp;· {bindDash(resume.employmentPeriod)}&nbsp;· {resume.location}</p>
+    <p class="resume-links"><span><a href="/mitchell-knoth-resume.pdf" download>Download résumé (PDF)</a>&nbsp;·</span> <span><a href={`mailto:${resume.email}`}>Email</a>&nbsp;·</span> <a href={resume.linkedin}>LinkedIn</a></p>
     <p class="mono-meta">Updated {resume.updated}</p>
     {resume.experience.map((entry) => (
       <section class="resume-entry">
         <h2>{entry.title}</h2>
         <p>{resume.title} · {resume.employer}</p>
-        <p class="mono-meta">{entry.period}</p>
+        <p class="mono-meta">{bindDash(entry.period)}</p>
         <ul class="resume-points">{entry.points.map((point) => <li>{point}</li>)}</ul>
         <p><a href={entry.href}>Read case study →</a></p>
       </section>
@@ -24,10 +25,12 @@ import resume from '../data/resume.json';
     <p>{resume.skills}</p>
     <h2>Education &amp; certifications</h2>
     <p>{resume.education}</p>
-    <ul>{resume.credentials.map((credential) => <li>{credential}</li>)}</ul>
+    <ul>{resume.credentials.map((credential) => <li>{bindDash(credential)}</li>)}</ul>
   </article>
 </Base>
 <style>
+  /* The separator trails its item, so a narrow line never opens with a dot; `nowrap` keeps item and dot together. */
+  .resume-links span { white-space: nowrap; }
   .resume-entry { margin: 2.5rem 0; }
   .resume-points { display: grid; gap: 0.8rem; margin: 1rem 0 1.3rem; padding: 0; list-style: none; }
   .resume-points li { position: relative; padding-left: 1.2rem; margin: 0; }
