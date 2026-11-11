@@ -334,7 +334,24 @@ npm run evals:history -- compare 3 4                   # pass rate, per-question
   record, so a gate that matters needs `--base`. The ref must be fetched (`git fetch origin main`; a shallow
   clone without it fails). Pass the same `--dir` every time, because a `--base` check covers only that
   directory.
-- Where records are committed (a protected branch, or bot pull requests) and what runs the export on a
-  schedule or after a deploy are not decided yet; nothing here runs on its own. Two pull requests that
-  each add the next record would merge cleanly in git but leave a broken chain, which `verify` reports and
-  which blocks further appends, so whatever commits records must serialise them (one writer at a time).
+- **Records are committed by pull request.** The `Benchmark` workflow (`.github/workflows/benchmark.yml`)
+  runs the question set once against a local copy of the Worker on the runner, exports a record from the
+  scorecard, verifies the chain, and opens a pull request that adds that one file. Merging it is how a record
+  becomes history; nothing is pushed to `main`.
+  - It runs only when dispatched manually, and only from `main`. Add an event trigger (after a deploy, weekly)
+    once a baseline exists and the eval gateway's spend limit is confirmed.
+  - One benchmark pull request at a time: the run refuses while one labelled `benchmark-record` is open, and
+    runs are serialised with a concurrency group. Two pull requests that each add the next record would
+    merge cleanly in git but leave a broken chain.
+  - Every pull request runs `verify --base` against its base branch (in `Site quality`), so a pull request
+    that edits or removes a record fails.
+  - The scorecard, which holds full answers, is a 30-day workflow artifact, not committed.
+  - Pull requests opened with the workflow token do not start the usual checks. The workflow verifies the
+    chain itself, and a record is data only.
+  - Setup, done by the repository owner and not by the workflow: create the environment `cloudflare-evals`
+    restricted to `main` with the secret `CLOUDFLARE_API_TOKEN` (the eval token, see
+    [The eval token](#the-eval-token)); set the variable `CLOUDFLARE_ACCOUNT_ID`; allow Actions to create pull
+    requests. Create the environment and restrict it before the first run: GitHub creates a missing
+    environment on first use, without a branch rule.
+  - A Harbor export is run locally for now (`export --harbor`); the Harbor adapter is not part of this
+    workflow.

@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
@@ -24,6 +26,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Validate design, types, build, and visual contract
         run: npm run quality
+      # Benchmark history is append-only: a pull request may add records, never change or remove one.
+      - name: Check the benchmark history is append-only
+        run: npm run evals:history -- verify --base origin/${{ github.base_ref }}
       - name: Validate public execution lab and download bundle
         run: |
           docker pull python:3.12-alpine
