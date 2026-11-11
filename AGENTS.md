@@ -69,6 +69,13 @@ component, typography, or MDX presentation change must preserve these standards:
 - Prevent header collisions, horizontal overflow, escaped figures, and narrow tabbed columns at every
   canonical viewport. Mobile archive and workflow content should stack with a shared left edge.
 - Keep touch targets usable and honor reduced-motion preferences.
+- Build controls and surfaces from the shadcn/ui primitives in `src/components/ui/` (Button, Card, Badge,
+  Alert, Table, Separator) before writing a new class; `DESIGN.md` › shadcn/ui primitives lists which
+  primitive serves which surface. Never edit those files: restyle by token and `data-slot` in
+  `src/styles/agent-theme.css` so `npx shadcn add` upgrades stay clean.
+- Hydrate only components with behaviour. Each page has a gzipped JavaScript budget enforced by
+  `tests/build/js-budget.test.mjs`; a new island needs a reason, and a raised budget needs one in the commit.
+- Essay figures sit on the shared dark plate in both themes; do not frame dark artwork in a light panel.
 
 During headed review, explicitly reject these render signatures:
 

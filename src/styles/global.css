@@ -173,8 +173,6 @@ body {
   }
 }
 
-.no-transitions * { transition: none !important; }
-
 .skip-link {
   position: absolute;
   left: 1.5rem;
@@ -394,12 +392,22 @@ button:focus-visible,
   border-bottom: none;
 }
 
+/* Essay figures are dark plates in both themes. The images are fixed-palette artwork (dark SVG and WebP with the
+   labels drawn in), so the frame and caption are dark too: image and caption read as one plate instead of a
+   black picture dropped on a cream page with a white caption under it. Light-theme variants of the figures
+   would be a separate piece of artwork. The constants do not follow data-theme on purpose. */
 .content .article-figure {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
+  --plate-bg: #14110d;
+  --plate-fg: #bbae98;
+  background: var(--plate-bg);
+  border: 1px solid #706654;
   border-radius: 8px;
+  color: var(--plate-fg);
   margin: 2.5rem 0;
   overflow: hidden;
+}
+.content .article-figure figcaption {
+  color: var(--plate-fg);
 }
 
 .content .article-figure img {
@@ -418,12 +426,6 @@ button:focus-visible,
     max-width: none;
     transform: translateX(-50%);
     width: min(62rem, calc(100vw - var(--site-gutter) - var(--site-gutter)));
-  }
-  .content.article-layout > .editorial-shell {
-    margin-left: 50%;
-    transform: translateX(-50%);
-    width: min(82rem, calc(100vw - var(--site-gutter) - var(--site-gutter)));
-    max-width: none;
   }
 }
 
@@ -487,11 +489,6 @@ button:focus-visible,
   position: absolute;
   white-space: nowrap;
   width: 1px;
-}
-
-.content sup a {
-  border-bottom: 0;
-  padding: 0.1rem;
 }
 
 @media (max-width: 639px) {
