@@ -58,10 +58,7 @@ const featuredMetrics = (await getProjects())
   >
     What I delivered, the decisions behind it, and what you can inspect.
   </p>
-  <div
-    class="grid grid-cols-1 gap-px overflow-hidden rounded-[6px] border md:grid-cols-3"
-    style="background: var(--border); border-color: var(--border);"
-  >
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
     {
       featuredMetrics.map((project) => (
         <MetricCard

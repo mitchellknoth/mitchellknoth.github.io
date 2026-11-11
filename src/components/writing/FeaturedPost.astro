@@ -2,6 +2,7 @@
 import type { CollectionEntry } from 'astro:content';
 import { formatPostDate } from '../../lib/content';
 import { linkClass, titleLinkClass } from '../../lib/site-ui';
+import { Card, CardContent, CardHeader } from '../ui/card';
 
 interface Props {
   post: CollectionEntry<'posts'>;
@@ -14,23 +15,31 @@ const href = `/writing/${post.id}/`;
 const dateLabel = formatPostDate(post.data.date);
 ---
 
-<article class="featured-post">
-  <div class="mono-meta">Featured writing · {dateLabel}</div>
-  <Heading class="prose-serif">
-    <a class={titleLinkClass} href={href}>{post.data.title}</a>
-  </Heading>
-  <p>{post.data.summary}</p>
-  <a class:list={[linkClass, 'featured-post__link']} data-slot="button" data-site="link" href={href}>
-    Read the piece →
-  </a>
-</article>
+<Card className="featured-post">
+  <CardHeader className="featured-post__head">
+    <div class="mono-meta">Featured writing · {dateLabel}</div>
+    <Heading class="prose-serif">
+      <a class={titleLinkClass} href={href}>{post.data.title}</a>
+    </Heading>
+  </CardHeader>
+  <CardContent className="featured-post__body">
+    <p>{post.data.summary}</p>
+    <a class:list={[linkClass, 'featured-post__link']} data-slot="button" data-site="link" href={href}>
+      Read the piece →
+    </a>
+  </CardContent>
+</Card>
 
 <style>
+  /* Card supplies the surface (6px, flat, border); the featured essay keeps the stronger editorial border, the
+     site's one raised surface. */
   .featured-post {
-    border: 1px solid var(--editorial-border);
-    border-radius: 6px;
-    background: var(--bg-elevated);
-    padding: 1.4rem;
+    border-color: var(--editorial-border);
+    padding-block: clamp(1.4rem, 3vw, 2.5rem);
+  }
+
+  .featured-post__head {
+    gap: 0.65rem;
   }
 
   .featured-post h2,
@@ -38,7 +47,7 @@ const dateLabel = formatPostDate(post.data.date);
     color: var(--fg);
     font-size: clamp(1.55rem, 5vw, 2rem);
     line-height: 1.15;
-    margin: 0.65rem 0;
+    margin: 0;
   }
 
   .featured-post h2 a,
@@ -46,16 +55,18 @@ const dateLabel = formatPostDate(post.data.date);
     transition: color 150ms ease;
   }
 
-  .featured-post h2 a:hover,
-  .featured-post h3 a:hover {
-    color: var(--accent);
+  @media (hover: hover) and (pointer: fine) {
+    .featured-post h2 a:hover,
+    .featured-post h3 a:hover {
+      color: var(--accent);
+    }
   }
 
-  .featured-post p {
+  .featured-post__body p {
     color: var(--fg-muted);
     font-size: 0.95rem;
     line-height: 1.7;
-    margin: 0 0 1rem;
+    margin: 0 0 0.5rem;
     max-width: 60ch;
   }
 
@@ -65,36 +76,11 @@ const dateLabel = formatPostDate(post.data.date);
       column-gap: clamp(2rem, 5vw, 4.5rem);
       display: grid;
       grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
-      padding: clamp(1.6rem, 3vw, 2.5rem);
-    }
-
-    .featured-post .mono-meta,
-    .featured-post h2,
-    .featured-post h3 {
-      grid-column: 1;
-    }
-
-    .featured-post .mono-meta {
-      grid-row: 1;
-    }
-
-    .featured-post h2,
-    .featured-post h3 {
-      grid-row: 2 / span 2;
-      margin-bottom: 0;
-    }
-
-    .featured-post p {
-      grid-column: 2;
-      grid-row: 1 / span 2;
-      margin-top: 0;
+      padding-inline: clamp(0.5rem, 1.5vw, 1.25rem);
     }
 
     .featured-post__link {
-      grid-column: 2;
-      grid-row: 3;
       justify-self: start;
-      margin-top: 0.35rem;
     }
   }
 </style>

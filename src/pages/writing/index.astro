@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
-import PostRow from '../../components/PostRow.astro';
+import PostCard from '../../components/PostCard.astro';
+import SectionLabel from '../../components/SectionLabel.astro';
 import FeaturedPost from '../../components/writing/FeaturedPost.astro';
 import { getPublishedPosts, splitFeaturedPost } from '../../lib/content';
 
@@ -26,24 +27,18 @@ const { featured, archive } = splitFeaturedPost(posts);
         <>
           <FeaturedPost post={featured} />
           {archive.length > 0 && (
-            <section class="mt-12" aria-labelledby="writing-archive-title">
-              <h2
-                id="writing-archive-title"
-                class="prose-serif border-b pb-3 text-[24px] leading-tight"
-                style="border-color: var(--border); color: var(--fg); font-weight: 400;"
-              >
-                More writing
-              </h2>
-              <div class="writing-index">
-              {archive.map((post) => (
-                <PostRow
-                  href={`/writing/${post.id}/`}
-                  date={post.data.date}
-                  title={post.data.title}
-                  summary={post.data.summary}
-                  readingTime={post.data.readingTime}
-                />
-              ))}
+            <section aria-labelledby="writing-archive-title">
+              <SectionLabel label="More writing" id="writing-archive-title" />
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {archive.map((post) => (
+                  <PostCard
+                    href={`/writing/${post.id}/`}
+                    date={post.data.date}
+                    title={post.data.title}
+                    summary={post.data.summary}
+                    readingTime={post.data.readingTime}
+                  />
+                ))}
               </div>
             </section>
           )}

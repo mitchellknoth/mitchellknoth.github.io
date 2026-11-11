@@ -16,7 +16,7 @@ for (const theme of ['dark', 'light'] as const) {
     });
 
     test('inline links are amber and underlined, nav is muted, the current page is amber', async ({ page }) => {
-      await page.goto('/work/');
+      await page.goto('/about/');
       const tokens = await page.evaluate(() => {
         const probe = document.createElement('span');
         document.body.append(probe);
@@ -28,7 +28,7 @@ for (const theme of ['dark', 'light'] as const) {
         probe.remove();
         return values;
       });
-      const link = page.locator('[data-site="link"]').first();
+      const link = page.locator('.fact-links [data-site="link"]').first();
       const linkStyle = await link.evaluate((element) => ({ color: getComputedStyle(element).color, line: getComputedStyle(element).textDecorationLine }));
       expect(rgb(linkStyle.color), 'a shadcn link is amber, not inherited').toBe(rgb(tokens.accent));
       expect(linkStyle.line).toContain('underline');
@@ -36,7 +36,7 @@ for (const theme of ['dark', 'light'] as const) {
       const idle = await page.locator('[data-site="nav"]:not([aria-current])').first().evaluate((element) => getComputedStyle(element).color);
       expect(rgb(idle)).toBe(rgb(tokens.muted));
       const current = page.locator('[data-site="nav"][aria-current="page"]');
-      await expect(current).toHaveText('Work');
+      await expect(current).toHaveText('About');
       expect(rgb(await current.evaluate((element) => getComputedStyle(element).color))).toBe(rgb(tokens.accent));
     });
 

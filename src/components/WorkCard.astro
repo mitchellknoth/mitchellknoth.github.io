@@ -1,0 +1,70 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { Badge } from './ui/badge';
+import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
+import { cardLinkClass, stretchedLinkClass, tagClass } from '../lib/site-ui';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+  /** The one featured case: larger title, and two columns from 1024px. */
+  lead?: boolean;
+  /** A case that spans the grid (the odd last card): the same two columns as the lead, normal title size. */
+  wide?: boolean;
+}
+
+const { project: p, lead = false, wide = false } = Astro.props;
+// One status label per card: the metric's name, else the role tag. It is not repeated in the summary below it.
+const status = p.data.metric?.value ?? p.data.roleTag;
+const href = `/work/${p.id}/`;
+const split = lead || wide;
+---
+
+<Card className={`work-card h-full ${split ? 'work-card--split' : ''} ${cardLinkClass}`}>
+  <CardHeader className="work-card__head">
+    <div class="flex min-h-6 flex-wrap items-center gap-x-3 gap-y-1">
+      <span class="mono-meta">{p.data.period}</span>
+      {status && <Badge variant="outline" className={tagClass}>{status}</Badge>}
+    </div>
+    <h3 class={`prose-serif leading-tight ${lead ? 'text-[28px]' : 'text-[22px]'}`}>
+      <a href={href} data-slot="button" data-site="link" class={stretchedLinkClass}>{p.data.title}</a>
+    </h3>
+  </CardHeader>
+  <CardContent className="work-card__body">
+    <p class="text-[15px] leading-[1.65] text-muted-foreground">{p.data.summary}</p>
+  </CardContent>
+  <CardFooter className="work-card__foot mt-auto flex flex-col items-start gap-3 border-0 bg-transparent">
+    {p.data.stack.length > 0 && (
+      <div class="flex flex-wrap gap-2">
+        {p.data.stack.map((item) => <Badge variant="outline" className={tagClass}>{item}</Badge>)}
+      </div>
+    )}
+    <span aria-hidden="true" class="text-[14px] text-primary underline underline-offset-4">Read case study →</span>
+  </CardFooter>
+</Card>
+
+<style>
+  @media (min-width: 1024px) {
+    /* A shell-width card earns its width with two columns: the case on the left; its stack and the way in on
+       the right, the way in pinned to the bottom so the column is used top to bottom. */
+    .work-card--split {
+      column-gap: clamp(2rem, 5vw, 4rem);
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
+      grid-template-rows: auto 1fr;
+      padding-block: 2rem;
+    }
+    .work-card--split .work-card__head {
+      grid-column: 1;
+    }
+    .work-card--split .work-card__body {
+      grid-column: 1;
+    }
+    .work-card--split .work-card__foot {
+      align-self: stretch;
+      margin-top: 0;
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      justify-content: space-between;
+    }
+  }
+</style>

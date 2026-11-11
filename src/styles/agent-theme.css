@@ -115,6 +115,20 @@
 [data-slot="card-header"] {
   border-radius: 0;
 }
+/* A card that is one link (stretched title link, src/lib/site-ui.ts): hover steps the border up for pointers
+   that can hover, and keyboard focus outlines the whole card. */
+[data-slot="card"].card-link {
+  position: relative;
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-slot="card"].card-link:hover {
+    border-color: var(--editorial-border);
+  }
+}
+[data-slot="card"].card-link:has(a:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 [data-slot="badge"] {
   border-radius: 3px;
 }
