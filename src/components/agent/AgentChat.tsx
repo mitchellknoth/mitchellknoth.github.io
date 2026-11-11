@@ -22,7 +22,7 @@ import { linkClass } from '@/lib/site-ui';
 import type { StoppedState } from '@/lib/agent/contract';
 import { replyToMessage, sourcesOf, textOf, userMessage, type AgentUIMessage } from '@/lib/agent/messages';
 import { AgentSources } from './AgentSources';
-import { cancelHumanClearance, ensureHumanClearance } from './turnstile';
+import { cancelHumanClearance, ensureHumanClearance, prepareHumanCheck } from './turnstile';
 
 // The Worker's MAX_PROMPT_CHARS (wrangler.jsonc). If that changes, change this; a 413 from the Worker is the backstop.
 const MAX_QUESTION_CHARS = 1000;
@@ -251,9 +251,13 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
   const focusAfterUpdate = React.useRef<'field' | 'notice' | null>(null);
   const reduceMotion = usePrefersReducedMotion();
 
+  /** The edge challenged the health check, so this visitor holds no clearance yet; it is cleared when they first engage. */
+  const needsClearance = React.useRef(false);
+
   /**
    * Runs Turnstile pre-clearance and says whether the visitor now holds a clearance cookie. With no site key
-   * configured there is nothing to run, and the edge challenge shows as the "unverified" notice.
+   * configured there is nothing to run, and the edge challenge shows as the "unverified" notice. It runs only
+   * once the visitor has sent a question: the first paint is the agent, not a verification widget.
    */
   const clearHumanCheck = React.useCallback(async () => {
     const host = turnstileHost.current;
@@ -278,10 +282,12 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
     if (!enabled) return;
     let cancelled = false;
     (async () => {
-      let health = await checkHealth();
-      // /agent/* sits behind a Managed Challenge, so a first visit is challenged before it is answered.
-      if (health.kind === 'unverified' && !cancelled && (await clearHumanCheck())) health = await checkHealth();
-      if (!cancelled) setView(health.kind === 'online' ? { kind: 'online' } : health);
+      const health = await checkHealth();
+      // /agent/* sits behind a Managed Challenge, so a first visit is challenged before it is answered. That says
+      // nothing about the agent, only that this visitor hasn't cleared the check, and they shouldn't meet it
+      // before they have engaged: show the agent as ready and run the check on their first question (send).
+      needsClearance.current = health.kind === 'unverified';
+      if (!cancelled) setView(health.kind === 'online' || health.kind === 'unverified' ? { kind: 'online' } : health);
     })();
     const host = turnstileHost.current;
     return () => {
@@ -290,7 +296,7 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
       // starts clean instead of joining one whose widget nobody can see.
       cancelHumanClearance(host);
     };
-  }, [clearHumanCheck, enabled]);
+  }, [enabled]);
 
   // When Cloudflare needs the visitor, bring the check to them: a keyboard or screen reader user is otherwise
   // left on a disabled form with no sign that a control has appeared.
@@ -487,13 +493,16 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
               onFocus={() => (focusWasInVerify.current = true)}
               onBlur={() => (focusWasInVerify.current = false)}
             >
-              <p>Cloudflare needs to confirm a person is asking before the agent answers.</p>
+              {challenge === 'interactive' && <p>Cloudflare needs to confirm a person is asking before the agent answers.</p>}
               <div data-turnstile-slot ref={turnstileHost} />
             </div>
             <InputGroup className="agent-field">
               <InputGroupTextarea
                 ref={fieldRef}
                 value={draft}
+                // Fetch Cloudflare's script (nothing renders) while the visitor reads or types, so the check that runs
+                // when they send is quicker.
+                onFocus={() => needsClearance.current && prepareHumanCheck()}
                 onChange={(event) => {
                   setDraft(event.target.value);
                   if (view.kind === 'too-long' || view.kind === 'error' || view.kind === 'throttled') setView({ kind: 'online' });
@@ -504,7 +513,7 @@ export default function AgentChat({ enabled = true, turnstileSiteKey = '' }: { e
                     formRef.current?.requestSubmit();
                   }
                 }}
-                placeholder={view.kind === 'loading' ? (challenge === 'idle' ? 'Checking whether the agent is available…' : 'Confirming you’re a person…') : 'Ask about a project, an essay or my experience'}
+                placeholder={view.kind === 'loading' ? 'Checking whether the agent is available…' : 'Ask about a project, an essay or my experience'}
                 aria-label="Ask about my work"
                 aria-invalid={view.kind === 'too-long' || tooLong || undefined}
                 aria-describedby={[alert ? alertId : '', draft.length >= COUNT_FROM ? 'agent-count' : ''].filter(Boolean).join(' ') || undefined}

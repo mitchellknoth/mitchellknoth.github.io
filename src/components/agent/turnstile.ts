@@ -8,6 +8,10 @@
 // (`403` with `cf-mitigated: challenge`, see contract.ts). A visitor who already holds a clearance cookie,
 // and every visitor on a host with no agent, never contacts challenges.cloudflare.com. The widget renders
 // with `appearance: interaction-only`, so it is invisible unless Cloudflare needs the visitor to do something.
+//
+// Nothing here runs on page load. The island starts a check when the visitor sends their first question (the
+// page's first paint is the agent, not a verification widget), and may fetch the script, without rendering
+// anything, when they first focus the field (`prepareHumanCheck`).
 
 /**
  * The public site key of the agent's Turnstile widget (Cloudflare dashboard → Turnstile). Site keys are public
@@ -84,6 +88,11 @@ function loadScript(): Promise<TurnstileApi | null> {
     }
   });
   return script;
+}
+
+/** Loads Cloudflare's script ahead of a check without rendering anything, so no widget appears before it is needed. */
+export function prepareHumanCheck() {
+  void loadScript();
 }
 
 interface Run {
