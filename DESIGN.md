@@ -115,9 +115,26 @@ Header/footer controls and standalone links have at least 44×44px hit regions i
 
 Use semantic ul/ol/dl. Markers carry real list/order meaning and stay attached to their item. Never place a detached pseudo-element glyph above an item; omit markers when a card/grid already groups items. Avoid a hairline above and below every short row. Reserve dividers for chapter boundaries, or a real comparison where the rules aid scanning. TOC links use a compact two-column index when there is room, one column on phone; no border around a wide, single narrow column. Field cards group related actions rather than mechanically ruling every sentence. Heading rules apply inside all components.
 
+### shadcn/ui primitives
+
+The site's controls and surfaces are shadcn/ui components (style `base-rhea`, Base UI), not hand-built CSS. Reach for one before writing a new class:
+
+| Surface | Primitive | Contract |
+| --- | --- | --- |
+| Header, footer and standalone links; theme switch | `Button` (`ghost`, `link`, `outline`) | 44×44px hit region set at the call site (`min-h-11 min-w-11`); `src/lib/site-ui.ts` holds the shared class strings and `data-site` hooks |
+| Proof cards, featured writing, case cards, field and practice cards, related work | `Card` | One flat surface level, 6px, 1px structural border; a card that is one link uses a stretched title link plus `.card-link`, never two links to the same place |
+| Tags, status | `Badge` | 3px, not a pill; mono 12px |
+| Callouts and "Where it stands" | `Alert` | 6px, 3:1 editorial border; pass `role="note"` or `complementary` for static callouts |
+| Comparison tables | `Table` | Real `<table>` semantics, cells wrap at 320px, stacks to cards on phones |
+| Section rules | `Separator` | Reserve for chapter boundaries |
+
+Components in `src/components/ui/` stay exactly as the shadcn CLI wrote them so upgrades stay clean. Restyle by token in `src/styles/agent-theme.css`, which maps shadcn's semantic tokens (`--background`, `--card`, `--primary`, `--ring`, `--input`, `--radius`) onto the site tokens and corrects defaults that conflict with this file by `data-slot`. Only components with behaviour hydrate (the theme switch, the agent island); presentational ones render to static HTML. Hydrating costs React and Base UI on every page, so each page has a gzipped JavaScript budget enforced in `tests/build/js-budget.test.mjs` (100 KB; 125 KB on Home, which also carries the agent). Raise a budget only for a stated reason.
+
+Stays custom, because shadcn has no equivalent: the diagram components, the essay figure artwork, the table of contents, and prose typography (`.content`). Restyle their borders and surfaces with the same tokens.
+
 ### Imagery
 
-Preserve the essay series' coherent mechanical/amber visual language. Each image explains a relationship, boundary, sequence, or operating model already in the prose. A sustained long essay has at least two meaningful visual resets; use a third only for a distinct argumentative turn. Do not add generic technology decoration, fake product UI, or information that depends on words baked into a bitmap.
+Preserve the essay series' coherent mechanical/amber visual language. Essay figures sit on one dark plate (`.article-figure`, caption included) in both themes, because the artwork is drawn on a dark ground; do not frame a dark figure in a light panel. Each image explains a relationship, boundary, sequence, or operating model already in the prose. A sustained long essay has at least two meaningful visual resets; use a third only for a distinct argumentative turn. Do not add generic technology decoration, fake product UI, or information that depends on words baked into a bitmap.
 
 Provide descriptive alt text, intrinsic width/height, and an HTML caption when the metaphor needs a noun-to-object mapping. Eager-load only the first editorial image; lazy-load later ones. On narrow screens simplify the relationship or provide an equivalent HTML explanation instead of making tiny raster details essential. Preserve aspect ratio, constrain to the selected width class, and verify actual lazy loading by scrolling before judging a full-page capture.
 

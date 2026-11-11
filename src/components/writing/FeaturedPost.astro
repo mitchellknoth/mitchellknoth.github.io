@@ -6,11 +6,9 @@ import { Card, CardContent, CardHeader } from '../ui/card';
 
 interface Props {
   post: CollectionEntry<'posts'>;
-  headingLevel?: 'h2' | 'h3';
 }
 
-const { post, headingLevel = 'h2' } = Astro.props;
-const Heading = headingLevel;
+const { post } = Astro.props;
 const href = `/writing/${post.id}/`;
 const dateLabel = formatPostDate(post.data.date);
 ---
@@ -18,9 +16,9 @@ const dateLabel = formatPostDate(post.data.date);
 <Card className="featured-post">
   <CardHeader className="featured-post__head">
     <div class="mono-meta">Featured writing · {dateLabel}</div>
-    <Heading class="prose-serif">
+    <h2 class="prose-serif">
       <a class={titleLinkClass} href={href}>{post.data.title}</a>
-    </Heading>
+    </h2>
   </CardHeader>
   <CardContent className="featured-post__body">
     <p>{post.data.summary}</p>
@@ -42,22 +40,19 @@ const dateLabel = formatPostDate(post.data.date);
     gap: 0.65rem;
   }
 
-  .featured-post h2,
-  .featured-post h3 {
+  .featured-post h2 {
     color: var(--fg);
     font-size: clamp(1.55rem, 5vw, 2rem);
     line-height: 1.15;
     margin: 0;
   }
 
-  .featured-post h2 a,
-  .featured-post h3 a {
+  .featured-post h2 a {
     transition: color 150ms ease;
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .featured-post h2 a:hover,
-    .featured-post h3 a:hover {
+    .featured-post h2 a:hover {
       color: var(--accent);
     }
   }

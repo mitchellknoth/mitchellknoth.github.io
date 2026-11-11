@@ -1,9 +1,10 @@
 /* =============================================================
-   Agent island theme layer (#18)
+   shadcn/ui theme layer
    -------------------------------------------------------------
-   The one place shadcn/ui's CSS-variable theme meets DESIGN.md. Components under
-   src/components/ui stay exactly as the shadcn CLI wrote them; restyle them here, by token,
-   so `npx shadcn add` upgrades stay clean.
+   The one place shadcn/ui's CSS-variable theme meets DESIGN.md, for the whole site (the file keeps its
+   original name from when only the agent island used shadcn). Components under src/components/ui stay
+   exactly as the shadcn CLI wrote them; restyle them here, by token, so `npx shadcn add` upgrades stay
+   clean.
 
    shadcn names its tokens semantically (`--background`, `--primary`, …). Each one below points
    at a site token from global.css, so light and dark follow `data-theme` with no second block.
