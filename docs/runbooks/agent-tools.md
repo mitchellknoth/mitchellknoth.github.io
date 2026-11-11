@@ -99,5 +99,5 @@ These need the real AI binding, so the offline tests can't cover them:
 
 - the chosen model calls the tools and cites with `[[id]]` markers in the expected form;
 - refusals come back as `REFUSE: <category>` lines, and personal questions are refused even when the résumé has the fact;
-- `maxTurns: 4` leaves room for a search, a read and the answer;
+- `maxTurns: 6` (raised from 4 in #16 after `turn_limit` cut off one approved question in 3 of 8 live runs) leaves room for a search, two reads, a second search and the answer. Lower it once real traffic's `ask_timing` lines (Workers Logs: the number of `rounds` entries) show how many rounds answers use;
 - the eval harness (#17, stream B) runs the question set against the deployed agent.
