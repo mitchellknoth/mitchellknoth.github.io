@@ -1,4 +1,6 @@
 ---
+import { Card, CardContent, CardHeader } from '../ui/card';
+
 interface Props {
   title: string;
   steps: string[];
@@ -8,21 +10,23 @@ interface Props {
 const { title, steps, headingId = 'practice-card-title' } = Astro.props;
 ---
 
-<aside class="editorial-reading practice-card" aria-labelledby={headingId}>
-  <div class="mono-meta">Field card</div>
-  <h2 id={headingId}>{title}</h2>
-  <ol>
-    {steps.map((step) => <li>{step}</li>)}
-  </ol>
-</aside>
+<Card className="editorial-reading practice-card" role="complementary" aria-labelledby={headingId}>
+  <CardHeader>
+    <div class="mono-meta">Field card</div>
+    <h2 id={headingId}>{title}</h2>
+  </CardHeader>
+  <CardContent>
+    <ol>
+      {steps.map((step) => <li>{step}</li>)}
+    </ol>
+  </CardContent>
+</Card>
 
-<style>
+<style is:global>
   .practice-card {
-    border: 1px solid var(--editorial-border);
-    border-radius: 6px;
     break-inside: avoid;
+    border-color: var(--editorial-border);
     margin: 2.5rem 0 1.25rem;
-    padding: 1.15rem 1.3rem 1.25rem;
   }
 
   .practice-card h2 {
@@ -31,7 +35,7 @@ const { title, steps, headingId = 'practice-card-title' } = Astro.props;
     font-weight: 400;
     letter-spacing: -0.015em;
     line-height: 1.2;
-    margin: 0.35rem 0 0.65rem;
+    margin: 0.35rem 0 0;
   }
 
   .practice-card ol {
@@ -49,7 +53,6 @@ const { title, steps, headingId = 'practice-card-title' } = Astro.props;
     margin: 0;
     padding: 0.55rem 0;
   }
-
 
   .practice-card li::before {
     color: var(--accent);

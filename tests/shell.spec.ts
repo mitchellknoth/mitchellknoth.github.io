@@ -94,6 +94,8 @@ test('with reduced motion the theme switch is a single frame', async ({ browser,
         return original(...args);
       };
     });
+    // The switch is a hydrated island: a click before React takes over does nothing.
+    await expect(reader.locator('astro-island[ssr]')).toHaveCount(0);
     await reader.locator('#theme-toggle').click();
     await expect(reader.locator('html')).toHaveAttribute('data-theme', 'light');
     expect(await reader.evaluate(() => (window as unknown as { __vt: number }).__vt)).toBe(0);

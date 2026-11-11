@@ -1,4 +1,5 @@
-import { GUARD_NAME, nextUtcMidnight } from './guard';
+import { describeResult, streamResponse, wantsStream, type Settled } from './ask-response';
+import { GUARD_NAME } from './guard';
 import { SESSION_COOKIE } from './session-cookie';
 import { serverTimingHeader } from './timing';
 
@@ -95,40 +96,44 @@ async function handleAgent(request: Request, env: Env, path: string): Promise<Re
 
     const wantTiming = env.TIMING_HEADER === 'true';
     const session = env.VISITOR_SESSION.getByName(name);
+    const limits = {
+      maxMessages: intVar(env.MAX_MESSAGES_PER_SESSION, 20),
+      ttlSeconds: intVar(env.SESSION_TTL_SECONDS, 86_400),
+      timing: wantTiming,
+    };
     const sessionStart = Date.now();
-    let result: Awaited<ReturnType<typeof session.ask>>;
-    try {
-      result = await session.ask(question, {
-        maxMessages: intVar(env.MAX_MESSAGES_PER_SESSION, 20),
-        ttlSeconds: intVar(env.SESSION_TTL_SECONDS, 86_400),
-        timing: wantTiming,
-      });
-    } catch (error) {
-      // Log the cause for the operator; the visitor gets a plain state, never a stack trace.
-      console.error('agent session failed', error);
-      console.log(JSON.stringify({ event: 'agent_request', outcome: 'error', admit: admitMs, session: Date.now() - sessionStart, total: Date.now() - requestStart }));
-      return refused('error', 502);
-    }
-    const sessionMs = Date.now() - sessionStart;
-    const { timing, ...body } = result;
-    // Called as each response is returned, so `total` includes any guard write that came before it.
-    const timed = (response: Response): Response => {
-      const worker = { admit: admitMs, session: sessionMs, total: Date.now() - requestStart };
-      console.log(JSON.stringify({ event: 'agent_request', outcome: body.status, ...worker }));
-      if (wantTiming) response.headers.set('server-timing', serverTimingHeader(worker, timing));
-      return response;
+
+    // Everything that turns the question into the plain response's status and body. The plain form returns it as
+    // JSON; the streamed form (worker/ask-response.ts) sends it as the `final` line after progress and pings.
+    const run = async (): Promise<Settled> => {
+      let result: Awaited<ReturnType<typeof session.ask>>;
+      try {
+        result = await session.ask(question, limits);
+      } catch (error) {
+        // Log the cause for the operator; the visitor gets a plain state, never a stack trace.
+        console.error('agent session failed', error);
+        console.log(JSON.stringify({ event: 'agent_request', outcome: 'error', admit: admitMs, session: Date.now() - sessionStart, total: Date.now() - requestStart }));
+        return { status: 502, body: { state: 'error' } };
+      }
+      const sessionMs = Date.now() - sessionStart;
+      const { timing, ...body } = result;
+      const described = describeResult(body, Date.now());
+      if (described.pauseUntil) await guard.pause(described.pauseUntil, 'inference_budget');
+      const figures = { admit: admitMs, session: sessionMs, total: Date.now() - requestStart };
+      console.log(JSON.stringify({ event: 'agent_request', outcome: body.status, ...figures }));
+      return {
+        status: described.status,
+        body: described.body,
+        ...(wantTiming ? { serverTiming: serverTimingHeader(figures, timing) } : {}),
+      };
     };
 
-    if (body.status === 'budget') {
-      const until = nextUtcMidnight(Date.now());
-      await guard.pause(until, 'inference_budget');
-      return timed(refused('paused', 503, until));
-    }
-    if (body.status === 'limit') return timed(json({ state: 'limit', reason: body.reason }, 429));
-    // An expired session's storage is deleted (worker/session.ts); its cookie has also expired, so start over.
-    if (body.status === 'expired') return timed(json({ error: 'no_session' }, 401));
-    // `answered`, `refused` or `unanswered`, shaped and source-checked by worker/reply.ts.
-    return timed(json(body));
+    if (wantsStream(request)) return streamResponse(run);
+    const settled = await run();
+    const response = json(settled.body, settled.status);
+    // Headers cannot follow the first byte of a stream, so the streamed form carries this in its `final` line.
+    if (settled.serverTiming) response.headers.set('server-timing', settled.serverTiming);
+    return response;
   }
 
   return json({ error: 'not_found' }, 404);
