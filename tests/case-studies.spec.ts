@@ -80,15 +80,16 @@ for (const theme of ['dark', 'light'] as const) {
       }
     });
 
-    test('the Bounded Execution Lab places the credential diagram beside the claim, lazy, with dimensions and alt text', async ({ page }) => {
+    test('the Bounded Execution Lab places the credential diagram beside the claim, as live text with a caption', async ({ page }) => {
+      // The diagram is live HTML (LabFigure), not an <img>: its labels are real text and the alt prose is the caption.
       await page.goto('/work/bounded-runner/');
-      const figure = page.locator('img[src$="credential-boundary.svg"]');
-      await expect(figure).toHaveAttribute('loading', 'lazy');
-      await expect(figure).toHaveAttribute('width', '1200');
-      await expect(figure).toHaveAttribute('height', '640');
-      expect(((await figure.getAttribute('alt')) ?? '').length).toBeGreaterThan(40);
-      const placed = await figure.evaluate((img) => {
-        const previous = img.closest('figure')!.previousElementSibling!;
+      const figure = page.locator('figure.lab-diagram--credential-boundary');
+      await expect(figure).toHaveCount(1);
+      await expect(figure.locator('img')).toHaveCount(0);
+      await expect(figure.getByText('Synthetic token injected here')).toBeVisible();
+      expect(((await figure.locator('figcaption').textContent()) ?? '').length).toBeGreaterThan(40);
+      const placed = await figure.evaluate((element) => {
+        const previous = element.previousElementSibling!;
         return previous.tagName === 'P' && /upstream token lives in the gateway environment/.test(previous.textContent ?? '');
       });
       expect(placed, 'the figure follows the gateway paragraph it explains').toBe(true);
