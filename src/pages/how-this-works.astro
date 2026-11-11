@@ -1,18 +1,22 @@
 ---
 // How the homepage agent works (#18): architecture, guardrails, failure states and the evaluation
 // method. Claims stay inside the agreed plan in #13 and the code on main: what exists is stated in the
-// present tense; what isn't done yet (scored runs, switching the agent on) is labelled as such.
-// Numbers appear only once a committed eval run supplies them. Update the "Where it stands" aside and
-// the in-progress labels as the first scored runs land and the agent is switched on.
+// present tense; what isn't done yet (scored runs) is labelled as such. Numbers appear only once a
+// committed eval run supplies them.
+// Whether the agent is on is not written into the copy: the "Where it stands" aside follows the same switch
+// the Worker and the homepage island follow (src/lib/agent/enabled.ts), so it can't say "off" while the agent
+// is on. Update the in-progress labels as the first scored runs land.
 import Base from '../layouts/Base.astro';
 import EvalScorecard from '../components/how/EvalScorecard.astro';
 import RequestPath from '../components/how/RequestPath.astro';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { agentEnabled } from '../lib/agent/enabled';
 
+const on = agentEnabled();
 const repo = 'https://github.com/mitchellknoth/mitchellknoth.github.io';
 
 const failureStates = [
-  { state: 'Switched off', shows: 'The agent says it’s off and points to the work. This is how it ships today.' },
+  { state: 'Switched off', shows: 'The agent says it’s off and points to the work. One setting, AGENT_ENABLED, switches the Worker, and the homepage reads the same setting when the site is built. While it’s off, the homepage makes no request to the agent and shows no human check.' },
   { state: 'Budget spent', shows: 'The agent says it’s paused and, when it knows, the time it resumes.' },
   { state: 'Conversation limit', shows: 'The conversation ends and the agent points to the work.' },
   { state: 'Blocked', shows: 'The agent is unavailable from that address until its entry expires. Every page still loads.' },
@@ -48,15 +52,24 @@ const questionKinds = [
 
     <Alert role="complementary" className="how-status" aria-label="Where it stands">
       <AlertDescription>
-        <p><strong>Where it stands.</strong> The agent is switched off in production. This site runs on Cloudflare
-        Workers, and the homepage shows a notice where the agent will appear. Built so far are the Worker, the
-        guard, per-visitor sessions, the two corpus tools, refusals, the evaluation harness and every homepage
-        state, the last tested against simulated responses. I have also run the agent on the live Worker behind the
-        human check and the rate limit: answers that cite the pages they used, the spending cap pausing it and the
-        pause lifting by itself, a session being deleted on schedule, and the off switch. The question set is
-        written and approved, but I haven’t scored the agent against it, so nothing has been scored. The agent
-        stays off until its evaluation runs are published below and I’ve reviewed the answers. It hasn’t been load
-        tested, so I make no claims about scale.</p>
+        <p><strong>Where it stands.</strong>
+        {
+          on
+            ? ' The agent is switched on in production. It went live on 10 November 2026, before any scoring, so I could measure how long real answers take. On the homepage, Cloudflare’s human check runs first and stays out of the way unless it needs a click, and then a question box appears.'
+            : ' The agent is switched off in production. The homepage shows a notice where the agent would appear and makes no request to it.'
+        }
+        This site runs on Cloudflare Workers. Built so far are the Worker, the guard, per-visitor sessions, the two
+        corpus tools, refusals, the intent check, the evaluation harness and every homepage state, the last tested
+        against simulated responses. I have also run the agent on the live Worker behind the human check and the
+        rate limit: answers that cite the pages they used, the spending cap pausing it and the pause lifting by
+        itself, a session being deleted on schedule, and the off switch. The question set is written and approved,
+        but I haven’t scored the agent against it, so nothing has been scored.
+        {
+          on
+            ? ' Until the evaluation runs are published below and I’ve reviewed the answers, read each answer with the pages it cites open. The Worker won’t show an answer that cites no page from the corpus, but whether a cited page supports the sentence is the part I haven’t checked yet.'
+            : ''
+        }
+        It hasn’t been load tested, so I make no claims about scale.</p>
       </AlertDescription>
     </Alert>
 
@@ -152,7 +165,7 @@ const questionKinds = [
       passes. Each run puts the whole set to one model, against a copy of the agent on my machine and through a
       separate AI Gateway, so it never touches the visitors’ budget; that gateway gets its own spend limit before the
       first run. Each run’s scorecard is committed to the
-      repository with its date, and the homepage will use the model the scorecards support.
+      repository with its date. I chose the agent’s model before any scoring, and the scorecards can change that choice.
     </p>
 
     <EvalScorecard />
