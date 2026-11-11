@@ -13,8 +13,7 @@ import { bindDash } from '../lib/typography';
     {resume.experience.map((entry) => (
       <section class="resume-entry">
         <h2>{entry.title}</h2>
-        <p>{resume.title} · {resume.employer}</p>
-        <p class="mono-meta">{bindDash(entry.period)}</p>
+        <p class="mono-meta"><span class="whitespace-nowrap">{entry.role}&nbsp;·</span> <span class="whitespace-nowrap">{resume.employer}&nbsp;·</span> <span class="whitespace-nowrap">{entry.team}&nbsp;·</span> <span class="whitespace-nowrap">{entry.period}</span></p>
         <ul class="resume-points">{entry.points.map((point) => <li>{point}</li>)}</ul>
         <p><a href={entry.href}>Read case study →</a></p>
       </section>

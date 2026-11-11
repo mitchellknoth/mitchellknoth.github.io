@@ -106,3 +106,45 @@ test('the Résumé ranges dates and credentials with en dashes, as Work and Abou
   // A spaced hyphen is a range or a title separator written the wrong way; hyphenated words ("AI-assisted") are fine.
   expect(text.match(/\S+ - \S+/g) ?? []).toEqual([]);
 });
+
+// Headed-review defect 15: each experience entry printed "Cloud Software Engineer · John Deere" as its own line under
+// its H2 and then the period as another line. The same role was repeated under all five entries, which was also wrong:
+// the work moved through three teams as a Cloud Software Engineer, then a Software Engineer II and a Software Engineer I.
+// Each entry now carries ONE meta line naming the role held, the employer, the team and the period together, so a chunk
+// read alone (the agent corpus reads the Résumé entry by entry) stays attached to the right role, team and dates.
+const experienceLines: Record<string, string> = {
+  'AI-assisted delivery and developer platforms': 'Cloud Software Engineer · John Deere · SDLC-Next · 2026 – present',
+  'Developer Experience': 'Cloud Software Engineer · John Deere · R2D2 – PR to Production · Late 2025 – early 2026',
+  'Enterprise cloud foundations': 'Cloud Software Engineer · John Deere · OneCloud · 2023 – 2025',
+  'Digital equipment licensing': 'Software Engineer II · John Deere · License Management · 2021 – 2023',
+  'External API platform': 'Software Engineer I · John Deere · Global Gateway · 2019 – 2021',
+};
+
+test('each Résumé experience entry carries role, employer, team and period in exactly one meta line', async ({ page }) => {
+  await settle(page, '/resume/');
+  const entries = await page.evaluate(() =>
+    [...document.querySelectorAll('.resume-entry')].map((entry) => ({
+      heading: (entry.querySelector('h2')?.textContent ?? '').trim(),
+      metaLines: [...entry.querySelectorAll('.mono-meta')].map((line) => (line.textContent ?? '').replace(/\s+/g, ' ').trim()),
+      // Paragraphs directly under the entry (not the meta line) that read as a bare role/employer line.
+      barePrologue: [...entry.querySelectorAll(':scope > p:not(.mono-meta)')]
+        .map((p) => (p.textContent ?? '').replace(/\s+/g, ' ').trim())
+        .filter((text) => /John Deere|Software Engineer/.test(text)),
+    })),
+  );
+  expect(entries.map((entry) => entry.heading)).toEqual(Object.keys(experienceLines));
+  for (const entry of entries) {
+    expect(entry.metaLines, entry.heading).toEqual([experienceLines[entry.heading]]);
+    expect(entry.barePrologue, entry.heading).toEqual([]);
+  }
+});
+
+test('the merged Résumé meta line wraps only at its separators, never inside the role, employer, team or date range', async ({ page }) => {
+  await settle(page, '/resume/');
+  const rows = await lineOpeners(page, '.resume-entry .mono-meta');
+  expect(rows.length).toBeGreaterThanOrEqual(5);
+  // Every rendered line opens on the start of a unit (role, employer, team or period), never on the tail of one:
+  // "Deere", "II", "Production", "early" or "present" would mean a unit split, and a dash or dot would open a line badly.
+  const unitStart = /^(Cloud|Software|JohnDeere|SDLC|R2D2|OneCloud|License|Global|Late|\d{4})/;
+  expect(rows.filter(({ opens }) => !unitStart.test(opens)).map(({ text, opens }) => `${opens} (in "${text}")`)).toEqual([]);
+});
