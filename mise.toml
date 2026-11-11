@@ -1,0 +1,38 @@
+# Toolchain and task entry points for this repo (https://mise.jdx.dev). `mise install` fetches the pinned tools and
+# `mise tasks` lists the commands. package.json stays the source of truth for what each command does; the tasks below
+# only name them, so a new contributor, CI and the agent evals all start from the same runtimes.
+#
+# Never put a secret in this file. The eval token is exported in your own shell (see evals/README.md).
+
+[tools]
+# Matches the Node major that .github/workflows run (24). mise.lock records the exact version and checksums.
+node = "24"
+# For the Harbor benchmark spike (#16): `uv tool install harbor`. Not used by the site or the Worker.
+uv = "latest"
+
+[settings]
+lockfile = true
+
+[tasks.dev]
+description = "Run the site locally"
+run = "npm run dev"
+
+[tasks.quality]
+description = "Everything CI checks before a deploy (design lint, types, builds, tests, visual contract)"
+run = "npm run quality"
+
+[tasks.check-worker]
+description = "Type-check the Worker and its tests"
+run = "npm run check:worker"
+
+[tasks.test-worker]
+description = "Run the Worker's offline tests"
+run = "npm run test:worker"
+
+[tasks."evals:serve"]
+description = "Start the local eval server (needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in your shell)"
+run = "npm run evals:serve"
+
+[tasks.evals]
+description = "Score the agent on the approved question set (pass --base-url http://127.0.0.1:8787)"
+run = "npm run evals --"
