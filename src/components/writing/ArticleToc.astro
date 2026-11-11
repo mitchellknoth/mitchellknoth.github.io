@@ -71,5 +71,9 @@ const { items } = Astro.props;
     .article-toc ol {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    /* An odd last entry takes the row rather than leaving an empty cell beside it. */
+    .article-toc li:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
   }
 </style>

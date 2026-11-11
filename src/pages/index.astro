@@ -108,7 +108,8 @@ const featuredMetrics = (await getProjects())
 </Base>
 <style>
   .decision-note {
-    max-width: 66rem;
+    /* The rule spans the shell like the section rules around it; the content keeps its 66rem measure. */
+    padding-right: max(0px, calc(100% - 66rem));
     margin-top: 3rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--border);

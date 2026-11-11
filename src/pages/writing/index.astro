@@ -7,6 +7,18 @@ import { getPublishedPosts, splitFeaturedPost } from '../../lib/content';
 
 const posts = await getPublishedPosts();
 const { featured, archive } = splitFeaturedPost(posts);
+
+// The archive is two columns from 640px and three from 1280px, so a count that doesn't divide leaves a lone card
+// beside an empty cell. Run the grid on six tracks instead: a card is two wide (three across), or three wide
+// (two across), and the leftover last card(s) take the whole row (or share it) so no cell is empty.
+const lastCard = (index: number) => {
+  const count = archive.length;
+  const classes: string[] = ['sm:col-span-3', 'xl:col-span-2'];
+  if (index === count - 1 && count % 2 === 1) classes[0] = 'sm:col-span-6';
+  if (count % 3 === 1 && index === count - 1) classes[1] = 'xl:col-span-6';
+  if (count % 3 === 2 && index >= count - 2) classes[1] = 'xl:col-span-3';
+  return classes.join(' ');
+};
 ---
 
 <Base title="Writing" description="Notes on AI-native development, cloud networking, and enterprise platform engineering.">
@@ -29,9 +41,10 @@ const { featured, archive } = splitFeaturedPost(posts);
           {archive.length > 0 && (
             <section aria-labelledby="writing-archive-title">
               <SectionLabel label="More writing" id="writing-archive-title" />
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {archive.map((post) => (
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-6">
+                {archive.map((post, index) => (
                   <PostCard
+                    className={lastCard(index)}
                     href={`/writing/${post.id}/`}
                     date={post.data.date}
                     title={post.data.title}

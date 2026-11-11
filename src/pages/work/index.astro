@@ -37,7 +37,7 @@ const foundationsLede =
   <p class="mb-6 max-w-[60ch] text-[15px] leading-[1.65] text-pretty" style="color: var(--fg-muted);">
     {recentLede}
   </p>
-  <div class="grid gap-4 md:grid-cols-2">
+  <div class="grid items-start gap-4 md:grid-cols-2">
     {
       recent.map((p, i) => (
         <div class={i === 0 || oddLast(recent, i) ? 'md:col-span-2' : ''}>
@@ -51,7 +51,7 @@ const foundationsLede =
   <p class="mb-6 max-w-[60ch] text-[15px] leading-[1.65] text-pretty" style="color: var(--fg-muted);">
     {foundationsLede}
   </p>
-  <div class="grid gap-4 md:grid-cols-2">
+  <div class="grid items-start gap-4 md:grid-cols-2">
     {
       foundations.map((project, i) => (
         <div class={oddLast(foundations, i, 0) ? 'md:col-span-2' : ''}>
