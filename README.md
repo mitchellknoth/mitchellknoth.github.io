@@ -4,7 +4,12 @@ Personal site. Astro 6 + Tailwind v4 + MDX, dark-first with a light mode toggle.
 
 ## Quick start
 
+The toolchain is pinned with [mise](https://mise.jdx.dev): `mise install` fetches the Node major CI uses (24) and
+`uv`, `mise.lock` records the exact versions, and `mise tasks` lists the named commands (they call the npm scripts
+below). mise is optional; plain Node 24 and `npm` work the same.
+
 ```bash
+mise install       # once, if you use mise
 npm install
 npm run dev        # http://localhost:4321
 npm run build      # production build → ./dist
