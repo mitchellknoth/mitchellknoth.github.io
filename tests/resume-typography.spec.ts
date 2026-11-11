@@ -106,3 +106,34 @@ test('the Résumé ranges dates and credentials with en dashes, as Work and Abou
   // A spaced hyphen is a range or a title separator written the wrong way; hyphenated words ("AI-assisted") are fine.
   expect(text.match(/\S+ - \S+/g) ?? []).toEqual([]);
 });
+
+// Headed-review defect 15: each experience entry printed "Cloud Software Engineer · John Deere" as its own line under
+// its H2, repeating the intro, and then the period as another line. The role/employer line stays (the agent corpus reads
+// the Résumé entry by entry and it keeps a chunk attached to its employer) but is merged with the period into one line.
+test('each Résumé experience entry carries role, employer and period in exactly one meta line', async ({ page }) => {
+  await settle(page, '/resume/');
+  const entries = await page.evaluate(() =>
+    [...document.querySelectorAll('.resume-entry')].map((entry) => ({
+      heading: entry.querySelector('h2')?.textContent ?? '',
+      metaLines: [...entry.querySelectorAll('.mono-meta')].map((line) => (line.textContent ?? '').replace(/\s+/g, ' ').trim()),
+      // Paragraphs directly under the entry that carry no list, link or meta role, i.e. a bare role/employer line.
+      barePrologue: [...entry.querySelectorAll(':scope > p:not(.mono-meta)')]
+        .map((p) => (p.textContent ?? '').replace(/\s+/g, ' ').trim())
+        .filter((text) => /John Deere|Cloud Software Engineer/.test(text)),
+    })),
+  );
+  expect(entries).toHaveLength(5);
+  for (const entry of entries) {
+    expect(entry.metaLines, entry.heading).toHaveLength(1);
+    expect(entry.metaLines[0], entry.heading).toMatch(/^Cloud Software Engineer · John Deere · .*\d{4}/);
+    expect(entry.barePrologue, entry.heading).toEqual([]);
+  }
+});
+
+test('the merged Résumé meta line wraps only at its separators, never inside the employer or the date range', async ({ page }) => {
+  await settle(page, '/resume/');
+  const rows = await lineOpeners(page, '.resume-entry .mono-meta');
+  expect(rows.length).toBeGreaterThanOrEqual(5);
+  // A line opening on "Deere" means the employer name split; on "early" or "present" or a dash, the range split after its dash.
+  expect(rows.map(({ text, opens }) => `${opens} (in "${text}")`).filter((row) => /^(Deere|early|present|–|·)/i.test(row))).toEqual([]);
+});
