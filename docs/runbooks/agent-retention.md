@@ -16,6 +16,7 @@ the session was created, so a browser stops sending the session name before the 
 | The session object's job queue and alarm | until the session is deleted |
 | Prompts in AI Gateway logs | not stored (`collectLog: false` in `worker/session.ts`) |
 | Blocked IPs in the `guard` object | until each entry's own expiry (`worker/guard.ts`) |
+| The Worker's log lines in Workers Logs (`observability` in `wrangler.jsonc`): per-question phase durations, token counts, outcome and intent verdict; no question, answer, IP or session name; invocation logs and traces are off | the Workers Logs retention for the account's plan; they are separate from the session and are not purged with it |
 
 The clock starts at the first question and later questions don't extend it, so no conversation is held longer than
 the TTL after it began.
