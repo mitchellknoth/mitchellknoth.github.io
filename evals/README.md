@@ -336,22 +336,32 @@ npm run evals:history -- compare 3 4                   # pass rate, per-question
   directory.
 - **Records are committed by pull request.** The `Benchmark` workflow (`.github/workflows/benchmark.yml`)
   runs the question set once against a local copy of the Worker on the runner, exports a record from the
-  scorecard, verifies the chain, and opens a pull request that adds that one file. Merging it is how a record
-  becomes history; nothing is pushed to `main`.
+  scorecard, and opens a pull request that adds that one file. Merging it is how a record becomes history;
+  nothing is pushed to `main`.
   - It runs only when dispatched manually, and only from `main`. Add an event trigger (after a deploy, weekly)
     once a baseline exists and the eval gateway's spend limit is confirmed.
+  - Two jobs, so no step holds both credentials. `evaluate` holds the eval token and can only read the
+    repository. `propose` can push a branch and open the pull request and never sees the token. Neither
+    leaves the checkout token in `.git/config`, and `propose` installs dependencies with scripts off.
+  - A run that stopped early, or had any error or unrun question, is refused rather than recorded. The
+    scorecard artifact has the detail.
   - One benchmark pull request at a time: the run refuses while one labelled `benchmark-record` is open, and
     runs are serialised with a concurrency group. Two pull requests that each add the next record would
     merge cleanly in git but leave a broken chain.
   - Every pull request runs `verify --base` against its base branch (in `Site quality`), so a pull request
     that edits or removes a record fails.
-  - The scorecard, which holds full answers, is a 30-day workflow artifact, not committed.
+  - The scorecard holds full answers, so it is a 30-day workflow artifact and is not committed. On a public
+    repository any signed-in GitHub user can download an artifact.
+  - If the pull request cannot be created (Actions not allowed to), the branch is already pushed and the
+    record is also the run's `record` artifact. A re-run uses a new branch name.
   - Pull requests opened with the workflow token do not start the usual checks. The workflow verifies the
-    chain itself, and a record is data only.
+    chain and the append-only rule itself before pushing. If `main` requires `Site quality`, close and reopen
+    the pull request to run it.
   - Setup, done by the repository owner and not by the workflow: create the environment `cloudflare-evals`
-    restricted to `main` with the secret `CLOUDFLARE_API_TOKEN` (the eval token, see
+    restricted to `main` with the secret `CLOUDFLARE_EVAL_API_TOKEN` (the eval token, see
     [The eval token](#the-eval-token)); set the variable `CLOUDFLARE_ACCOUNT_ID`; allow Actions to create pull
     requests. Create the environment and restrict it before the first run: GitHub creates a missing
-    environment on first use, without a branch rule.
+    environment on first use, without a branch rule. The secret has its own name so that a repository secret
+    called `CLOUDFLARE_API_TOKEN` (the deploy token) can never stand in for it.
   - A Harbor export is run locally for now (`export --harbor`); the Harbor adapter is not part of this
     workflow.

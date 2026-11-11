@@ -22,13 +22,16 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      # Benchmark history is append-only: a pull request may add records, never change or remove one. The ref goes
+      # through env, not into the script, so a branch name cannot inject shell.
+      - name: Check the benchmark history is append-only
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: npm run evals:history -- verify --base "origin/$BASE_REF"
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: Validate design, types, build, and visual contract
         run: npm run quality
-      # Benchmark history is append-only: a pull request may add records, never change or remove one.
-      - name: Check the benchmark history is append-only
-        run: npm run evals:history -- verify --base origin/${{ github.base_ref }}
       - name: Validate public execution lab and download bundle
         run: |
           docker pull python:3.12-alpine
