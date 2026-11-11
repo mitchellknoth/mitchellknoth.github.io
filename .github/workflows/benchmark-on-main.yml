@@ -1,0 +1,41 @@
+name: Benchmark on main
+
+# Runs the reusable Benchmark workflow after a merge to main that can change what the agent answers, so each such
+# merge leaves one record in evals/history/ (as a pull request; nothing is pushed to main). The same workflow can be
+# dispatched by hand: Actions -> Benchmark -> Run workflow.
+#
+# Off until the repository variable BENCHMARK_ON_PUSH is "true", the same way CF_WORKERS_DEPLOY gates the deploy. Set
+# it only after Benchmark's one-time setup (environment cloudflare-evals and its secret; see benchmark.yml) and a
+# first dispatched run have worked: every run costs about 3 cents and goes through the eval gateway's spend limit.
+#
+# The paths are the inputs of an answer: the Worker and its config, the pages the corpus is built from, the question
+# set and the harness. A merge that only changes docs, tests, workflows or the history itself does not run it, which
+# also stops a merged record pull request from starting another run.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - worker/**
+      - wrangler.jsonc
+      - src/**
+      - public/**
+      - scripts/corpus/**
+      - scripts/evals/**
+      - evals/question-set.json
+      - evals/config.json
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    if: vars.BENCHMARK_ON_PUSH == 'true'
+    # A called workflow cannot be given more than the caller grants: these are the ceilings its jobs narrow from.
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: ./.github/workflows/benchmark.yml
