@@ -94,11 +94,12 @@ for (const theme of ['dark', 'light']) {
       }
 
       if (route.startsWith('/writing/') && route !== '/writing/') {
-        const articleImages = page.locator('.article-figure img');
+        // A visual reset is a figure on the dark plate: raster artwork, or a diagram built as live HTML.
         expect(
-          await articleImages.count(),
+          await page.locator('.article-figure').count(),
           'long-form essays must use at least two meaningful visual resets',
         ).toBeGreaterThanOrEqual(2);
+        const articleImages = page.locator('.article-figure img');
 
         for (let index = 0; index < (await articleImages.count()); index += 1) {
           const image = articleImages.nth(index);

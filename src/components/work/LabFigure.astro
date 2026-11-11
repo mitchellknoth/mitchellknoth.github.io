@@ -1,16 +1,428 @@
 ---
-interface Props { name: 'credential-boundary' | 'independent-validation'; alt: string; eager?: boolean; }
-const { name, alt, eager = false } = Astro.props;
-const base = `/images/writing/patch-outside-worker/${name}`;
+// The two Bounded Execution Lab diagrams as live HTML, not SVG files loaded through <img>: every label is real,
+// selectable, translatable text that follows the reader's text size, and the diagram re-flows on a phone instead
+// of shrinking a 1200px drawing to 288px. The figure stays on the shared dark plate (.article-figure in
+// global.css, both themes); its palette comes from the --plate-* tokens defined there.
+//
+// `alt` is the figure's description. It is the visible caption (the old <img alt>), so the words sit beside the
+// diagram and the figure is named from it.
+interface Props {
+  name: 'credential-boundary' | 'independent-validation';
+  alt: string;
+}
+const { name, alt } = Astro.props;
+const captionId = `lab-figure-${name}`;
 ---
-<figure class="article-figure lab-diagram">
-  <picture>
-    <source media="(max-width: 767px)" srcset={`${base}-phone.svg`} width="640" height="900" />
-    <img src={`${base}.svg`} alt={alt} width="1200" height="640" loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : 'auto'} decoding="async" />
-  </picture>
-  <figcaption>{alt}</figcaption>
+
+<figure class={`article-figure lab-diagram lab-diagram--${name}`} aria-labelledby={captionId}>
+  {
+    name === 'credential-boundary' && (
+      <>
+        <div class="lab-flow">
+          <span class="lab-zone" aria-hidden="true" />
+          <p class="lab-zone-label">Internal network · no published ports</p>
+          <div class="lab-node lab-node--worker">
+            <p class="lab-node__title">Worker</p>
+            <p class="lab-node__detail">No upstream token</p>
+          </div>
+          <div class="lab-node lab-node--gateway">
+            <p class="lab-node__title">Gateway</p>
+            <p class="lab-node__detail">One permitted GET route</p>
+          </div>
+          <div class="lab-node lab-node--fixture">
+            <p class="lab-node__title">Fixture upstream</p>
+            <p class="lab-node__detail">Gateway loopback only</p>
+          </div>
+          <div class="lab-feed">
+            <p class="lab-feed__label">Synthetic token injected here</p>
+            <div class="lab-node lab-node--source">
+              <p class="lab-node__title">Synthetic token</p>
+              <p class="lab-node__detail">Gateway environment</p>
+            </div>
+          </div>
+          <span class="lab-rail" aria-hidden="true" />
+        </div>
+        <p class="lab-note">Authorization is injected outside the worker.</p>
+      </>
+    )
+  }
+  {
+    name === 'independent-validation' && (
+      <>
+        <div class="lab-flow">
+          <div class="lab-node lab-node--worker">
+            <p class="lab-node__title">Worker</p>
+            <p class="lab-node__detail">Writable fixture only</p>
+          </div>
+          <div class="lab-node lab-node--scope">
+            <p class="lab-node__title">Host scope check</p>
+            <p class="lab-node__detail">Original bytes + paths</p>
+          </div>
+          <div class="lab-node lab-node--validator">
+            <p class="lab-node__title">Validator</p>
+            <p class="lab-node__detail">Read-only · no network</p>
+          </div>
+          <div class="lab-node lab-node--receipt">
+            <p class="lab-node__title">Receipt + patch</p>
+            <p class="lab-node__detail">Accepted or rejected</p>
+          </div>
+          <div class="lab-feed">
+            <p class="lab-feed__label">Read by the validator</p>
+            <div class="lab-node lab-node--source">
+              <p class="lab-node__title">Frozen tests</p>
+              <p class="lab-node__detail">Outside worker mount</p>
+            </div>
+          </div>
+          <span class="lab-rail" aria-hidden="true" />
+        </div>
+        <p class="lab-note">Worker exits before candidate validation. Nothing is merged or published.</p>
+      </>
+    )
+  }
+  <figcaption id={captionId}>{alt}</figcaption>
 </figure>
+
 <style>
-  .lab-diagram picture img { aspect-ratio: auto; }
-  figcaption { padding: 1rem 1.25rem; color: var(--fg-muted); font-size: 0.9rem; line-height: 1.6; }
+  .lab-diagram {
+    --lab-gap: 2.75rem;
+    --lab-arrow: var(--plate-accent);
+    --lab-line: var(--plate-line);
+  }
+
+  .lab-flow {
+    display: grid;
+    padding: 1.5rem 1.25rem 1.25rem;
+    position: relative;
+    row-gap: var(--lab-gap);
+  }
+
+  /* ---- Nodes ---- */
+  .lab-node {
+    background: var(--plate-node);
+    border: 1px solid var(--lab-line);
+    border-radius: 8px;
+    min-width: 0;
+    padding: 0.9rem 1rem;
+    position: relative;
+    z-index: 1;
+  }
+  .lab-node p {
+    margin: 0;
+    max-width: none;
+  }
+  .lab-node__title {
+    color: var(--plate-ink);
+    font-family: var(--font-sans);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  .lab-node__detail {
+    color: var(--plate-fg);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    margin-top: 0.2rem !important;
+  }
+
+  /* ---- Connectors: one amber line with a head, drawn in the gap after a node ---- */
+  .lab-node--worker::after,
+  .lab-node--scope::after,
+  .lab-node--gateway::after,
+  .lab-node--validator::after,
+  .lab-rail::after,
+  .lab-feed::before {
+    background: var(--lab-arrow);
+    content: '';
+    position: absolute;
+  }
+  .lab-node--worker::before,
+  .lab-node--scope::before,
+  .lab-node--gateway::before,
+  .lab-node--validator::before,
+  .lab-rail::before,
+  .lab-feed::after {
+    border: solid var(--lab-arrow);
+    border-width: 0 3px 3px 0;
+    content: '';
+    height: 0.6rem;
+    position: absolute;
+    width: 0.6rem;
+  }
+
+  .lab-note {
+    border-top: 1px solid var(--lab-line);
+    color: var(--plate-ink);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    margin: 0;
+    max-width: none;
+    padding: 0.9rem 1.25rem 1rem;
+  }
+  .lab-diagram figcaption {
+    border-top: 1px solid var(--lab-line);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    padding: 0.9rem 1.25rem 1rem;
+  }
+  .lab-note + figcaption {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .lab-zone {
+    border: 1.5px dashed var(--lab-line);
+    border-radius: 14px;
+    pointer-events: none;
+  }
+  .lab-zone-label {
+    color: var(--plate-fg);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    margin: 0;
+    max-width: none;
+    z-index: 1;
+  }
+  .lab-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+    position: relative;
+  }
+  .lab-feed__label {
+    color: var(--plate-accent);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.35;
+    margin: 0;
+    max-width: none;
+  }
+  .lab-rail {
+    display: none;
+  }
+
+  /* ================= Wide: chains run left to right ================= */
+  @media (min-width: 640px) {
+    .lab-flow {
+      column-gap: var(--lab-gap);
+    }
+    .lab-node--worker::after,
+    .lab-node--scope::after,
+    .lab-node--gateway::after,
+    .lab-node--validator::after {
+      height: 3px;
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      width: var(--lab-gap);
+    }
+    .lab-node--worker::before,
+    .lab-node--scope::before,
+    .lab-node--gateway::before,
+    .lab-node--validator::before {
+      left: calc(100% + var(--lab-gap) - 0.6rem);
+      top: 50%;
+      transform: translateY(-50%) rotate(-45deg);
+    }
+
+    /* Credential boundary: three nodes in a dashed network; the token feeds the gateway from above. */
+    .lab-diagram--credential-boundary .lab-flow {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-areas:
+        '. feed .'
+        'zl zl zl'
+        'worker gateway fixture';
+      row-gap: 0;
+    }
+    .lab-diagram--credential-boundary .lab-zone {
+      grid-area: 2 / 1 / 4 / 4;
+      margin: 0 -0.85rem -0.85rem;
+    }
+    .lab-diagram--credential-boundary .lab-zone-label {
+      grid-area: zl;
+      margin-bottom: 0.85rem;
+      padding-top: 0.6rem;
+    }
+    .lab-diagram--credential-boundary .lab-node--worker { grid-area: worker; }
+    .lab-diagram--credential-boundary .lab-node--gateway { grid-area: gateway; }
+    .lab-diagram--credential-boundary .lab-node--fixture { grid-area: fixture; }
+    .lab-diagram--credential-boundary .lab-feed {
+      align-items: flex-start;
+      grid-area: feed;
+      margin-bottom: 2.4rem;
+    }
+    /* The connector runs from the token node, past the dashed edge and the zone label, into the gateway.
+       The label sits beside it, in the stretch above the dashed edge. */
+    .lab-diagram--credential-boundary .lab-feed__label {
+      order: 2;
+      position: absolute;
+      top: calc(100% + 0.35rem);
+      left: calc(50% + 0.9rem);
+      white-space: nowrap;
+      z-index: 2;
+    }
+    .lab-diagram--credential-boundary .lab-feed::before {
+      height: calc(2.4rem + 0.6rem + 1.31rem + 0.85rem + 0.35rem);
+      left: 50%;
+      top: calc(100% - 0.35rem);
+      transform: translateX(-50%);
+      width: 3px;
+      z-index: 2;
+    }
+    .lab-diagram--credential-boundary .lab-feed::after {
+      left: 50%;
+      top: calc(100% + 2.4rem + 0.6rem + 1.31rem + 0.85rem - 0.55rem);
+      transform: translateX(-50%) rotate(45deg);
+      z-index: 2;
+    }
+    .lab-diagram--credential-boundary .lab-node--source { width: 100%; }
+
+    /* Independent validation: four nodes in a row; the frozen tests feed the validator from below. */
+    .lab-diagram--independent-validation .lab-flow {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-areas:
+        'worker scope validator receipt'
+        '. . feed .';
+    }
+    .lab-diagram--independent-validation .lab-node--worker { grid-area: worker; }
+    .lab-diagram--independent-validation .lab-node--scope { grid-area: scope; }
+    .lab-diagram--independent-validation .lab-node--validator { grid-area: validator; }
+    .lab-diagram--independent-validation .lab-node--receipt { grid-area: receipt; }
+    .lab-diagram--independent-validation .lab-feed {
+      flex-direction: column-reverse;
+      grid-area: feed;
+    }
+    .lab-diagram--independent-validation .lab-feed::before {
+      bottom: calc(100% - 0.35rem);
+      height: calc(var(--lab-gap) - 0.35rem + 0.35rem);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      z-index: 2;
+    }
+    .lab-diagram--independent-validation .lab-feed::after {
+      bottom: calc(100% + var(--lab-gap) - 0.65rem);
+      left: 50%;
+      transform: translateX(-50%) rotate(-135deg);
+      z-index: 2;
+    }
+    .lab-diagram--independent-validation .lab-feed__label {
+      bottom: calc(100% + 0.65rem);
+      left: calc(50% + 0.9rem);
+      position: absolute;
+      white-space: nowrap;
+    }
+  }
+
+  /* A narrow four-node row: tighter gaps and padding so titles wrap less. */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .lab-diagram {
+      --lab-gap: 2rem;
+    }
+    .lab-node {
+      padding: 0.75rem;
+    }
+  }
+
+  /* ================= Phone: one column, the feed hangs off the node it feeds ================= */
+  @media (max-width: 639px) {
+    .lab-flow {
+      column-gap: 0;
+      grid-template-columns: 2.25rem minmax(0, 1fr);
+      padding: 1.1rem 1rem 1rem;
+    }
+    .lab-node,
+    .lab-zone-label {
+      grid-column: 1 / -1;
+    }
+    .lab-node--worker::after,
+    .lab-node--scope::after,
+    .lab-node--gateway::after,
+    .lab-node--validator::after {
+      height: var(--lab-gap);
+      left: 50%;
+      top: 100%;
+      transform: translateX(-50%);
+      width: 3px;
+    }
+    .lab-node--worker::before,
+    .lab-node--scope::before,
+    .lab-node--gateway::before,
+    .lab-node--validator::before {
+      left: 50%;
+      top: calc(100% + var(--lab-gap) - 0.55rem);
+      transform: translateX(-50%) rotate(45deg);
+    }
+    .lab-zone-label {
+      margin-bottom: -1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* The node that follows the feed needs the connector to travel down the left rail instead. */
+    .lab-diagram--credential-boundary .lab-flow {
+      grid-template-areas:
+        'zl zl'
+        'worker worker'
+        'gateway gateway'
+        'rail feed'
+        'fixture fixture';
+    }
+    .lab-diagram--credential-boundary .lab-zone {
+      grid-area: 1 / 1 / 6 / 3;
+      margin: -0.6rem;
+    }
+    .lab-diagram--credential-boundary .lab-zone-label {
+      grid-area: zl;
+      margin-bottom: -1.5rem;
+    }
+    .lab-diagram--credential-boundary .lab-node--worker { grid-area: worker; }
+    .lab-diagram--credential-boundary .lab-node--gateway { grid-area: gateway; }
+    .lab-diagram--credential-boundary .lab-node--fixture { grid-area: fixture; }
+    .lab-diagram--credential-boundary .lab-node--gateway::after { display: none; }
+    .lab-diagram--credential-boundary .lab-node--gateway::before { display: none; }
+
+    .lab-diagram--independent-validation .lab-flow {
+      grid-template-areas:
+        'worker worker'
+        'scope scope'
+        'validator validator'
+        'rail feed'
+        'receipt receipt';
+    }
+    .lab-diagram--independent-validation .lab-node--worker { grid-area: worker; }
+    .lab-diagram--independent-validation .lab-node--scope { grid-area: scope; }
+    .lab-diagram--independent-validation .lab-node--validator { grid-area: validator; }
+    .lab-diagram--independent-validation .lab-node--receipt { grid-area: receipt; }
+    .lab-diagram--independent-validation .lab-node--validator::after { display: none; }
+    .lab-diagram--independent-validation .lab-node--validator::before { display: none; }
+
+    .lab-feed { grid-area: feed; }
+    .lab-rail {
+      display: block;
+      grid-area: rail;
+      position: relative;
+    }
+    /* Line and head run down the rail from the node above to the node below, across the feed's row. */
+    .lab-rail::after {
+      bottom: calc(-1 * var(--lab-gap));
+      left: 50%;
+      top: calc(-1 * var(--lab-gap));
+      transform: translateX(-50%);
+      width: 3px;
+    }
+    .lab-rail::before {
+      bottom: calc(-1 * var(--lab-gap));
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      z-index: 1;
+    }
+    .lab-feed::before { display: none; }
+    .lab-feed::after { display: none; }
+    .lab-feed__label::before {
+      content: '↑ ';
+    }
+  }
 </style>

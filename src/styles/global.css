@@ -435,6 +435,10 @@ button:focus-visible,
 .content .article-figure {
   --plate-bg: #14110d;
   --plate-fg: #bbae98;
+  --plate-ink: #f4eee1;
+  --plate-node: #211c14;
+  --plate-line: #706654;
+  --plate-accent: #c8973a;
   background: var(--plate-bg);
   border: 1px solid #706654;
   border-radius: 8px;

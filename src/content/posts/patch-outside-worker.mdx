@@ -22,7 +22,7 @@ The worker first reads its task from a synthetic upstream. The upstream requires
 
 Instead, the token lives in a gateway container. The gateway accepts one GET route and supplies authorization to a fixed upstream bound to its own loopback interface. Client URLs and authorization headers are not forwarded. The worker checks that its environment has no token, and that an unknown route and a POST request are denied.
 
-<LabFigure name="credential-boundary" eager alt="A token enters only the gateway environment. The worker accesses one permitted route; the protected fixture upstream is bound to gateway loopback." />
+<LabFigure name="credential-boundary" alt="A token enters only the gateway environment. The worker accesses one permitted route; the protected fixture upstream is bound to gateway loopback." />
 
 The gateway demonstrates a credential boundary. It does not authenticate tenants or provide Git access. Any worker attached to this run's internal network can call the one permitted route.
 
