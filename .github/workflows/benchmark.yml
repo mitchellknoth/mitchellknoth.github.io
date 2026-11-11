@@ -97,11 +97,20 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Node comes from mise.toml and mise.lock (exact version, checksummed), the same pin used locally.
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          node-version: 24
-          cache: npm
+          install_args: node
+          # This job publishes or holds a credential: never restore a cache written by another run (the action's
+          # advice for release jobs). The lockfile still verifies every download.
+          cache: false
+      - name: Cache npm downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
 
       - name: Install dependencies
         run: npm ci
@@ -216,11 +225,20 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Node comes from mise.toml and mise.lock (exact version, checksummed), the same pin used locally.
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          node-version: 24
-          cache: npm
+          install_args: node
+          # This job publishes or holds a credential: never restore a cache written by another run (the action's
+          # advice for release jobs). The lockfile still verifies every download.
+          cache: false
+      - name: Cache npm downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
 
       # Install scripts are off: the history check needs only the parser package, and nothing here should run a
       # dependency's code.

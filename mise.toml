@@ -5,7 +5,8 @@
 # Never put a secret in this file. The eval token is exported in your own shell (see evals/README.md).
 
 [tools]
-# Matches the Node major that .github/workflows run (24). mise.lock records the exact version and checksums.
+# The workflows install Node from this file with jdx/mise-action (install_args: node), so CI and a laptop run the same
+# version. mise.lock records the exact version and checksums.
 node = "24"
 # For the Harbor benchmark spike (#16): `uv tool install harbor`. Not used by the site or the Worker.
 uv = "latest"
