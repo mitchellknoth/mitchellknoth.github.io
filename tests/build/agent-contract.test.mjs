@@ -87,6 +87,18 @@ test('the kill switch and the timing header are explicit "true" or "false" strin
   assert.ok(['true', 'false'].includes(vars.TIMING_HEADER), `TIMING_HEADER is ${JSON.stringify(vars.TIMING_HEADER)}`);
 });
 
+test('Workers Logs keeps the Worker\'s own log lines, with invocation logs and traces off (#16)', () => {
+  const { observability } = readWranglerConfig();
+  assert.equal(observability?.enabled, true, 'Workers Logs must be on so the latency lines can be queried');
+  assert.equal(observability.logs?.enabled, true);
+  assert.equal(
+    observability.logs?.invocation_logs,
+    false,
+    'invocation logs record each request URL and headers; the agent logs only its own content-free lines',
+  );
+  assert.notEqual(observability.traces?.enabled, true, 'traces are not needed and are off by default');
+});
+
 test('agent code makes no public fetch() or connect() calls', () => {
   const sources = workerSources();
   assert.ok(sources.length > 0, 'expected Worker sources under worker/');
