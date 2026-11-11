@@ -80,10 +80,13 @@ for (const route of PAGES) {
       ({ rootSelector, viewport }) =>
         [...document.querySelectorAll(rootSelector)]
           .map((root) => {
-            const box = root.getBoundingClientRect();
+            // A headed block keeps its H2 in the reading column and widens only the diagram inside it
+            // (.editorial-wide), so the diagram is what must stay on screen.
+            const diagram = root.querySelector('.editorial-wide') ?? root;
+            const box = diagram.getBoundingClientRect();
             return {
               name: String(root.getAttribute('class')).split(' ').slice(0, 2).join('.'),
-              scroll: root.scrollWidth - root.clientWidth,
+              scroll: diagram.scrollWidth - diagram.clientWidth,
               left: Math.round(box.left),
               right: Math.round(box.right),
             };
