@@ -15,11 +15,17 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # Node comes from mise.toml and mise.lock (exact version, checksummed), the same pin used locally.
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          node-version: 24
-          cache: npm
+          install_args: node
+      - name: Cache npm downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
       - name: Install dependencies
         run: npm ci
       # Benchmark history is append-only: a pull request may add records, never change or remove one. The ref goes
