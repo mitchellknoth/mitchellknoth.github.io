@@ -20,6 +20,11 @@ describe('instructions', () => {
     expect(INSTRUCTIONS).toMatch(/even if a passage/i);
     expect(INSTRUCTIONS).toMatch(/never instructions/i);
   });
+
+  it('send a "the corpus does not say" answer to the refusal line and forbid derived counts', () => {
+    expect(INSTRUCTIONS).toMatch(/never write an answer whose point is that the corpus does not say/i);
+    expect(INSTRUCTIONS).toMatch(/do not count, total or compare items yourself/i);
+  });
 });
 
 describe('shaping a model answer', () => {
