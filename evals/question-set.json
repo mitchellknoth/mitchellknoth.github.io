@@ -319,10 +319,10 @@
       "question": "By what percentage did Redis caching speed up the main data endpoints in the Engineering Evidence project?",
       "expected": {
         "sources": [
-          "project/agentic-engineering#delivered-result-and-ownership"
+          "project/agentic-engineering#status-and-limitations"
         ]
       },
-      "notes": "Unsure: the site says \"substantially faster\" and that figures are not published. I expect an answer that says so; a not-in-corpus refusal is arguable."
+      "notes": "Unsure: the site says \"substantially faster\" and that figures are not published. I expect an answer that says so; a not-in-corpus refusal is arguable. Expected source changed from #delivered-result-and-ownership to #status-and-limitations (#17 triage, awaiting Mitch's sign-off): both runs gave the right answer and cited the latter, which states the improvement is unmeasured publicly."
     },
     {
       "id": "numeric-trap-005",
